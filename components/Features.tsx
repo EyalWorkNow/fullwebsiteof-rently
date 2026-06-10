@@ -7,7 +7,7 @@ import {
 } from "iconsax-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.09 } } };
-const card = { hidden: { opacity: 0, y: 28 }, show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] } } };
+const card = { hidden: { opacity: 0, y: 28 }, show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] as [number,number,number,number] } } };
 
 export default function Features() {
   return (

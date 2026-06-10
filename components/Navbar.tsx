@@ -53,7 +53,7 @@ export default function Navbar() {
     <motion.nav
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.65, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={{ duration: 0.65, ease: [0.25, 0.46, 0.45, 0.94] as [number,number,number,number] }}
       className="fixed top-4 right-4 left-4 z-50 rounded-2xl transition-all duration-500"
       style={{
         maxWidth: 1152, margin: "16px auto",

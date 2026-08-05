@@ -81,9 +81,9 @@ export default function PropertyCard({
       onKeyDown={(e) => e.key === 'Enter' && onSelect?.()}
       className="w-[340px] shrink-0 cursor-pointer overflow-hidden rounded-[28px] border border-border-app bg-white card-shadow transition duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(7,41,70,0.10)] active:scale-[0.97]"
     >
-      {/* Media block — 5px inset, inner radius 24px */}
-      <div className="p-[5px]">
-        <div className="relative aspect-[1.84] overflow-hidden rounded-3xl">
+      {/* Media block — 4px inset, inner radius 22px */}
+      <div className="p-1">
+        <div className="relative aspect-[2.1] overflow-hidden rounded-[22px]">
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={img} alt={addressLabel(property)} className="absolute inset-0 h-full w-full object-cover" />
@@ -94,22 +94,22 @@ export default function PropertyCard({
           )}
 
           {/* Actions — physical bottom-left */}
-          <div className="absolute bottom-[10px] left-[10px] flex flex-row gap-2">
+          <div className="absolute bottom-2 left-2 flex flex-row gap-2">
             <button
               type="button"
               aria-label={saved ? 'הסרה מהשמורים' : 'שמירה'}
               onClick={toggleSaved}
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white badge-shadow"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-white badge-shadow"
             >
-              <Heart size={17} variant={saved ? 'Bold' : 'Linear'} color={saved ? '#FF5A67' : '#072946'} />
+              <Heart size={15} variant={saved ? 'Bold' : 'Linear'} color={saved ? '#FF5A67' : '#072946'} />
             </button>
             <button
               type="button"
               aria-label="שיתוף"
               onClick={share}
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white badge-shadow"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-white badge-shadow"
             >
-              <Send2 size={17} color="#072946" />
+              <Send2 size={15} color="#072946" />
             </button>
           </div>
         </div>
@@ -119,10 +119,10 @@ export default function PropertyCard({
           1) price (start) · broker tag (end)
           2) type · rooms · size
           3) address */}
-      <div className="px-3 pt-2 pb-4">
+      <div className="px-3 pt-2 pb-3">
         {/* Row 1 */}
         <div className="flex items-center justify-between gap-3">
-          <div className="whitespace-nowrap text-[18px] font-black text-navy">{priceLabel(property)}</div>
+          <div className="whitespace-nowrap text-[17px] font-black text-navy">{priceLabel(property)}</div>
           {isBroker && (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary-light2 px-2.5 py-1 text-[11px] font-extrabold text-primary">
               <Briefcase size={12} color="#2563EB" variant="Bold" />
@@ -132,19 +132,19 @@ export default function PropertyCard({
         </div>
 
         {/* Row 2 — type · rooms · size */}
-        <div className="no-scrollbar mt-2.5 flex flex-row gap-2 overflow-x-auto">
-          <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F1F5F9] px-3 py-2 text-[12px] font-bold text-navy">
+        <div className="no-scrollbar mt-2 flex flex-row gap-1.5 overflow-x-auto">
+          <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy">
             <Building size={14} color="#072946" />
             {property.propertyType || 'דירה'}
           </span>
           {property.rooms != null && (
-            <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F1F5F9] px-3 py-2 text-[12px] font-bold text-navy">
+            <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy">
               <Home2 size={14} color="#072946" />
               {property.rooms} חדרים
             </span>
           )}
           {property.sizeM2 != null && (
-            <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F1F5F9] px-3 py-2 text-[12px] font-bold text-navy">
+            <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy">
               <Maximize4 size={14} color="#072946" />
               {property.sizeM2} מ״ר
             </span>
@@ -152,7 +152,7 @@ export default function PropertyCard({
           {plainTags.map((tag) => (
             <span
               key={tag}
-              className="shrink-0 whitespace-nowrap rounded-xl bg-[#F1F5F9] px-3 py-2 text-[12px] font-bold text-navy"
+              className="shrink-0 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy"
             >
               {tag}
             </span>
@@ -160,7 +160,7 @@ export default function PropertyCard({
         </div>
 
         {/* Row 3 — address (city kept as a muted suffix on the same line) */}
-        <div className="mt-2.5 truncate text-[15px] font-black text-navy">
+        <div className="mt-2 truncate text-[14px] font-black text-navy">
           {addressLabel(property)}
           {cityLabel(property) && (
             <span className="mr-1.5 text-[12px] font-semibold text-secondary-text">
@@ -171,7 +171,7 @@ export default function PropertyCard({
 
         {/* Geo tags */}
         {geoTags.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {geoTags.map(([GeoIcon, label]) => (
               <span
                 key={label}

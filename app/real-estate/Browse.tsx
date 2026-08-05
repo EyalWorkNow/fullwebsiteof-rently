@@ -146,9 +146,9 @@ export default function Browse() {
   const queryPending = queryInput.trim() !== filters.query.trim()
 
   const grid = loading ? (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-[360px] animate-pulse rounded-[28px] bg-cloud" />
+        <div key={i} className="h-[290px] animate-pulse rounded-[28px] bg-cloud" />
       ))}
     </div>
   ) : visible.length === 0 ? (
@@ -168,10 +168,8 @@ export default function Browse() {
     </div>
   ) : (
     // Same card as the home page (PropertyCard); its root is a fixed-width
-    // carousel item, so stretch it to the grid cell. auto-fill sizes columns
-    // from the ACTUAL column width — no breakpoint guessing when the filter
-    // panel opens/closes or the map column changes the available space.
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-start gap-5">
+    // carousel item, so stretch it to the grid cell.
+    <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {visible.map((p) => (
         <a
           key={p.id}

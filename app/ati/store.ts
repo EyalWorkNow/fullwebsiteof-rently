@@ -3,12 +3,32 @@
 //   [{ id, title, createdAt, messages: [{ role: 'user'|'ati', text, listingIds?, deep? }] }]
 
 export interface AtiMessage {
+  /** Stable id so the background personalization pass can swap a bubble in place. */
+  id?: string
   role: 'user' | 'ati'
   text: string
   /** Property ids to render as an inline card carousel (resolved at render time). */
   listingIds?: string[]
   /** true = the backend "מעמיקה" follow-up (vs. the instant local engine). */
   deep?: boolean
+  /**
+   * Interview question bank key (personalization mode). Mirrors the app's
+   * `_interviewAsked` set — its presence in the transcript is what stops אתי
+   * ever repeating a question, and caps the interview at 3.
+   */
+  interviewKey?: string
+  /** The interview question's short "why we ask" line (rendered muted). */
+  why?: string
+  /** Quick-answer chips rendered under the bubble (tap = send). */
+  chips?: string[]
+  /** propertyId → the verification gate's label ("כ-12 ק״מ מ…" / "מעט מעל התקציב"). */
+  notes?: Record<string, string>
+  /** propertyId → the backend explainer's per-result reason (personalization). */
+  explanations?: Record<string, string>
+}
+
+export function newMessageId(): string {
+  return `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
 }
 
 export interface AtiConversation {

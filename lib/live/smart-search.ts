@@ -1068,7 +1068,7 @@ function enabledFeatureKeys(p: Property): Set<string> {
 }
 
 /** Port of propertyHasFeature (feature_engineering.dart) — accepts feat_* keys. */
-function propertyHasFeature(p: Property, key: string): boolean {
+export function propertyHasFeature(p: Property, key: string): boolean {
   const canonical = FEAT_ALIAS_TO_CATALOG_KEY[key] ?? key
   return enabledFeatureKeys(p).has(canonical)
 }
@@ -1639,7 +1639,7 @@ function areaCharacter(neighborhood: string, city: string): AreaChar | null {
 }
 
 // Port of search_chat_screen._religiosityBoost + _rankByLifestyle (0.18 factor).
-function rankByLifestyle(input: ScoredWebProperty[], rawText: string): ScoredWebProperty[] {
+export function rankByLifestyle(input: ScoredWebProperty[], rawText: string): ScoredWebProperty[] {
   const rel = detectReligiosity(rawText)
   if (rel === null) return input
   const boost = (p: Property): number => {
@@ -1739,4 +1739,114 @@ export function describeQuery(q: ParsedQuery): string {
   if (q.cheapPreference) parts.push('🏷️ הכי משתלם')
   for (const a of q.amenities) parts.push(amenityTag(a))
   return parts.join('  ·  ')
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// cohortSignals — verbatim port of SmartSearch.cohortSignals (smart_search.dart
+// :1520). Persona/cohort signals mined from the WHOLE conversation text and sent
+// to the backend `resolveCohort` so the 14-cohort taxonomy + community_fit engage.
+// Same keyword tables, same key names, same order of precedence. Do not "improve".
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function cohortSignals(rawText: string): Record<string, string> {
+  const t = rawText.toLowerCase()
+  const has = (ws: string[]) => ws.some((w) => t.includes(w))
+  const s: Record<string, string> = {}
+
+  // "בלי / ללא / אין ילדים" negates children — otherwise the ילד* substring
+  // (also inside ילדים) mis-tags a childless couple as a family with kids.
+  const noKids = /(?:בלי|ללא|אין|בלא)\s*ילד/.test(t)
+
+  // household (also gates charedi/dati_leumi split, which needs family context)
+  if (has(['משפח', 'family']) || (!noKids && has(['ילדים', 'ילד ', 'הילד', 'children', 'kids']))) {
+    s.household = 'family'
+  } else if (has(['סטודנט', 'שותפים', 'student', 'roommate'])) {
+    s.household = 'student'
+  } else if (has(['זוג', 'couple', 'בן/בת זוג'])) {
+    s.household = 'couple'
+  } else if (has(['רווק', 'רווקה', 'לבד', 'single', 'solo'])) {
+    s.household = 'single'
+  }
+
+  // religiosity → stream (charedi vs dati_leumi have OPPOSITE school needs).
+  // NB: a CITY name (בני ברק) is NOT a religiosity signal.
+  if (has(['חרדי', 'חרדית', 'חיידר', 'תלמוד תורה', 'haredi', 'charedi'])) {
+    s.religiousStream = 'charedi'
+    s.isReligious = 'true'
+  } else if (has(['דתי לאומי', 'דתיה לאומית', 'סרוג', 'אולפנה', 'ישיבה תיכונית', 'dati leumi'])) {
+    s.religiousStream = 'dati_leumi'
+    s.isReligious = 'true'
+  } else if (has(['דתי', 'דתיה', 'שומר שבת', 'בית כנסת', 'religious', 'synagogue', 'kosher'])) {
+    s.isReligious = 'true'
+  }
+
+  // sector (Arabic listing pools / school proximity)
+  if (has(['ערבי', 'ערבית', 'عرب', 'الناصرة', 'مدرسة'])) s.sector = 'arab'
+
+  // oleh / language preference
+  if (has(['עולה', 'עולה חדש', 'immigrant', 'oleh', 'olah', 'aliyah', 'new to israel'])) {
+    s.isOleh = 'true'
+  }
+  if (has(['english speaker', 'english speaking', 'english-speaking', 'דובר אנגלית', 'אנגלית'])) {
+    s.langPref = 'en'
+  }
+  if (has(['דובר צרפתית', 'french speaker', 'צרפתית'])) s.langPref = 'fr'
+
+  // children / life-stage timing ("בלי ילדים" already negated via noKids)
+  if (!noKids && has(['ילד', 'ילדים', 'kids', 'children'])) s.hasChildren = 'true'
+  if (has(['בהריון', 'הריון', 'pregnant', 'expecting', 'תינוק בדרך'])) s.expecting = 'true'
+  if (has(['תינוק', 'רך נולד', 'baby', 'newborn'])) {
+    s.hasChildren = 'true'
+    s.childAge = '1'
+  }
+
+  // mobility / work
+  if (has(['בלי רכב', 'ללא רכב', 'אין לי רכב', 'אין רכב', 'no car', 'car-free', 'תחבורה ציבורית'])) {
+    s.carFree = 'true'
+  }
+  if (has(['עובד מהבית', 'עבודה מהבית', 'מהבית', 'wfh', 'work from home', 'remote work', 'חדר עבודה'])) {
+    s.wfh = 'true'
+  }
+
+  // accessibility → senior/accessible cohort
+  if (
+    has(['נגיש', 'נגישות', 'כיסא גלגלים', 'כסא גלגלים', 'נכה', 'wheelchair',
+      'accessible', 'disabled', 'קושי בהליכה', 'מתקשה ללכת', 'הליכון', 'צולע'])
+  ) {
+    s.accessibilityNeed = 'true'
+  }
+
+  // life stage. "מבוגר/ת" is a very common elderly self-description.
+  if (has(['סטודנט', 'סטודנטית', 'student'])) s.lifeStage = 'student'
+  if (
+    has(['גמלאי', 'פנסיונר', 'פנסיונרית', 'קשיש', 'מבוגר', 'מבוגרת',
+      'בגיל השלישי', 'גיל הפרישה', 'retired', 'senior', 'pensioner', 'elderly'])
+  ) {
+    s.lifeStage = 'senior'
+  }
+  // explicit age ("בן 72" / "age 72"). Guard against a BUILDING's age.
+  const ageM = /(?:בן|בת|גיל|age)\s*(\d{2,3})/.exec(t)
+  if (ageM) {
+    const start = ageM.index
+    const before = t.slice(Math.max(0, start - 8), start)
+    if (!/בניין|בית|מבנה|דירה|נכס/.test(before)) s.age = ageM[1]
+  }
+
+  // intent
+  if (has(['משקיע', 'השקעה', 'תשואה', 'investor', 'investment', 'yield', 'לקנייה', 'לקנות', 'רכישה'])) {
+    s.isInvestor = 'true'
+    s.intent = 'investment'
+  }
+
+  // vibe (soft neighbourhood-vibrancy target the backend cohort reads)
+  if (has(['תוסס', 'חיי לילה', 'nightlife', 'vibrant', 'לב העיר', 'במרכז'])) {
+    s.vibe = 'תוסס'
+  } else if (has(['שקט', 'quiet', 'רגוע', 'peaceful'])) {
+    s.vibe = 'שקט'
+  } else if (s.household === 'family') {
+    s.vibe = 'משפחתי'
+  } else if (s.lifeStage === 'student') {
+    s.vibe = 'סטודנטיאלי'
+  }
+  return s
 }

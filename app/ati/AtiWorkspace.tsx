@@ -1,15 +1,78 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Add, CloseCircle, Edit2, HambergerMenu, MagicStar, Send2, Trash } from 'iconsax-react'
+// אתי on the web — the SAME two modes and the same brain as the app's
+// SearchChatScreen (search_chat_screen.dart):
+//
+//   ⚡ מהיר (immediate)        — purely on-device. parse → rank → reply, instantly.
+//   🎯 מותאם אישית (default)   — a short guided interview (≤3 adaptive questions,
+//                               each with its "why"), then progressive rendering:
+//                               instant local results FIRST, then a background
+//                               upgrade (enrich → backend cohort rank → lifestyle
+//                               filter/rank → verification gate → warm reply →
+//                               per-result explanations) swapped in quietly.
+//
+// Progressive rendering is ALWAYS on. Every network step is fail-soft — a failing
+// step must never blank the results already on screen.
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Add,
+  CloseCircle,
+  Edit2,
+  Flash,
+  HambergerMenu,
+  MagicStar,
+  Magicpen,
+  Send2,
+  Trash,
+} from 'iconsax-react'
 import { fetchProperties, type PropertiesResult } from '@/lib/live/api'
-import { buildReply, parseQuery, rankProperties } from '@/lib/live/smart-search'
+import {
+  buildReply,
+  queryIsEmpty,
+  rankByLifestyle,
+  type ParsedQuery,
+  type ScoredWebProperty,
+} from '@/lib/live/smart-search'
+import {
+  INTERVIEW_INTRO,
+  MAX_INTERVIEW_QUESTIONS,
+  REFINE_NO,
+  REFINE_YES,
+  SKIP_CHIP,
+  applyLifestyle,
+  applyLifestyleFilter,
+  clarifyingPrompt,
+  cohortRanked,
+  conversationQuery,
+  ettiEnrich,
+  fetchExplanations,
+  howIChoseFallback,
+  instantReply,
+  loadImmediateMode,
+  localAck,
+  localReply,
+  localSearch,
+  lifestyleNote,
+  nearbySameFilters,
+  nextInterviewQuestion,
+  personaFrom,
+  queryIsRich,
+  refineChips,
+  refinePromptChips,
+  saveImmediateMode,
+  serverReply,
+  verifyResults,
+  warmFallback,
+  wantsResultsNow,
+  type Persona,
+} from '@/lib/live/personalize'
 import type { ChatTurn, Property } from '@/lib/live/types'
 import PropertyCard from '@/components/keyz/PropertyCard'
-import { deepAssistantSearch } from './assistant'
 import {
   loadConversations,
   newConversationId,
+  newMessageId,
   relativeDate,
   saveConversations,
   titleFromText,
@@ -31,6 +94,8 @@ const CHIPS = [
   '4 חדרים מרוהטת בגבעתיים',
 ]
 
+const LIFESTYLE_NOTE_PREFIX = 'שמתי לב לכמה דברים:'
+
 function AtiAvatar({ size = 32 }: { size?: number }) {
   return (
     <span
@@ -39,6 +104,38 @@ function AtiAvatar({ size = 32 }: { size?: number }) {
     >
       <MagicStar size={Math.round(size * 0.55)} variant="Bold" color="currentColor" className="text-primary" />
     </span>
+  )
+}
+
+/** Web port of SpeedModeSlider — two pills, מותאם אישית then מהיר (same order). */
+function SpeedModeToggle({
+  immediate,
+  onChange,
+}: {
+  immediate: boolean
+  onChange: (v: boolean) => void
+}) {
+  const seg = (selected: boolean) =>
+    `flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] transition ${
+      selected
+        ? 'bg-primary font-black text-white shadow-sm'
+        : 'font-bold text-secondary-text hover:text-navy'
+    }`
+  return (
+    <div
+      role="group"
+      aria-label="מצב חיפוש"
+      className="flex w-[260px] max-w-full items-center gap-1 rounded-full border border-border-app bg-cloud p-1"
+    >
+      <button type="button" onClick={() => onChange(false)} className={seg(!immediate)} aria-pressed={!immediate}>
+        <Magicpen size={15} variant="Bold" color="currentColor" />
+        מותאם אישית
+      </button>
+      <button type="button" onClick={() => onChange(true)} className={seg(immediate)} aria-pressed={immediate}>
+        <Flash size={15} variant="Bold" color="currentColor" />
+        מהיר
+      </button>
+    </div>
   )
 }
 
@@ -52,15 +149,20 @@ export default function AtiWorkspace() {
   const [renameText, setRenameText] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deepBusyConvId, setDeepBusyConvId] = useState<string | null>(null)
+  // Speed mode — global (the app shares it between chat and voice), persisted.
+  const [immediate, setImmediate] = useState(false)
 
   // id → Property cache for resolving message listingIds into cards.
   const propsMapRef = useRef<Map<string, Property>>(new Map())
   const [, setPropsVersion] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Rotating indices for the local reply openers / warm fallback lines.
+  const openerIdxRef = useRef(0)
 
   // ── Bootstrapping ──────────────────────────────────────────────────────────
   useEffect(() => {
     setConversations(loadConversations())
+    setImmediate(loadImmediateMode())
     setLoaded(true)
     // Warm the property cache so the first send is instant and old
     // conversations can resolve their listingIds into cards.
@@ -77,7 +179,8 @@ export default function AtiWorkspace() {
 
   const active = conversations.find((c) => c.id === activeId) ?? null
 
-  // Auto-scroll to the newest message.
+  // Auto-scroll to the newest message. The background upgrade swaps bubbles in
+  // place (no new messages), so it never causes a scroll jump.
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
@@ -90,9 +193,21 @@ export default function AtiWorkspace() {
     setPropsVersion((v) => v + 1)
   }, [])
 
-  const appendMessage = useCallback((convId: string, msg: AtiMessage) => {
+  const appendMessages = useCallback((convId: string, msgs: AtiMessage[]) => {
+    if (msgs.length === 0) return
     setConversations((prev) =>
-      prev.map((c) => (c.id === convId ? { ...c, messages: [...c.messages, msg] } : c)),
+      prev.map((c) => (c.id === convId ? { ...c, messages: [...c.messages, ...msgs] } : c)),
+    )
+  }, [])
+
+  /** In-place bubble update — the quiet swap the app's _upgradeSearch performs. */
+  const patchMessage = useCallback((convId: string, msgId: string, patch: Partial<AtiMessage>) => {
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === convId
+          ? { ...c, messages: c.messages.map((m) => (m.id === msgId ? { ...m, ...patch } : m)) }
+          : c,
+      ),
     )
   }, [])
 
@@ -120,65 +235,366 @@ export default function AtiWorkspace() {
     setRenameText('')
   }
 
-  // ── Engine: instant local answer + background backend deepening ───────────
+  const changeMode = (v: boolean) => {
+    setImmediate(v)
+    saveImmediateMode(v)
+  }
+
+  // Decorate a scored result with the engine's tags, exactly as fast mode does,
+  // so the cards look identical whichever pass produced them.
+  const decorate = useCallback(
+    (scored: ScoredWebProperty[]): Property[] =>
+      scored.map((r) => ({
+        ...r.property,
+        smartTags: [...r.tags, ...(r.property.smartTags ?? [])],
+      })),
+    [],
+  )
+
+  // ── The background personalisation upgrade (port of _upgradeSearch) ────────
+  // ORDER (and its fail-soft try/catch behaviour) mirrors the Dart exactly:
+  //   enrich → cohort-ranked (limit 40) → lifestyle filter + lifestyle rank →
+  //   verification gate → warm server reply → per-result explanations → swap.
+  const upgradeSearch = useCallback(
+    async (ctx: {
+      convId: string
+      text: string
+      query: ParsedQuery
+      persona: Persona
+      conversationText: string
+      catalogue: Property[]
+      localResults: ScoredWebProperty[]
+      historyTurns: ChatTurn[]
+      searched: boolean
+      userTurns: number
+      resultsMsgId: string
+      howChoseMsgId: string
+      replyMsgId: string | null
+    }) => {
+      let query = ctx.query
+      try {
+        query = await ettiEnrich(ctx.text, query)
+      } catch {
+        // graceful — the on-device query already stands
+      }
+
+      let upgraded: ScoredWebProperty[] = []
+      let notes: Record<string, string> = {}
+      try {
+        // The same anti-hallucination gate the INSTANT path applies — otherwise
+        // the server-ranked swap-in could reintroduce geo-far / over-budget flats
+        // the instant results had already filtered out.
+        const cohort = await cohortRanked({
+          query,
+          conversationText: ctx.conversationText,
+          persona: ctx.persona,
+          catalogue: ctx.catalogue,
+          limit: 40,
+        })
+        const verified = verifyResults(
+          rankByLifestyle(
+            applyLifestyleFilter(cohort, ctx.persona),
+            ctx.conversationText,
+          ).slice(0, 10),
+          query,
+          ctx.catalogue,
+        )
+        upgraded = verified.results
+        notes = verified.notes
+      } catch {
+        upgraded = []
+        notes = {}
+      }
+
+      const sr = await serverReply(ctx.historyTurns)
+      const warm =
+        sr?.reply ??
+        localReply({
+          query,
+          lastUserText: ctx.text,
+          conversationText: ctx.conversationText,
+          persona: ctx.persona,
+          searched: ctx.searched,
+          userTurns: ctx.userTurns,
+          openerIdx: openerIdxRef.current++,
+        }) ??
+        warmFallback(openerIdxRef.current)
+
+      // Quiet swap: a failed cohort pass keeps whatever is already on screen.
+      const final = upgraded.length > 0 ? upgraded : ctx.localResults
+      if (upgraded.length > 0) {
+        mergeProps(decorate(upgraded))
+        patchMessage(ctx.convId, ctx.resultsMsgId, {
+          listingIds: upgraded.map((r) => r.property.id),
+          notes,
+          deep: true,
+        })
+      }
+      if (warm && ctx.replyMsgId) patchMessage(ctx.convId, ctx.replyMsgId, { text: warm })
+
+      if (final.length > 0) {
+        const exp = await fetchExplanations(final, query)
+        if (exp) {
+          if (exp.howIChose) patchMessage(ctx.convId, ctx.howChoseMsgId, { text: exp.howIChose })
+          if (Object.keys(exp.perProperty).length > 0) {
+            patchMessage(ctx.convId, ctx.resultsMsgId, { explanations: exp.perProperty })
+          }
+        }
+      }
+    },
+    [decorate, mergeProps, patchMessage],
+  )
+
+  // ── Engine: mode gate → instant on-device answer → background upgrade ──────
   const send = useCallback(
     async (raw: string) => {
       const text = raw.trim()
       if (!text) return
       setInput('')
 
-      // Snapshot prior turns BEFORE appending (for the backend history).
+      // Snapshot prior turns BEFORE appending.
       const prior = conversations.find((c) => c.id === activeId)
       let convId = activeId
       if (!convId || !prior) {
         convId = createConversation(titleFromText(text))
       } else if (prior.messages.length === 0) {
-        // First message names the conversation.
         setConversations((prev) =>
           prev.map((c) => (c.id === convId ? { ...c, title: titleFromText(text) } : c)),
         )
       }
-      appendMessage(convId, { role: 'user', text })
+      const priorMessages = prior?.messages ?? []
+      appendMessages(convId, [{ id: newMessageId(), role: 'user', text }])
 
-      // (a) LOCAL engine — instant.
-      const { items } = await ensureProperties()
-      const parsed = parseQuery(text)
-      const ranked = rankProperties(parsed, items, 8)
-      const localReply = buildReply(parsed, ranked)
-      mergeProps(
-        ranked.map((r) => ({ ...r.property, smartTags: [...r.tags, ...(r.property.smartTags ?? [])] })),
+      // Accumulated conversation state — the web's stand-in for the app's
+      // _query / _persona / _searched / _interviewAsked fields.
+      const userTexts = [...priorMessages.filter((m) => m.role === 'user').map((m) => m.text), text]
+      const conversationText = userTexts.join(' ')
+      const persona = personaFrom(conversationText)
+      const query = applyLifestyle(conversationQuery(userTexts), persona)
+      const searched = priorMessages.some((m) => (m.listingIds?.length ?? 0) > 0)
+      const asked = new Set(
+        priorMessages.map((m) => m.interviewKey).filter((k): k is string => !!k),
       )
-      appendMessage(convId, {
-        role: 'ati',
-        text: localReply,
-        listingIds: ranked.length ? ranked.map((r) => r.property.id) : undefined,
-      })
+      const userTurns = userTexts.length
 
-      // (b) BACKEND — the real conversational brain, in the background.
-      const turns: ChatTurn[] = [...(prior?.messages ?? []), { role: 'user' as const, text }]
-        .slice(-10)
-        .map((m) => ({ role: m.role === 'user' ? ('user' as const) : ('assistant' as const), text: m.text }))
-      setDeepBusyConvId(convId)
-      deepAssistantSearch(turns)
-        .then((res) => {
-          if (!res || res.reply === localReply) return
-          if (res.listings.length) mergeProps(res.listings)
-          appendMessage(convId!, {
+      // MODE: fast → search instantly. Personalization → a short guided INTERVIEW
+      // (≤3 adaptive questions, each with a "why") BEFORE searching. The user can
+      // cut it short any time ("תראי לי כבר").
+      let shouldSearch: boolean
+      if (immediate) {
+        shouldSearch =
+          !queryIsEmpty(query) &&
+          (searched || wantsResultsNow(text) || userTurns >= 2 || queryIsRich(query))
+      } else {
+        const nextQ = searched ? null : nextInterviewQuestion(query, conversationText, persona, asked)
+        const wantsNow = wantsResultsNow(text) && asked.size >= 1
+        const interviewDone = searched || asked.size >= MAX_INTERVIEW_QUESTIONS || nextQ === null
+        if (!queryIsEmpty(query) && (interviewDone || wantsNow)) {
+          shouldSearch = true
+        } else if (nextQ) {
+          // Ask the next question (with its "why") instead of searching yet.
+          const intro = asked.size === 0 ? INTERVIEW_INTRO : ''
+          const chips = asked.size >= 1 ? [...nextQ.chips, SKIP_CHIP] : nextQ.chips
+          appendMessages(convId, [
+            {
+              id: newMessageId(),
+              role: 'ati',
+              text: `${intro}${nextQ.q}`,
+              why: nextQ.why,
+              chips,
+              interviewKey: nextQ.key,
+            },
+          ])
+          return
+        } else {
+          shouldSearch = !queryIsEmpty(query)
+        }
+      }
+
+      // ⚡ INSTANT — rank ON-DEVICE right now (no network, no LLM).
+      const { items } = await ensureProperties()
+      let results: ScoredWebProperty[] = []
+      let notes: Record<string, string> = {}
+      if (shouldSearch) {
+        const verified = localSearch(query, items, persona, conversationText)
+        results = verified.results
+        notes = verified.notes
+      }
+      let anyExact = results.some((r) => r.exact)
+
+      // ANTI-HALLUCINATION: nothing matched exactly → look within 10km of the
+      // city with the SAME filters and say clearly they're only nearby.
+      let widenNote: string | null = null
+      if (shouldSearch && results.length === 0) {
+        const nearby = nearbySameFilters(query, items, persona)
+        if (nearby.length > 0) {
+          results = nearby
+          notes = {}
+          anyExact = results.some((r) => r.exact)
+          const city = query.city?.trim() || 'שם'
+          widenNote =
+            `לא מצאתי דירות שעונות בדיוק לבקשה ב${city} עם הסינונים האלה — ` +
+            `אבל אלה עד 10 ק"מ מ${city}, עם אותם סינונים בדיוק (לא רחוק!)`
+        }
+      }
+
+      const replyText = instantReply(shouldSearch, results, anyExact)
+      const out: AtiMessage[] = []
+      const replyMsgId = replyText ? newMessageId() : null
+      if (replyMsgId) out.push({ id: replyMsgId, role: 'ati', text: replyText })
+
+      let resultsMsgId: string | null = null
+      let howChoseMsgId: string | null = null
+
+      if (shouldSearch) {
+        if (results.length === 0) {
+          // Honest — nothing matched, not even within 10km with the same filters.
+          const city = query.city?.trim() || 'האזור הזה'
+          const chips: string[] = []
+          if (query.city) chips.push(`אזור ${query.city}`)
+          if (query.maxPrice !== null) chips.push(`עד ${Math.round(query.maxPrice * 1.2)} ₪`)
+          out.push({
+            id: newMessageId(),
             role: 'ati',
-            text: res.reply,
-            listingIds: res.listings.length ? res.listings.map((p) => p.id) : undefined,
-            deep: true,
+            text:
+              `לא מצאתי דירות שעונות לבקשה ב${city} עם הסינונים האלה 😕\n` +
+              'אפשר להרחיב את האזור, להעלות תקציב או להוריד סינונים כדי למצוא אופציות מתאימות.',
+            chips,
           })
+        } else {
+          if (widenNote) out.push({ id: newMessageId(), role: 'ati', text: `${widenNote} 👇` })
+          // Let the user know a lifestyle constraint shaped the results (once).
+          const noteShown = priorMessages.some((m) => m.text.startsWith(LIFESTYLE_NOTE_PREFIX))
+          const note = noteShown ? null : lifestyleNote(persona)
+          if (note) out.push({ id: newMessageId(), role: 'ati', text: note })
+          // Transparency header: "how I chose these" — the engine's fallback now,
+          // upgraded to the backend explainer's version in the background.
+          howChoseMsgId = newMessageId()
+          out.push({ id: howChoseMsgId, role: 'ati', text: howIChoseFallback(results) })
+          resultsMsgId = newMessageId()
+          out.push({
+            id: resultsMsgId,
+            role: 'ati',
+            text: buildReply(query, results),
+            listingIds: results.map((r) => r.property.id),
+            notes,
+            chips: refinePromptChips(query),
+          })
+          mergeProps(decorate(results))
+        }
+      } else {
+        // Not enough to search yet → ask the single most useful missing detail;
+        // otherwise never leave her silent.
+        const clarify = clarifyingPrompt(query)
+        if (clarify) {
+          out.push({ id: newMessageId(), role: 'ati', text: clarify.text, chips: clarify.chips })
+        } else if (!replyText) {
+          out.push({ id: newMessageId(), role: 'ati', text: localAck(query) })
+        }
+      }
+
+      appendMessages(convId, out)
+
+      // 🎯 BACKGROUND personalisation — the instant results are already on screen.
+      // Skipped entirely in fast mode (purely on-device, nothing to wait for).
+      if (!immediate && shouldSearch && results.length > 0 && resultsMsgId && howChoseMsgId) {
+        // The server reply's history excludes result-card bubbles (as the Dart's
+        // _serverReply does) and keeps the last 10 turns.
+        const historyTurns: ChatTurn[] = [
+          ...priorMessages,
+          { role: 'user' as const, text },
+          ...out,
+        ]
+          .filter((m) => m.text.trim().length > 0 && !(m.listingIds?.length ?? 0))
+          .slice(-10)
+          .map((m) => ({
+            role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+            text: m.text,
+          }))
+
+        const activeConvId = convId
+        setDeepBusyConvId(activeConvId)
+        upgradeSearch({
+          convId: activeConvId,
+          text,
+          query,
+          persona,
+          conversationText,
+          catalogue: items,
+          localResults: results,
+          historyTurns,
+          searched,
+          userTurns,
+          resultsMsgId,
+          howChoseMsgId,
+          replyMsgId,
         })
-        .finally(() => setDeepBusyConvId((cur) => (cur === convId ? null : cur)))
+          .catch(() => {
+            // Fail-soft by contract — the instant results stay exactly as they are.
+          })
+          .finally(() => setDeepBusyConvId((cur) => (cur === activeConvId ? null : cur)))
+      }
     },
-    [activeId, conversations, appendMessage, createConversation, mergeProps],
+    [
+      activeId,
+      conversations,
+      appendMessages,
+      createConversation,
+      decorate,
+      immediate,
+      mergeProps,
+      upgradeSearch,
+    ],
+  )
+
+  // Routes a quick-reply chip: the refine prompt is handled locally (no network),
+  // everything else goes through a normal turn (port of _onChipTap).
+  const onChipTap = useCallback(
+    (chip: string) => {
+      const conv = conversations.find((c) => c.id === activeId)
+      if (chip === REFINE_YES) {
+        if (!conv) return
+        const userTexts = conv.messages.filter((m) => m.role === 'user').map((m) => m.text)
+        const persona = personaFrom(userTexts.join(' '))
+        const query = applyLifestyle(conversationQuery(userTexts), persona)
+        appendMessages(conv.id, [
+          {
+            id: newMessageId(),
+            role: 'ati',
+            text: 'מעולה 😊 מה נדייק כדי לצמצם למה שהכי מתאים לך?',
+            chips: refineChips(query),
+          },
+        ])
+        return
+      }
+      if (chip === REFINE_NO) {
+        if (!conv) return
+        appendMessages(conv.id, [
+          {
+            id: newMessageId(),
+            role: 'ati',
+            text: 'מקסים! 🙏 אם תרצה לחדד עוד משהו בהמשך — אני כאן.',
+          },
+        ])
+        return
+      }
+      send(chip)
+    },
+    [activeId, appendMessages, conversations, send],
   )
 
   const resolveListings = (ids: string[]): Property[] =>
     ids.map((id) => propsMapRef.current.get(id)).filter((p): p is Property => !!p)
 
   const showChips = !active || active.messages.length === 0
+
+  const modeHint = useMemo(
+    () =>
+      immediate
+        ? 'תשובות מיידיות מהמכשיר — בלי המתנה'
+        : 'אתי שואלת כמה שאלות קצרות ואז מדייקת את התוצאות ברקע',
+    [immediate],
+  )
 
   // ── Sidebar (shared between desktop pane and mobile slide-over) ───────────
   const sidebarBody = (
@@ -315,6 +731,12 @@ export default function AtiWorkspace() {
           </button>
         </div>
 
+        {/* Speed mode */}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-3">
+          <SpeedModeToggle immediate={immediate} onChange={changeMode} />
+          <p className="text-[11.5px] font-semibold text-secondary-text">{modeHint}</p>
+        </div>
+
         {/* Messages */}
         <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto py-4">
           {!active || active.messages.length === 0 ? (
@@ -334,7 +756,7 @@ export default function AtiWorkspace() {
               {active.messages.map((m, i) => {
                 const listings = m.listingIds?.length ? resolveListings(m.listingIds) : []
                 return (
-                  <div key={i} className="flex flex-col">
+                  <div key={m.id ?? i} className="flex flex-col">
                     {m.role === 'user' ? (
                       <div className="max-w-[78%] self-end rounded-2xl rounded-br-md bg-primary-light2 px-4 py-2.5 text-[14.5px] font-semibold leading-relaxed text-navy">
                         {m.text}
@@ -343,11 +765,14 @@ export default function AtiWorkspace() {
                       <div className="flex max-w-full items-start gap-2.5 self-start">
                         <AtiAvatar />
                         <div className="min-w-0">
-                          {m.deep && (
-                            <p className="mb-1 text-[11px] font-black text-primary">מעמיקה 🔍</p>
-                          )}
+                          {m.deep && <p className="mb-1 text-[11px] font-black text-primary">מותאם אישית ✨</p>}
                           <div className="max-w-[560px] whitespace-pre-line rounded-2xl rounded-bl-md bg-cloud px-4 py-2.5 text-[14.5px] font-semibold leading-relaxed text-navy">
                             {m.text}
+                            {m.why && (
+                              <span className="mt-1.5 block text-[12px] font-semibold leading-relaxed text-secondary-text">
+                                💡 {m.why}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -355,9 +780,34 @@ export default function AtiWorkspace() {
                     {listings.length > 0 && (
                       <div className="no-scrollbar mt-3 flex snap-x gap-4 overflow-x-auto pb-2">
                         {listings.map((p) => (
-                          <a key={p.id} href={`/listing/${p.id}`} className="block snap-start">
-                            <PropertyCard property={p} />
-                          </a>
+                          <div key={p.id} className="snap-start">
+                            <a href={`/listing/${p.id}`} className="block">
+                              <PropertyCard property={p} />
+                            </a>
+                            {(m.notes?.[p.id] || m.explanations?.[p.id]) && (
+                              <p className="mt-1.5 max-w-[280px] text-[11.5px] font-semibold leading-relaxed text-secondary-text">
+                                {m.notes?.[p.id] && (
+                                  <span className="text-navy">{m.notes[p.id]}</span>
+                                )}
+                                {m.notes?.[p.id] && m.explanations?.[p.id] ? ' · ' : ''}
+                                {m.explanations?.[p.id]}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {m.role === 'ati' && (m.chips?.length ?? 0) > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-2 ps-[42px]">
+                        {m.chips!.map((chip) => (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => onChipTap(chip)}
+                            className="cursor-pointer rounded-full border border-border-app bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-navy transition hover:border-primary hover:text-primary"
+                          >
+                            {chip}
+                          </button>
                         ))}
                       </div>
                     )}
@@ -368,7 +818,7 @@ export default function AtiWorkspace() {
                 <div className="flex items-center gap-2.5 self-start">
                   <AtiAvatar />
                   <span className="animate-pulse text-[12.5px] font-bold text-secondary-text">
-                    אתי מעמיקה בחיפוש… 🔍
+                    אתי מעמיקה… מדייקת את התוצאות בשבילך ✨
                   </span>
                 </div>
               )}

@@ -93,19 +93,6 @@ export default function PropertyCard({
             </div>
           )}
 
-          {/* Type badge — physical top-right */}
-          <div className="absolute top-[10px] right-[10px] rounded-[20px] bg-white px-[10px] py-[6px] badge-shadow">
-            <span className="text-[12px] font-extrabold text-navy">{property.propertyType || 'דירה'}</span>
-          </div>
-
-          {/* Broker tag — physical top-left. Absent entirely for private listings. */}
-          {isBroker && (
-            <div className="absolute top-[10px] left-[10px] flex items-center gap-[3px] rounded-[20px] bg-white px-2 py-[5px] badge-shadow">
-              <Briefcase size={13} color="#2563EB" variant="Bold" />
-              <span className="text-[11px] font-extrabold text-navy">מתווך</span>
-            </div>
-          )}
-
           {/* Actions — physical bottom-left */}
           <div className="absolute bottom-[10px] left-[10px] flex flex-row gap-2">
             <button
@@ -128,22 +115,34 @@ export default function PropertyCard({
         </div>
       </div>
 
-      {/* Body — 8px 12px 16px */}
+      {/* Body — three rows:
+          1) price (start) · broker tag (end)
+          2) type · rooms · size
+          3) address */}
       <div className="px-3 pt-2 pb-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="truncate text-[17px] font-black text-navy">{addressLabel(property)}</div>
-            <div className="mt-1 truncate text-[12px] font-semibold text-secondary-text">{cityLabel(property)}</div>
-          </div>
-          <div className="shrink-0 whitespace-nowrap text-[18px] font-black text-navy">{priceLabel(property)}</div>
+        {/* Row 1 */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="whitespace-nowrap text-[18px] font-black text-navy">{priceLabel(property)}</div>
+          {isBroker && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary-light2 px-2.5 py-1 text-[11px] font-extrabold text-primary">
+              <Briefcase size={12} color="#2563EB" variant="Bold" />
+              מתווך
+            </span>
+          )}
         </div>
 
-        {/* Info chips */}
-        <div className="mt-2.5 flex flex-row gap-2 overflow-hidden">
+        {/* Row 2 — type · rooms · size */}
+        <div className="no-scrollbar mt-2.5 flex flex-row gap-2 overflow-x-auto">
           <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F1F5F9] px-3 py-2 text-[12px] font-bold text-navy">
-            <Home2 size={14} color="#072946" />
-            {property.rooms} חדרים
+            <Building size={14} color="#072946" />
+            {property.propertyType || 'דירה'}
           </span>
+          {property.rooms != null && (
+            <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F1F5F9] px-3 py-2 text-[12px] font-bold text-navy">
+              <Home2 size={14} color="#072946" />
+              {property.rooms} חדרים
+            </span>
+          )}
           {property.sizeM2 != null && (
             <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#F1F5F9] px-3 py-2 text-[12px] font-bold text-navy">
               <Maximize4 size={14} color="#072946" />
@@ -158,6 +157,16 @@ export default function PropertyCard({
               {tag}
             </span>
           ))}
+        </div>
+
+        {/* Row 3 — address (city kept as a muted suffix on the same line) */}
+        <div className="mt-2.5 truncate text-[15px] font-black text-navy">
+          {addressLabel(property)}
+          {cityLabel(property) && (
+            <span className="mr-1.5 text-[12px] font-semibold text-secondary-text">
+              · {cityLabel(property)}
+            </span>
+          )}
         </div>
 
         {/* Geo tags */}

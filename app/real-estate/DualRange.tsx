@@ -2,6 +2,15 @@
 
 // Two-thumb range slider built from two overlaid native range inputs — no new
 // deps. RTL-native: min sits on the right, like the app's RangeSlider.
+//
+// a11y: both thumbs are real <input type="range">, so they are tabbable and
+// arrow-key driven for free. What was missing and is fixed here:
+//   • `:focus { outline: none }` with no replacement made keyboard focus
+//     completely invisible — there is now a focus-visible ring on the thumb.
+//   • both sliders on the page announced the same two labels ("מינימום" /
+//     "מקסימום") with no idea WHICH range they belonged to → `label` prop.
+//   • screen readers read the raw number ("40000") → aria-valuetext carries the
+//     formatted value ("₪40,000" / "ללא הגבלה").
 
 interface DualRangeProps {
   min: number
@@ -13,6 +22,8 @@ interface DualRangeProps {
   format: (value: number) => string
   /** Label to show when valueMax sits at the slider ceiling (= unlimited). */
   maxLabel?: string
+  /** What this range measures, e.g. "מחיר" — used to build the aria labels. */
+  label: string
 }
 
 export default function DualRange({
@@ -24,12 +35,14 @@ export default function DualRange({
   onChange,
   format,
   maxLabel,
+  label,
 }: DualRangeProps) {
   const lo = Math.min(Math.max(valueMin, min), max)
   const hi = Math.min(Math.max(valueMax, min), max)
   const range = max - min || 1
   const loPct = ((lo - min) / range) * 100
   const hiPct = ((hi - min) / range) * 100
+  const hiText = hi >= max && maxLabel ? maxLabel : format(hi)
 
   return (
     <div>
@@ -48,13 +61,16 @@ export default function DualRange({
           max={max}
           step={step}
           value={lo}
-          aria-label="מינימום"
+          aria-label={`${label} — מינימום`}
+          aria-valuetext={format(lo)}
           onChange={(e) => {
             const v = Math.min(Number(e.target.value), hi)
             onChange(v, hi)
           }}
           className="dual-range-input absolute inset-0 w-full"
-          style={{ zIndex: lo > max - (max - min) / 10 ? 5 : 3 }}
+          // Raise whichever thumb would otherwise be buried: near the ceiling
+          // the two overlap and only the top one is grabbable.
+          style={{ zIndex: lo > max - range / 10 ? 5 : 3 }}
         />
         <input
           type="range"
@@ -63,7 +79,8 @@ export default function DualRange({
           max={max}
           step={step}
           value={hi}
-          aria-label="מקסימום"
+          aria-label={`${label} — מקסימום`}
+          aria-valuetext={hiText}
           onChange={(e) => {
             const v = Math.max(Number(e.target.value), lo)
             onChange(lo, v)
@@ -74,7 +91,7 @@ export default function DualRange({
       </div>
       <div className="mt-1 flex items-center justify-between text-[12px] font-bold text-secondary-text">
         <span>{format(lo)}</span>
-        <span>{hi >= max && maxLabel ? maxLabel : format(hi)}</span>
+        <span>{hiText}</span>
       </div>
       {/* Thumb styling for the overlaid native inputs (scoped by class). */}
       <style>{`
@@ -110,6 +127,13 @@ export default function DualRange({
           cursor: grab;
         }
         .dual-range-input::-moz-range-track { background: transparent; }
+        /* Visible keyboard focus (the thumb is the only painted part). */
+        .dual-range-input:focus-visible::-webkit-slider-thumb {
+          box-shadow: 0 0 0 3px #fff, 0 0 0 5px #2563EB;
+        }
+        .dual-range-input:focus-visible::-moz-range-thumb {
+          box-shadow: 0 0 0 3px #fff, 0 0 0 5px #2563EB;
+        }
       `}</style>
     </div>
   )

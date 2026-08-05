@@ -5,29 +5,18 @@
 // Property at the center (pulsing dot + house glyph), 3 concentric distance
 // rings (250 מ׳ / 500 מ׳ / 1 ק״מ, sqrt radial scale so the inner area isn't
 // cramped), POI dots positioned by TRUE bearing + distance (north = up),
-// colored by category group. Hover / tap a dot → floating tooltip. Legend
-// chips under the SVG toggle groups on/off.
+// colored by the shared category-group palette (nearby-groups.tsx). Hover /
+// tap a dot → floating tooltip.
+//
+// Group visibility (`hidden`) is lifted to NearbyPlaces so the legend chips —
+// rendered there — drive both this radar and the Leaflet map in sync.
 //
 // All geometry is guarded: dots arrive pre-validated (finite km + bearing)
 // and anything non-finite is dropped again here — this component never throws.
 
 import { useMemo, useState } from 'react'
-import { distLabel, walkMinutes } from '@/lib/live/nearby'
-
-export interface RadarDot {
-  id: string
-  name: string
-  km: number
-  bearing: number // degrees, 0 = north, clockwise
-  group: string
-}
-
-export interface RadarGroup {
-  key: string
-  label: string
-  color: string
-  count: number
-}
+import { distLabel, walkLabel } from '@/lib/live/nearby'
+import { groupColor, type NearbyPoi } from './nearby-groups'
 
 const SIZE = 400 // viewBox is SIZE×SIZE, center at SIZE/2
 const C = SIZE / 2
@@ -48,7 +37,7 @@ function delayFor(km: number, index: number): string {
   return `${(0.08 + band * 0.14 + (index % 8) * 0.02).toFixed(2)}s`
 }
 
-interface Positioned extends RadarDot {
+interface Positioned extends NearbyPoi {
   x: number
   y: number
   clamped: boolean
@@ -57,18 +46,12 @@ interface Positioned extends RadarDot {
 
 export default function NearbyRadar({
   dots,
-  groups,
+  hidden,
 }: {
-  dots: RadarDot[]
-  groups: RadarGroup[]
+  dots: NearbyPoi[]
+  hidden: ReadonlySet<string>
 }) {
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
   const [active, setActive] = useState<string | null>(null)
-
-  const colorOf = useMemo(() => {
-    const m = new Map(groups.map((g) => [g.key, g.color]))
-    return (key: string) => m.get(key) ?? '#64748B'
-  }, [groups])
 
   const positioned = useMemo<Positioned[]>(() => {
     const out: Positioned[] = []
@@ -90,16 +73,6 @@ export default function NearbyRadar({
   )
 
   const activeDot = active != null ? visible.find((d) => d.id === active) ?? null : null
-
-  const toggleGroup = (key: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-    setActive(null)
-  }
 
   return (
     <div dir="rtl" className="rounded-[28px] border border-border-app bg-white p-4 card-shadow sm:p-5">
@@ -153,7 +126,7 @@ export default function NearbyRadar({
                 cx={d.x}
                 cy={d.y}
                 r={5}
-                fill={colorOf(d.group)}
+                fill={groupColor(d.group)}
                 stroke="#fff"
                 strokeWidth={1.5}
                 className="kz-dot"
@@ -181,10 +154,7 @@ export default function NearbyRadar({
           <g pointerEvents="none">
             <circle cx={C} cy={C} r={10} fill="#2563EB" opacity={0.45} className="kz-pulse" />
             <circle cx={C} cy={C} r={10} fill="#2563EB" stroke="#fff" strokeWidth={2} />
-            <path
-              d={`M${C} ${C - 4.5}l5 4v5h-3.4v-3.2h-3.2v3.2H${C - 5}v-5z`}
-              fill="#fff"
-            />
+            <path d={`M${C} ${C - 4.5}l5 4v5h-3.4v-3.2h-3.2v3.2H${C - 5}v-5z`} fill="#fff" />
           </g>
         </svg>
 
@@ -205,35 +175,12 @@ export default function NearbyRadar({
             <div className="text-[11.5px] font-bold text-secondary-text">
               {distLabel(activeDot.km)}
               {(() => {
-                const m = walkMinutes(activeDot.km)
-                return m != null && m < 15 ? ` · ${m} דק׳ הליכה` : ''
+                const w = walkLabel(activeDot.km)
+                return w ? ` · ${w}` : ''
               })()}
             </div>
           </div>
         )}
-      </div>
-
-      {/* legend — chips toggle their group's dots */}
-      <div className="mt-3 flex flex-wrap justify-center gap-2">
-        {groups.map((g) => {
-          const off = hidden.has(g.key)
-          return (
-            <button
-              key={g.key}
-              type="button"
-              onClick={() => toggleGroup(g.key)}
-              aria-pressed={!off}
-              className={`flex items-center gap-1.5 rounded-full border border-border-app bg-white px-3 py-1.5 text-[12px] font-bold text-navy transition hover:bg-cloud/60 ${off ? 'opacity-40' : ''}`}
-            >
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: g.color }}
-              />
-              {g.label}
-              <span className="text-secondary-text">{g.count}</span>
-            </button>
-          )
-        })}
       </div>
     </div>
   )

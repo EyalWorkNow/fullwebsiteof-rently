@@ -37,26 +37,22 @@ import {
   bearingDeg,
   distLabel,
   loadNearby,
-  walkMinutes,
+  walkLabel,
   type NearbyByKind,
   type NearbyPlace,
 } from '@/lib/live/nearby'
-import NearbyRadar, { type RadarDot, type RadarGroup } from './NearbyRadar'
+import NearbyMap from './NearbyMap'
+import NearbyRadar from './NearbyRadar'
+import {
+  GroupLegend,
+  NEARBY_GROUPS,
+  type NearbyGroupWithCount,
+  type NearbyPoi,
+} from './nearby-groups'
 
 // ---------------------------------------------------------------------------
 // Static config
 // ---------------------------------------------------------------------------
-
-// Category groups → radar palette (derived from the design tokens).
-const GROUPS: { key: string; label: string; color: string }[] = [
-  { key: 'shopping', label: 'קניות', color: '#2563EB' },
-  { key: 'education', label: 'חינוך', color: '#7C3AED' },
-  { key: 'parks', label: 'פארקים ומשחק', color: '#15803D' },
-  { key: 'health', label: 'בריאות', color: '#E11D48' },
-  { key: 'transit', label: 'תחבורה', color: '#072946' },
-  { key: 'dining', label: 'אוכל וקפה', color: '#C2410C' },
-  { key: 'other', label: 'תרבות ופנאי', color: '#64748B' },
-]
 
 // Section order mirrors the app's fallbackOrder (nearby_relevance.dart);
 // labels kept verbatim from the app. `group` maps each kind to a radar color.
@@ -95,12 +91,6 @@ const MAX_RADAR_DOTS = 90
 function googleHref(name: string, city?: string): string {
   const q = encodeURIComponent(city && city.trim() ? `${name} ${city}` : name)
   return `https://www.google.com/search?q=${q}`
-}
-
-function minutesLabel(km: number): string | null {
-  const m = walkMinutes(km)
-  if (m == null) return null
-  return m >= 15 ? `${m} דק׳` : `${m} דק׳ הליכה`
 }
 
 type Section = {
@@ -182,6 +172,10 @@ export default function NearbyPlaces({
   const [retryTick, setRetryTick] = useState(0)
   const [openKind, setOpenKind] = useState<string | null>(null)
   const [showMore, setShowMore] = useState(false)
+  const [view, setView] = useState<'map' | 'radar'>('map')
+  // Group visibility is lifted here so the legend chips drive BOTH views and
+  // stay in sync when switching between the map and the radar.
+  const [hiddenGroups, setHiddenGroups] = useState<ReadonlySet<string>>(new Set())
 
   const validCoords = Number.isFinite(lat) && Number.isFinite(lon)
 
@@ -223,15 +217,16 @@ export default function NearbyPlaces({
       HERO_KINDS.flatMap((h) => {
         const nearest = byKind[h.key]?.[0]
         if (!nearest) return []
-        const label = minutesLabel(nearest.km)
+        const label = walkLabel(nearest.km)
         return label ? [{ ...h, minutes: label }] : []
       }),
     [byKind],
   )
 
-  const { radarDots, radarGroups } = useMemo(() => {
+  const { poiDots, poiGroups } = useMemo(() => {
     // Nearest-first per kind, round-robin across kinds, ≤ MAX_RADAR_DOTS total.
-    const dots: RadarDot[] = []
+    // The SAME dot list feeds both the Leaflet map and the SVG radar.
+    const dots: NearbyPoi[] = []
     for (let rank = 0; dots.length < MAX_RADAR_DOTS; rank++) {
       let pushed = false
       for (const s of sections) {
@@ -240,19 +235,37 @@ export default function NearbyPlaces({
         if (!p) continue
         const b = bearingDeg(lat, lon, p.lat, p.lon)
         if (!Number.isFinite(p.km) || !Number.isFinite(b)) continue
-        dots.push({ id: `${s.key}-${rank}`, name: p.name, km: p.km, bearing: b, group: s.group })
+        dots.push({
+          id: `${s.key}-${rank}`,
+          name: p.name,
+          km: p.km,
+          lat: p.lat,
+          lon: p.lon,
+          bearing: b,
+          group: s.group,
+          kindLabel: s.label,
+        })
         pushed = true
       }
       if (!pushed) break
     }
     const counts = new Map<string, number>()
     for (const d of dots) counts.set(d.group, (counts.get(d.group) ?? 0) + 1)
-    const groups: RadarGroup[] = GROUPS.flatMap((g) => {
+    const groups: NearbyGroupWithCount[] = NEARBY_GROUPS.flatMap((g) => {
       const count = counts.get(g.key) ?? 0
       return count > 0 ? [{ ...g, count }] : []
     })
-    return { radarDots: dots, radarGroups: groups }
+    return { poiDots: dots, poiGroups: groups }
   }, [sections, lat, lon])
+
+  const toggleGroup = (key: string) => {
+    setHiddenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const openSection = openKind != null ? sections.find((s) => s.key === openKind) ?? null : null
   const OpenIcon = openSection?.icon
@@ -283,7 +296,33 @@ export default function NearbyPlaces({
 
   return (
     <section dir="rtl">
-      <h2 className="mt-8 mb-3 text-xl font-black text-navy">מה יש בסביבה</h2>
+      {/* header + map/radar view switcher */}
+      <div className="mt-8 mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-xl font-black text-navy">מה יש בסביבה</h2>
+        {poiDots.length > 0 && (
+          <div className="flex rounded-full bg-cloud p-1" role="tablist" aria-label="תצוגת סביבה">
+            {(
+              [
+                { key: 'map', label: 'מפה' },
+                { key: 'radar', label: 'רדאר' },
+              ] as const
+            ).map((v) => (
+              <button
+                key={v.key}
+                type="button"
+                role="tab"
+                aria-selected={view === v.key}
+                onClick={() => setView(v.key)}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold transition ${
+                  view === v.key ? 'bg-primary text-white' : 'text-navy hover:bg-white/60'
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* 1 — walking-minutes hero strip */}
       {heroPills.length > 0 && (
@@ -305,8 +344,17 @@ export default function NearbyPlaces({
         </div>
       )}
 
-      {/* 2 — radar map */}
-      {radarDots.length > 0 && <NearbyRadar dots={radarDots} groups={radarGroups} />}
+      {/* 2 — map / radar (same dots, same legend state) */}
+      {poiDots.length > 0 && (
+        <>
+          {view === 'map' ? (
+            <NearbyMap lat={lat} lon={lon} dots={poiDots} hidden={hiddenGroups} />
+          ) : (
+            <NearbyRadar dots={poiDots} hidden={hiddenGroups} />
+          )}
+          <GroupLegend groups={poiGroups} hidden={hiddenGroups} onToggle={toggleGroup} />
+        </>
+      )}
 
       {/* 3 — category tiles */}
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -375,7 +423,7 @@ export default function NearbyPlaces({
                 {openSection.places
                   .slice(0, showMore ? openSection.places.length : PANEL_ROWS)
                   .map((pl, j) => {
-                    const mins = minutesLabel(pl.km)
+                    const mins = walkLabel(pl.km)
                     return (
                       <a
                         key={`${openSection.key}-${j}`}

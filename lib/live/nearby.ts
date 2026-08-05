@@ -76,6 +76,13 @@ export function distLabel(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} מ׳` : `${km.toFixed(1)} ק״מ`
 }
 
+/** Walking-minutes label: "3 דק׳ הליכה", or just "17 דק׳" from 15 minutes up. */
+export function walkLabel(km: number): string | null {
+  const m = walkMinutes(km)
+  if (m == null) return null
+  return m >= 15 ? `${m} דק׳` : `${m} דק׳ הליכה`
+}
+
 // Public Overpass mirrors (same order as the app). The browser sets its own
 // User-Agent (a forbidden fetch header); Accept + text/plain body match the app.
 const ENDPOINTS = [

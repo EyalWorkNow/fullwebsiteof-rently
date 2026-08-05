@@ -3,8 +3,42 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { CloseCircle, MagicStar, SearchNormal1 } from "iconsax-react";
-import { atiFastSearch, type AtiSearchResult } from "@/lib/live/api";
+import { fetchProperties, type PropertiesResult } from "@/lib/live/api";
+import { buildReply, parseQuery, rankProperties } from "@/lib/live/smart-search";
+import type { Property } from "@/lib/live/types";
 import PropertyCard from "./PropertyCard";
+
+interface HeroSearchResult {
+  reply: string;
+  listings: Property[];
+  live: boolean; // false = the property fetch fell back to sample data
+}
+
+// The property list is fetched ONCE per page load and shared across searches —
+// after the first search, אתי answers instantly (on-device engine, no backend).
+let propertiesPromise: Promise<PropertiesResult> | null = null;
+function ensureProperties(): Promise<PropertiesResult> {
+  propertiesPromise ??= fetchProperties(500);
+  return propertiesPromise;
+}
+
+// The app's on-device "אתי fast mode": parse the free Hebrew text locally, rank
+// the live catalogue locally, phrase the reply locally. No /assistant call.
+async function localFastSearch(query: string): Promise<HeroSearchResult> {
+  const { items, live } = await ensureProperties();
+  const parsed = parseQuery(query);
+  const ranked = rankProperties(parsed, items, 8);
+  return {
+    reply: buildReply(parsed, ranked),
+    // Surface the engine's Hebrew tags (📍 / 🚉 / amenity) on the cards — the
+    // PropertyCard already renders emoji-prefixed geo tags from smartTags.
+    listings: ranked.map((r) => ({
+      ...r.property,
+      smartTags: [...r.tags, ...(r.property.smartTags ?? [])],
+    })),
+    live,
+  };
+}
 
 const CHIPS = [
   "דירת 3 חדרים עם מרפסת בתל אביב",
@@ -21,7 +55,7 @@ const rise = {
 export default function Hero() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [result, setResult] = useState<AtiSearchResult | null>(null);
+  const [result, setResult] = useState<HeroSearchResult | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,7 +64,7 @@ export default function Hero() {
     setSearching(true);
     setResult(null);
     try {
-      setResult(await atiFastSearch(q));
+      setResult(await localFastSearch(q));
     } finally {
       setSearching(false);
     }
@@ -41,7 +75,7 @@ export default function Hero() {
     if (searching) return;
     setSearching(true);
     setResult(null);
-    atiFastSearch(chip)
+    localFastSearch(chip)
       .then(setResult)
       .finally(() => setSearching(false));
   };
@@ -147,7 +181,7 @@ export default function Hero() {
                       </p>
                       {!result.live && (
                         <p className="mt-1 text-[11.5px] font-semibold text-secondary-text">
-                          (חיפוש מהיר מקומי — התוצאות מהמאגר החי)
+                          (נתוני דוגמה)
                         </p>
                       )}
                     </div>

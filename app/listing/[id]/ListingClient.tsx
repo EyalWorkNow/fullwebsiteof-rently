@@ -13,6 +13,8 @@ import {
 } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
 import PropertyCard from '@/components/keyz/PropertyCard'
+import NearbyPlaces from '@/components/keyz/NearbyPlaces'
+import EnrichmentCards from '@/components/keyz/EnrichmentCards'
 
 const APP_URL = 'https://apps.apple.com/il/app/id6773088152'
 
@@ -274,6 +276,17 @@ export default function ListingClient({ id }: { id: string }) {
                 </p>
               </>
             )}
+
+            {/* Enrichment — price-vs-median badge + neighborhood score, same order
+                as the app's property page (price badge → score → nearby). */}
+            <EnrichmentCards listingId={p.id} />
+
+            {/* Nearby / geo intelligence — same layers as the app's property page
+                (NearbyPlacesCard showAllKinds), real named places + distances. */}
+            {typeof p.lat === 'number' &&
+              typeof p.lon === 'number' &&
+              Math.abs(p.lat) > 0.01 &&
+              Math.abs(p.lon) > 0.01 && <NearbyPlaces lat={p.lat} lon={p.lon} city={p.city} />}
           </div>
 
           {/* Sticky price card */}

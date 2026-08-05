@@ -1,9 +1,11 @@
 // Live, COMPREHENSIVE nearby-POI lookup from OpenStreetMap via the Overpass API.
 //
-// The Overpass QL query, tag→category mapping and dedupe rules are a verbatim
-// port of the app's lib/core/services/overpass_poi_service.dart — DO NOT edit
-// them — so the website's listing page shows the same geo intelligence as the
-// app's property page.
+// The tag→category mapping and dedupe rules are a verbatim port of the app's
+// lib/core/services/overpass_poi_service.dart — DO NOT edit them — so the
+// website's listing page shows the same geo intelligence as the app's property
+// page. The QL selectors are identical too; only the RADIUS and element CAP are
+// tuned down for the browser (see DEFAULT_RADIUS_M) because the app runs this
+// once at listing-create time server-side, while the web runs it per visit.
 //
 // Around that core this module adds a defensive delivery layer:
 //   • every coordinate validated finite before use, unusable elements dropped
@@ -32,6 +34,13 @@ export class NearbyError extends Error {
     this.name = 'NearbyError'
   }
 }
+
+// Overpass cost grows steeply with radius in dense cities: at 2000m the query
+// blew past 28s and failed; at 1500m it took 16s and hit the element cap; at
+// 1200m it returns in ~6s with everything (705 elements in central Tel Aviv,
+// under the 800 cap so nothing is truncated). Each kind only ever shows its
+// MAX_PER_KIND nearest anyway, all well inside 1.2km in a city.
+export const DEFAULT_RADIUS_M = 1200
 
 export const MAX_PER_KIND = 24
 
@@ -93,15 +102,16 @@ const ENDPOINTS = [
 // ONE request fetches every category — identical Overpass QL to the Dart service.
 function buildQuery(lat: number, lon: number, r: number): string {
   return (
-    `[out:json][timeout:25];(` +
+    `[out:json][timeout:20];(` +
     `nwr(around:${r},${lat},${lon})[amenity~"^(cafe|restaurant|fast_food|bar|pub|ice_cream|food_court|pharmacy|school|kindergarten|clinic|doctors|hospital|dentist|cinema|theatre|arts_centre|library|community_centre|place_of_worship|bus_station|marketplace)$"];` +
     `nwr(around:${r},${lat},${lon})[leisure~"^(fitness_centre|sports_centre|park|garden|nature_reserve|playground)$"];` +
     `nwr(around:${r},${lat},${lon})[shop~"^(supermarket|convenience|greengrocer|grocery)$"];` +
     `nwr(around:${r},${lat},${lon})[tourism~"^(museum|gallery)$"];` +
     `nwr(around:${r},${lat},${lon})[railway~"^(station|tram_stop)$"];` +
     `nwr(around:${r},${lat},${lon})[public_transport=station];` +
-    // High cap so even the densest city centre is never truncated.
-    `);out center tags 3000;`
+    // 800 clears the densest cell measured (705 in central Tel Aviv) without
+    // paying for the 3000 the app requests server-side.
+    `);out center tags 800;`
   )
 }
 
@@ -216,7 +226,7 @@ function group(elements: unknown[], lat: number, lon: number): NearbyByKind {
 export async function fetchNearby(
   lat: number,
   lon: number,
-  radiusM = 2000,
+  radiusM = DEFAULT_RADIUS_M,
   signal?: AbortSignal,
 ): Promise<NearbyByKind> {
   if (!finite(lat, lon)) return {}
@@ -356,7 +366,7 @@ export function loadNearby(
   let entry = inflight.get(key)
   if (!entry) {
     const ctrl = new AbortController()
-    const promise = fetchNearby(lat, lon, 2000, ctrl.signal)
+    const promise = fetchNearby(lat, lon, DEFAULT_RADIUS_M, ctrl.signal)
       .then((data) => {
         writeCache(key, data)
         return data

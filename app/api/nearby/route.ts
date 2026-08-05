@@ -9,6 +9,12 @@ const MIRRORS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ]
+
+// Overpass answers 406 Not Acceptable to a request with no User-Agent, and
+// Node's fetch sends none by default — so every proxied call failed until this
+// was set. (The app's Lambda has always sent one; see neighborhood.mjs.)
+const UA =
+  'RentlyWeb/1.0 (+https://rently.co.il; neighbourhood places; attribution: OpenStreetMap)'
 const TTL_MS = 7 * 24 * 60 * 60_000
 const MAX_CELLS = 500 // LRU-ish cap so a crawler can't balloon memory
 
@@ -17,9 +23,17 @@ const cache = new Map<string, { body: unknown; ts: number }>()
 async function fetchMirror(url: string, query: string, signal: AbortSignal) {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': UA,
+      Accept: 'application/json',
+    },
     body: 'data=' + encodeURIComponent(query),
     signal,
+    // Opt out of Next's patched/instrumented fetch. Without this the same
+    // request that Node answers in ~2-4s stalls here until Overpass 504s —
+    // we cache the result ourselves, so its cache layer buys nothing.
+    cache: 'no-store',
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = await res.json()
@@ -56,7 +70,18 @@ export async function POST(req: NextRequest) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 28_000)
   try {
-    const data = await Promise.any(MIRRORS.map((m) => fetchMirror(m, query, ctrl.signal)))
+    // Public Overpass allows ~2 concurrent slots, so a busy moment answers 429
+    // (or an XML error page). One short-backoff retry turns most of those into
+    // a success instead of showing the user an error card.
+    let data: unknown
+    try {
+      data = await Promise.any(MIRRORS.map((m) => fetchMirror(m, query, ctrl.signal)))
+    } catch (e1) {
+      console.warn('[nearby] retrying after:',
+        (e1 as AggregateError).errors?.map((x: Error) => x.message) ?? (e1 as Error).message)
+      await new Promise((r) => setTimeout(r, 1500))
+      data = await Promise.any(MIRRORS.map((m) => fetchMirror(m, query, ctrl.signal)))
+    }
     if (cache.size >= MAX_CELLS) {
       const oldest = [...cache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
       if (oldest) cache.delete(oldest[0])

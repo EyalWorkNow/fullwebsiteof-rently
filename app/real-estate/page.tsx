@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function RealEstatePage() {
   return (
-    <main className="pt-28">
+    <main>
       <Browse />
     </main>
   )

@@ -1,7 +1,15 @@
 'use client'
 
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth'
+import {
+  getAuth,
+  signInAnonymously,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut as fbSignOut,
+  type User,
+} from 'firebase/auth'
 
 // Same Firebase project as the app. Public client config values (safe to embed).
 const firebaseConfig = {
@@ -47,4 +55,35 @@ export async function getToken(): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+// ── Real sign-in for the landlord portal — same Firebase project as the app,
+// so a Google account signed in here gets the SAME uid as in the mobile app
+// (that's what makes listings/calendar truly synced). Falls back to anon.
+export async function signInWithGoogle(): Promise<User | null> {
+  try {
+    const res = await signInWithPopup(auth, new GoogleAuthProvider())
+    cachedUser = res.user
+    return res.user
+  } catch (e) {
+    console.warn('[firebase] Google sign-in failed:', (e as { code?: string })?.code || e)
+    return null
+  }
+}
+
+export async function signOut(): Promise<void> {
+  cachedUser = null
+  await fbSignOut(auth)
+}
+
+export function currentUser(): User | null {
+  return cachedUser
+}
+
+// Subscribe to auth changes (returns unsubscribe). Keeps cachedUser fresh.
+export function onUser(cb: (u: User | null) => void): () => void {
+  return onAuthStateChanged(auth, (u) => {
+    cachedUser = u
+    cb(u)
+  })
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Building, Calendar, Home2, Maximize4, Send2, TickCircle } from 'iconsax-react'
+import { useRouter } from 'next/navigation'
+import { ArrowRight2, Building, Calendar, Home2, Maximize4, Send2, TickCircle } from 'iconsax-react'
 import {
   addressLabel,
   cityLabel,
@@ -101,6 +102,25 @@ function NotFound() {
   )
 }
 
+// Floating back button — fixed below the 64px TopBar, inline-start (RTL = right).
+// ArrowRight2 points right, which reads as "back" in RTL.
+function BackButton() {
+  const router = useRouter()
+  return (
+    <button
+      type="button"
+      aria-label="חזרה"
+      onClick={() => {
+        if (window.history.length > 1) router.back()
+        else router.push('/real-estate')
+      }}
+      className="fixed top-[76px] start-4 z-40 flex h-[42px] w-[42px] items-center justify-center rounded-full border border-border-app bg-white badge-shadow transition hover:border-primary"
+    >
+      <ArrowRight2 size={20} color="#072946" />
+    </button>
+  )
+}
+
 export default function ListingClient({ id }: { id: string }) {
   const [state, setState] = useState<'loading' | 'notFound' | 'loaded'>('loading')
   const [property, setProperty] = useState<Property | null>(null)
@@ -137,8 +157,20 @@ export default function ListingClient({ id }: { id: string }) {
     }
   }, [id])
 
-  if (state === 'loading') return <main className="flex-1 pt-28 pb-20"><Skeleton /></main>
-  if (state === 'notFound' || !property) return <main className="flex-1 pt-28 pb-20"><NotFound /></main>
+  if (state === 'loading')
+    return (
+      <main className="flex-1 pt-28 pb-20">
+        <BackButton />
+        <Skeleton />
+      </main>
+    )
+  if (state === 'notFound' || !property)
+    return (
+      <main className="flex-1 pt-28 pb-20">
+        <BackButton />
+        <NotFound />
+      </main>
+    )
 
   const p = property
   const images = galleryImages(p)
@@ -170,6 +202,7 @@ export default function ListingClient({ id }: { id: string }) {
 
   return (
     <main className="flex-1 pt-28 pb-20">
+      <BackButton />
       <div className="mx-auto max-w-[1200px] px-4">
         {/* Breadcrumbs */}
         <nav className="mb-5 text-[13px] text-secondary-text">

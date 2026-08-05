@@ -1,49 +1,53 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { Building, SearchNormal1 } from 'iconsax-react'
+// Apartments search page — 2-column desktop layout:
+//   RIGHT (RTL start): top bar + full app-ported filter sidebar + card grid
+//   LEFT:              sticky MapPanel (built by the search-map module)
+// Filtering runs client-side over fetchProperties(500) with the app's exact
+// hard-filter semantics (see ./filters.ts).
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
+import type { ComponentType } from 'react'
+import { Building, CloseCircle, Filter, Map1, SearchNormal1 } from 'iconsax-react'
 import PropertyCard from '@/components/keyz/PropertyCard'
 import { fetchProperties } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
+import FilterSidebar from './FilterSidebar'
+import {
+  SORT_OPTIONS,
+  type SortOption,
+  type WebFilters,
+  activeFilterCount,
+  applyFilters,
+  defaultFilters,
+  loadStoredFilters,
+  storeFilters,
+} from './filters'
 
-type TypeFilter = 'all' | 'rent' | 'sale'
-type Sort = 'new' | 'priceAsc' | 'priceDesc'
+// Contract with the search-map module (built in parallel — import, don't create).
+interface MapPanelProps {
+  items: Property[]
+  visibleIds: Set<string>
+  onLassoChange: (ids: Set<string> | null) => void
+}
 
-const RENT_PRICES: { value: number; label: string }[] = [
-  { value: 0, label: 'כל מחיר' },
-  { value: 4000, label: 'עד 4,000 ₪' },
-  { value: 6000, label: 'עד 6,000 ₪' },
-  { value: 8000, label: 'עד 8,000 ₪' },
-  { value: 12000, label: 'עד 12,000 ₪' },
-  { value: 20000, label: 'עד 20,000 ₪' },
-]
-
-const SALE_PRICES: { value: number; label: string }[] = [
-  { value: 0, label: 'כל מחיר' },
-  { value: 1_500_000, label: 'עד 1.5 מיליון ₪' },
-  { value: 2_500_000, label: 'עד 2.5 מיליון ₪' },
-  { value: 4_000_000, label: 'עד 4 מיליון ₪' },
-  { value: 6_000_000, label: 'עד 6 מיליון ₪' },
-]
-
-const ROOM_OPTIONS: { value: number; label: string }[] = [
-  { value: 0, label: 'כל מספר חדרים' },
-  { value: 2, label: '2+ חדרים' },
-  { value: 3, label: '3+ חדרים' },
-  { value: 4, label: '4+ חדרים' },
-  { value: 5, label: '5+ חדרים' },
-]
+const MapPanel = dynamic(() => import('@/components/keyz/search-map/MapPanel'), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse rounded-[28px] bg-cloud" />,
+}) as ComponentType<MapPanelProps>
 
 export default function Browse() {
   const [items, setItems] = useState<Property[]>([])
   const [live, setLive] = useState(true)
   const [loading, setLoading] = useState(true)
 
-  const [q, setQ] = useState('')
-  const [type, setType] = useState<TypeFilter>('all')
-  const [minRooms, setMinRooms] = useState(0)
-  const [maxPrice, setMaxPrice] = useState(0)
-  const [sort, setSort] = useState<Sort>('new')
+  const [filters, setFilters] = useState<WebFilters>(() => defaultFilters())
+  const hydratedRef = useRef(false)
+
+  const [lassoIds, setLassoIds] = useState<Set<string> | null>(null)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [showMobileMap, setShowMobileMap] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -58,178 +62,215 @@ export default function Browse() {
     }
   }, [])
 
-  const priceOptions = type === 'sale' ? SALE_PRICES : RENT_PRICES
+  // Restore persisted filters once on mount (after hydration — avoids SSR
+  // markup mismatch), then persist every change.
+  useEffect(() => {
+    const stored = loadStoredFilters()
+    if (stored) setFilters(stored)
+    hydratedRef.current = true
+  }, [])
 
-  const hasFilter = q.trim() !== '' || type !== 'all' || minRooms !== 0 || maxPrice !== 0 || sort !== 'new'
+  useEffect(() => {
+    if (hydratedRef.current) storeFilters(filters)
+  }, [filters])
 
-  const clearAll = () => {
-    setQ('')
-    setType('all')
-    setMinRooms(0)
-    setMaxPrice(0)
-    setSort('new')
-  }
+  const setAndKeep = (next: WebFilters) => setFilters(next)
+  const clearAll = () => setFilters(defaultFilters())
 
-  const setTypeAndResetPrice = (t: TypeFilter) => {
-    setType(t)
-    setMaxPrice(0) // rent/sale price scales differ — reset on switch
-  }
+  const filtered = useMemo(() => applyFilters(items, filters), [items, filters])
 
-  const filtered = useMemo(() => {
-    const needle = q.trim()
-    const out = items.filter((p) => {
-      if (needle) {
-        const hay = `${p.city ?? ''} ${p.neighborhood ?? ''} ${p.street ?? ''}`
-        if (!hay.includes(needle)) return false
-      }
-      if (type !== 'all') {
-        const t = p.transactionType === 'sale' ? 'sale' : 'rent'
-        if (t !== type) return false
-      }
-      if (minRooms > 0 && !(p.rooms >= minRooms)) return false
-      if (maxPrice > 0 && !(p.price <= maxPrice)) return false
-      return true
-    })
-    if (sort === 'priceAsc') out.sort((a, b) => a.price - b.price)
-    else if (sort === 'priceDesc') out.sort((a, b) => b.price - a.price)
-    return out // 'new' keeps API order
-  }, [items, q, type, minRooms, maxPrice, sort])
+  // Final visible list = filter results ∩ lasso selection (when active).
+  const visible = useMemo(
+    () => (lassoIds === null ? filtered : filtered.filter((p) => lassoIds.has(p.id))),
+    [filtered, lassoIds],
+  )
+  const visibleIds = useMemo(() => new Set(visible.map((p) => p.id)), [visible])
+
+  const activeCount = activeFilterCount(filters)
+
+  const grid = loading ? (
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="h-[360px] animate-pulse rounded-[28px] bg-cloud" />
+      ))}
+    </div>
+  ) : visible.length === 0 ? (
+    <div className="flex flex-col items-center gap-4 rounded-3xl border border-border-app bg-white py-16 text-center card-shadow">
+      <Building size={40} color="#5B7A99" />
+      <p className="text-[15px] font-bold text-secondary-text">לא מצאנו דירות שמתאימות לסינון</p>
+      <button
+        type="button"
+        onClick={() => {
+          clearAll()
+          setLassoIds(null)
+        }}
+        className="rounded-full bg-primary px-5 py-2.5 font-bold text-white"
+      >
+        נקה סינון
+      </button>
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      {visible.map((p) => (
+        <a key={p.id} href={`/listing/${p.id}`} className="block [&>[role=button]]:w-full">
+          <PropertyCard property={p} />
+        </a>
+      ))}
+    </div>
+  )
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 pb-20">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-black text-navy md:text-4xl">דירות בכל הארץ</h1>
-          {!live && (
+    <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-5 px-4 pt-28 pb-20 lg:grid-cols-[minmax(0,1fr)_minmax(380px,44%)]">
+      {/* ── RIGHT column (RTL start): top bar + sidebar + grid ── */}
+      <div className="min-w-0">
+        {/* Top bar */}
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-3xl border border-border-app bg-white/90 p-3 backdrop-blur card-shadow">
+          <label className="flex min-w-[160px] flex-1 items-center gap-2 rounded-full bg-cloud px-4 py-2.5">
+            <SearchNormal1 size={16} color="#5B7A99" />
+            <input
+              type="text"
+              value={filters.query}
+              onChange={(e) => setAndKeep({ ...filters, query: e.target.value })}
+              placeholder="עיר, שכונה או רחוב…"
+              className="w-full bg-transparent text-[14px] font-semibold text-navy outline-none placeholder:text-secondary-text"
+            />
+          </label>
+
+          <select
+            value={filters.sortBy}
+            onChange={(e) => setAndKeep({ ...filters, sortBy: e.target.value as SortOption })}
+            aria-label="מיון"
+            className="rounded-full border-0 bg-cloud px-4 py-2.5 text-[13px] font-bold text-navy"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Mobile: opens the filter slide-over */}
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters(true)}
+            className="relative flex items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-[13px] font-bold text-white lg:hidden"
+          >
+            <Filter size={15} color="#FFFFFF" />
+            סינון
+            {activeCount > 0 && (
+              <span className="absolute -top-1.5 -left-1.5 min-w-5 rounded-full bg-coral px-1.5 py-0.5 text-center text-[11px] font-black leading-none text-white">
+                {activeCount}
+              </span>
+            )}
+          </button>
+
+          {(activeCount > 0 || lassoIds !== null) && (
+            <button
+              type="button"
+              onClick={() => {
+                clearAll()
+                setLassoIds(null)
+              }}
+              className="text-[13px] font-bold text-secondary-text transition hover:text-coral"
+            >
+              נקה הכל
+            </button>
+          )}
+        </div>
+
+        {/* Result count + badges */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {!loading && (
+            <p className="text-[14px] font-bold text-secondary-text">נמצאו {visible.length} דירות</p>
+          )}
+          {!live && !loading && (
             <span className="rounded-full bg-[#FEF3C7] px-3 py-1 text-[12px] font-bold text-[#C2410C]">
               נתוני דוגמה
             </span>
           )}
+          {lassoIds !== null && (
+            <button
+              type="button"
+              onClick={() => setLassoIds(null)}
+              className="flex items-center gap-1 rounded-full bg-primary-light2 px-3 py-1 text-[12px] font-bold text-primary transition hover:bg-primary hover:text-white"
+            >
+              סינון לפי אזור מסומן ✕
+            </button>
+          )}
         </div>
-        <p className="mt-2 text-secondary-text">
-          כל הדירות הפעילות ברנטלי — מתעדכן ישירות מהאפליקציה
-        </p>
+
+        {/* Inner split: sidebar 300px | card grid (the cleaner option — the
+            sidebar stays visible while scrolling results, portal-style). */}
+        <div className="flex items-start gap-5">
+          <aside className="no-scrollbar sticky top-24 hidden max-h-[calc(100vh-120px)] w-[300px] shrink-0 self-start overflow-y-auto lg:block">
+            <FilterSidebar items={items} filters={filters} onChange={setAndKeep} onClear={clearAll} />
+          </aside>
+          <div className="min-w-0 flex-1">{grid}</div>
+        </div>
       </div>
 
-      {/* Filter bar */}
-      <div className="sticky top-[72px] z-30 flex flex-wrap items-center gap-2 rounded-3xl border border-border-app bg-white/90 p-3 backdrop-blur card-shadow">
-        <label className="flex min-w-[200px] flex-1 items-center gap-2 rounded-full bg-cloud px-4 py-2.5">
-          <SearchNormal1 size={16} color="#5B7A99" />
-          <input
-            type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="עיר, שכונה או רחוב…"
-            className="w-full bg-transparent text-[14px] font-semibold text-navy outline-none placeholder:text-secondary-text"
-          />
-        </label>
-
-        <div className="flex items-center gap-1">
-          {(
-            [
-              ['all', 'הכל'],
-              ['rent', 'השכרה'],
-              ['sale', 'מכירה'],
-            ] as [TypeFilter, string][]
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setTypeAndResetPrice(value)}
-              className={`rounded-full px-4 py-2 text-[13px] font-bold transition ${
-                type === value ? 'bg-primary text-white' : 'bg-cloud text-navy'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      {/* ── LEFT column: sticky map ── */}
+      <div className="hidden lg:block">
+        <div className="sticky top-24 h-[calc(100vh-120px)] self-start overflow-hidden rounded-[28px] border border-border-app card-shadow">
+          <MapPanel items={filtered} visibleIds={visibleIds} onLassoChange={setLassoIds} />
         </div>
+      </div>
 
-        <select
-          value={minRooms}
-          onChange={(e) => setMinRooms(Number(e.target.value))}
-          aria-label="מספר חדרים"
-          className="rounded-full border-0 bg-cloud px-4 py-2.5 text-[13px] font-bold text-navy"
-        >
-          {ROOM_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={maxPrice}
-          onChange={(e) => setMaxPrice(Number(e.target.value))}
-          aria-label="מחיר מקסימלי"
-          className="rounded-full border-0 bg-cloud px-4 py-2.5 text-[13px] font-bold text-navy"
-        >
-          {priceOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as Sort)}
-          aria-label="מיון"
-          className="rounded-full border-0 bg-cloud px-4 py-2.5 text-[13px] font-bold text-navy"
-        >
-          <option value="new">החדשות ביותר</option>
-          <option value="priceAsc">מחיר: מהזול</option>
-          <option value="priceDesc">מחיר: מהיקר</option>
-        </select>
-
-        {hasFilter && (
+      {/* ── Mobile: filter slide-over ── */}
+      {showMobileFilters && (
+        <div className="fixed inset-0 z-[70] lg:hidden">
           <button
             type="button"
-            onClick={clearAll}
-            className="text-[13px] font-bold text-secondary-text transition hover:text-coral"
-          >
-            נקה הכל
-          </button>
-        )}
-      </div>
-
-      {loading ? (
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-[360px] animate-pulse rounded-[28px] bg-cloud" />
-          ))}
-        </div>
-      ) : (
-        <>
-          <p className="my-4 text-[14px] font-bold text-secondary-text">
-            נמצאו {filtered.length} דירות
-          </p>
-
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center gap-4 py-20 text-center">
-              <Building size={40} color="#5B7A99" />
-              <p className="text-[15px] font-bold text-secondary-text">
-                לא מצאנו דירות שמתאימות לסינון
-              </p>
+            aria-label="סגור סינון"
+            onClick={() => setShowMobileFilters(false)}
+            className="absolute inset-0 bg-navy/40"
+          />
+          <div className="no-scrollbar absolute inset-y-0 right-0 w-[88%] max-w-[380px] overflow-y-auto bg-cloud p-3">
+            <div className="mb-2 flex justify-end">
               <button
                 type="button"
-                onClick={clearAll}
-                className="rounded-full bg-primary px-5 py-2.5 font-bold text-white"
+                aria-label="סגירה"
+                onClick={() => setShowMobileFilters(false)}
+                className="rounded-full bg-white p-2 card-shadow"
               >
-                נקה סינון
+                <CloseCircle size={20} color="#072946" />
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((p) => (
-                <a key={p.id} href={`/listing/${p.id}`} className="block [&>[role=button]]:w-full">
-                  <PropertyCard property={p} />
-                </a>
-              ))}
-            </div>
-          )}
-        </>
+            <FilterSidebar items={items} filters={filters} onChange={setAndKeep} onClear={clearAll} />
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(false)}
+              className="mt-3 w-full rounded-full bg-primary px-5 py-3 text-[15px] font-black text-white"
+            >
+              הצג {visible.length} דירות
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile: floating map toggle + full-screen overlay ── */}
+      {!showMobileMap && (
+        <button
+          type="button"
+          onClick={() => setShowMobileMap(true)}
+          className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-6 py-3 text-[14px] font-black text-white card-shadow lg:hidden"
+        >
+          <Map1 size={17} color="#FFFFFF" />
+          מפה
+        </button>
+      )}
+      {showMobileMap && (
+        <div className="fixed inset-0 z-[80] bg-white lg:hidden">
+          <MapPanel items={filtered} visibleIds={visibleIds} onLassoChange={setLassoIds} />
+          <button
+            type="button"
+            onClick={() => setShowMobileMap(false)}
+            className="absolute top-4 right-4 z-[81] flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13px] font-black text-navy card-shadow"
+          >
+            <CloseCircle size={16} color="#072946" />
+            סגירה
+          </button>
+        </div>
       )}
     </div>
   )

@@ -5,9 +5,10 @@ import { HambergerMenu } from "iconsax-react";
 
 const NAV_LINKS = [
   { label: "חיפוש דירות", href: "/real-estate" },
-  { label: "אתי AI", href: "/#ati" },
+  { label: "אתי AI", href: "/ati" },
   { label: "שירותים", href: "/#services" },
   { label: "פרסום דירה", href: "/publish" },
+  { label: "אזור בעל דירה", href: "/landlord" },
 ];
 
 export default function TopBar() {

@@ -221,6 +221,27 @@ export async function fetchNearby(
 ): Promise<NearbyByKind> {
   if (!finite(lat, lon)) return {}
   const query = buildQuery(lat, lon, radiusM)
+
+  // Fast path: the site's own /api/nearby proxy — server-side grid cache (7d,
+  // shared across ALL visitors) so a warm cell answers in tens of ms instead
+  // of a 2-25s public-mirror round-trip. Falls through to direct mirrors.
+  try {
+    const res = await fetch('/api/nearby', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ lat, lon, query }),
+      signal,
+    })
+    if (res.ok) {
+      const body: unknown = await res.json()
+      const elements = (body as Record<string, unknown>)?.['elements']
+      if (Array.isArray(elements)) return group(elements, lat, lon)
+    }
+  } catch (err) {
+    if (signal?.aborted) throw err
+    // proxy unavailable → direct mirrors below
+  }
+
   for (const ep of ENDPOINTS) {
     if (signal?.aborted) throw signal.reason ?? new DOMException('aborted', 'AbortError')
     const ctrl = new AbortController()

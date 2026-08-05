@@ -26,9 +26,38 @@ export interface PropertiesResult {
   live: boolean // true = real API, false = sample fallback
 }
 
-// GET /properties?status=active — falls back to sample data on any auth/network
-// failure so the site is never empty.
-export async function fetchProperties(limit = 60): Promise<PropertiesResult> {
+// Listings now come from the site's own cached route (/api/listings — server
+// mints the token and holds a 60s cache, so no client Firebase wait). Falls
+// back to the direct authed path, then to sample data. Module-memoised so
+// every consumer (hero, rows, browse, map) shares one fetch per page load.
+let listingsMemo: { res: Promise<PropertiesResult>; ts: number } | null = null
+
+export function fetchProperties(limit = 60): Promise<PropertiesResult> {
+  if (listingsMemo && Date.now() - listingsMemo.ts < 60_000) return listingsMemo.res
+  const res = loadProperties(limit).catch(() => {
+    listingsMemo = null
+    return { items: SAMPLE_PROPERTIES, live: false }
+  })
+  listingsMemo = { res, ts: Date.now() }
+  return res
+}
+
+async function loadProperties(limit: number): Promise<PropertiesResult> {
+  try {
+    const res = await fetch('/api/listings', { headers: { Accept: 'application/json' } })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    const items: Property[] = (data.items ?? []).slice(0, Math.max(limit, 500))
+    if (!items.length) throw new Error('no items')
+    return { items, live: data.live !== false }
+  } catch (e) {
+    console.warn('[api] cached route failed, falling back to direct:', (e as Error).message)
+    return fetchPropertiesDirect(limit)
+  }
+}
+
+// Direct authed path (the original) — kept as fallback.
+async function fetchPropertiesDirect(limit = 60): Promise<PropertiesResult> {
   try {
     const token = await getToken()
     const res = await fetch(`${BASE}/properties?status=active&limit=${limit}&order=desc`, {

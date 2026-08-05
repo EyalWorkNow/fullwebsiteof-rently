@@ -283,10 +283,12 @@ export default function ListingClient({ id }: { id: string }) {
 
             {/* Nearby / geo intelligence — same layers as the app's property page
                 (NearbyPlacesCard showAllKinds), real named places + distances. */}
-            {typeof p.lat === 'number' &&
-              typeof p.lon === 'number' &&
-              Math.abs(p.lat) > 0.01 &&
-              Math.abs(p.lon) > 0.01 && <NearbyPlaces lat={p.lat} lon={p.lon} city={p.city} />}
+            {Number.isFinite(p.lat) &&
+              Number.isFinite(p.lon) &&
+              Math.abs(p.lat as number) > 0.01 &&
+              Math.abs(p.lon as number) > 0.01 && (
+                <NearbyPlaces lat={p.lat as number} lon={p.lon as number} city={p.city} />
+              )}
           </div>
 
           {/* Sticky price card */}

@@ -150,8 +150,10 @@ const SUB_LABELS: Record<string, string> = {
   safety: 'בטיחות',
   walkability: 'הליכתיות',
   schools: 'בתי״ס',
+  kindergarten: 'גני ילדים',
   transit: 'תחבורה',
   green: 'ירוק',
+  quiet: 'שקט',
 }
 
 // Each sub-score → its honest data source (the app's GovSources registry values;
@@ -160,8 +162,10 @@ const SUB_SOURCES: Record<string, { agency: string; dataset: string }> = {
   safety: { agency: 'משטרת ישראל / למ״ס', dataset: 'עבירות פליליות שנרשמו (לנפש)' },
   walkability: { agency: 'OpenStreetMap / data.gov.il', dataset: 'סופרמרקטים ומרכזי קניות' },
   schools: { agency: 'למ״ס / משרד החינוך', dataset: 'מוסדות חינוך' },
+  kindergarten: { agency: 'למ״ס / משרד החינוך', dataset: 'גני ילדים ומעונות' },
   transit: { agency: 'רכבת ישראל', dataset: 'מיקומי תחנות רכבת' },
   green: { agency: 'OpenStreetMap / data.gov.il', dataset: 'פארקים ושטחים ירוקים' },
+  quiet: { agency: 'OpenStreetMap', dataset: 'כבישים ראשיים בקרבת הנכס' },
 }
 
 function sourceLabel(key: string): string | null {

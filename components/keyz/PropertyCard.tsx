@@ -4,6 +4,7 @@
 // docs/research/components/property-card.spec.md (source of truth).
 import { useState } from 'react'
 import {
+  Briefcase,
   Building,
   Bus,
   Buildings,
@@ -14,7 +15,6 @@ import {
   Send2,
   Sun1,
   Teacher,
-  TickCircle,
   Tree,
 } from 'iconsax-react'
 import type { Icon } from 'iconsax-react'
@@ -49,7 +49,9 @@ export default function PropertyCard({
   const [saved, setSaved] = useState(false)
 
   const img = primaryImage(property)
-  const verified = (property as Property & { verified?: boolean }).verified === true
+  // Broker tag shows ONLY for a listing the data actually marks as agency-listed
+  // — a private listing carries no tag at all.
+  const isBroker = property.agencyListing === true
 
   const tags = property.smartTags ?? []
   const geoTags = tags
@@ -96,11 +98,11 @@ export default function PropertyCard({
             <span className="text-[12px] font-extrabold text-navy">{property.propertyType || 'דירה'}</span>
           </div>
 
-          {/* Verified badge — physical top-left */}
-          {verified && (
+          {/* Broker tag — physical top-left. Absent entirely for private listings. */}
+          {isBroker && (
             <div className="absolute top-[10px] left-[10px] flex items-center gap-[3px] rounded-[20px] bg-white px-2 py-[5px] badge-shadow">
-              <TickCircle size={13} color="#27AE60" variant="Bold" />
-              <span className="text-[11px] font-extrabold text-navy">מאומת</span>
+              <Briefcase size={13} color="#2563EB" variant="Bold" />
+              <span className="text-[11px] font-extrabold text-navy">מתווך</span>
             </div>
           )}
 

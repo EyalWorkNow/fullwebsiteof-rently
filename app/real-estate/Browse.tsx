@@ -16,7 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { ComponentType } from 'react'
 import { ArrowDown2, Building, CloseCircle, Filter, Map1, SearchNormal1 } from 'iconsax-react'
-import VoicePropertyCard from '@/components/keyz/VoicePropertyCard'
+import PropertyCard from '@/components/keyz/PropertyCard'
 import { fetchProperties } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
 import FilterSidebar from './FilterSidebar'
@@ -146,9 +146,9 @@ export default function Browse() {
   const queryPending = queryInput.trim() !== filters.query.trim()
 
   const grid = loading ? (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-[210px] animate-pulse rounded-[30px] bg-cloud sm:h-[230px]" />
+        <div key={i} className="h-[360px] animate-pulse rounded-[28px] bg-cloud" />
       ))}
     </div>
   ) : visible.length === 0 ? (
@@ -167,18 +167,27 @@ export default function Browse() {
       </button>
     </div>
   ) : (
-    // Landscape cards: one per row so each gets the full column width.
-    <div className="grid grid-cols-1 gap-4">
+    // Same card as the home page (PropertyCard); its root is a fixed-width
+    // carousel item, so stretch it to the grid cell. auto-fill sizes columns
+    // from the ACTUAL column width — no breakpoint guessing when the filter
+    // panel opens/closes or the map column changes the available space.
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-start gap-5">
       {visible.map((p) => (
-        <a key={p.id} href={`/listing/${p.id}`} className="block">
-          <VoicePropertyCard property={p} />
+        <a
+          key={p.id}
+          href={`/listing/${p.id}`}
+          className="block [&>[role=button]]:w-full"
+        >
+          <PropertyCard property={p} />
         </a>
       ))}
     </div>
   )
 
   return (
-    <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-5 px-4 pt-28 pb-20 lg:grid-cols-[minmax(0,1fr)_minmax(380px,44%)]">
+    // NOTE: no `items-start` here — the map column must STRETCH to the row
+    // height, otherwise its sticky child has no travel room and scrolls away.
+    <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-5 px-4 pt-28 pb-20 lg:grid-cols-[minmax(0,1fr)_minmax(360px,38%)]">
       {/* ── RIGHT column (RTL start): control bar + panel + results ── */}
       <div className="min-w-0">
         {/* Always-visible control bar */}

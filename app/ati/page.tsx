@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function AtiPage() {
   return (
-    <main className="pt-20 md:pt-24 bg-[#F8FAFC] min-h-screen flex flex-col overflow-hidden">
-      <div className="flex-1 flex flex-col h-[calc(100vh-80px)] md:h-[calc(100vh-96px)] overflow-hidden">
+    <main className="pt-[68px] md:pt-24 bg-slate-50 min-h-screen flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col h-[calc(100dvh-68px)] md:h-[calc(100vh-96px)] overflow-hidden">
         <AtiWorkspace />
       </div>
     </main>

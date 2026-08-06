@@ -5,13 +5,24 @@
 // dirty there, so a later assistant draft can refine the untouched fields without
 // ever undoing what the landlord typed.
 //
+// Styled as an editable PREVIEW of the real listing card (same media-block +
+// chip-row + address layout as components/keyz/PropertyCard.tsx) rather than a
+// generic form — what you see here is close to what a tenant will see.
+//
+// IMPORTANT: this card stays editable even after a successful save. The old
+// version swapped to a permanent read-only "published!" screen on first save,
+// which meant a second edit (e.g. adding one more photo) had nowhere to go —
+// that was the "can't save changes after uploading a photo" bug. Now a
+// successful save just shows an inline confirmation strip; the form underneath
+// never disappears, so the landlord can keep tweaking and re-saving.
+//
 // A photo is REQUIRED before publish is allowed — a listing nobody can see a
 // picture of doesn't get published. Editing an existing listing pre-loads its
 // current photos, so an edit that doesn't touch photos still satisfies the gate.
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { useRef, useState } from 'react'
-import { AddCircle, CloseCircle, Edit2, GalleryAdd, TickCircle } from 'iconsax-react'
+import { AddCircle, Building, CloseCircle, Eye, TickCircle } from 'iconsax-react'
 import { currentUser } from '@/lib/live/firebase'
 import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 import {
@@ -58,10 +69,14 @@ export default function DraftCard({
 }) {
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [justSaved, setJustSaved] = useState(false)
   const [pending, setPending] = useState<PendingUpload[]>([])
   const { requireAuth } = useAuthGate()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Uploads run one at a time so each `onPhotosChange` call reads the photos
+  // array as it stood after the PREVIOUS upload landed — a Promise.all here
+  // would let every upload close over the same stale `photos` snapshot and
+  // the slowest one to resolve would silently wipe out all the others.
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return
     const files = Array.from(fileList)
@@ -72,26 +87,33 @@ export default function DraftCard({
     }))
     setPending((p) => [...p, ...entries])
 
-    await Promise.all(
-      files.map(async (file, i) => {
-        const entry = entries[i]
-        try {
-          const url = await uploadPhoto(file)
-          onPhotosChange([...photos, url])
-        } catch (e) {
-          setPending((p) =>
-            p.map((x) => (x.id === entry.id ? { ...x, status: 'error', error: (e as Error).message } : x)),
-          )
-          return
-        }
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const entry = entries[i]
+      try {
+        const url = await uploadPhoto(file)
+        onPhotosChange([...photos, url])
         setPending((p) => p.filter((x) => x.id !== entry.id))
         URL.revokeObjectURL(entry.previewUrl)
-      }),
-    )
+      } catch (e) {
+        setPending((p) =>
+          p.map((x) => (x.id === entry.id ? { ...x, status: 'error', error: (e as Error).message } : x)),
+        )
+      }
+    }
   }
 
   function addPhotos() {
-    requireAuth(PHOTO_REASON, () => fileInputRef.current?.click())
+    requireAuth(PHOTO_REASON, () => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'image/*'
+      input.multiple = true
+      input.onchange = () => {
+        void handleFiles(input.files)
+      }
+      input.click()
+    })
   }
 
   function removePhoto(url: string) {
@@ -101,6 +123,8 @@ export default function DraftCard({
   function removePending(id: string) {
     setPending((p) => p.filter((x) => x.id !== id))
   }
+
+  const uploading = pending.some((p) => p.status === 'uploading')
 
   async function publish() {
     if (publishing) return
@@ -117,9 +141,12 @@ export default function DraftCard({
     }
     setPublishing(true)
     setError(null)
+    setJustSaved(false)
     try {
       const { id } = await publishDraft(fields, u.uid, u.displayName ?? '', photos, existing)
       onPublished(id)
+      setJustSaved(true)
+      setTimeout(() => setJustSaved(false), 4000)
     } catch (e) {
       setError((e as Error).message || 'הפרסום נכשל. נסו שוב.')
     } finally {
@@ -127,239 +154,258 @@ export default function DraftCard({
     }
   }
 
-  if (publishedId) {
-    return (
-      <div className="mt-3 ms-11 max-w-[620px] rounded-[28px] border border-success/40 bg-[#F0FBF5] p-5 card-shadow">
-        <div className="flex items-center gap-2 font-black text-success">
-          <TickCircle size={20} variant="Bold" color="currentColor" />
-          {isEditing ? 'השינויים נשמרו! הם מופיעים גם באפליקציה' : 'הדירה פורסמה! היא מופיעה גם באפליקציה'}
-        </div>
-        <p className="mt-1.5 text-[13px] font-semibold text-secondary-text">
-          {fields.city}
-          {fields.streetLine ? ` · ${fields.streetLine}` : ''}
-          {fields.price ? ` · ${Number(fields.price).toLocaleString('he-IL')} ₪` : ''}
-        </p>
-        <Link
-          href={`/listing/${publishedId}`}
-          className="mt-4 inline-flex items-center justify-center rounded-full bg-success px-5 py-2.5 text-[13.5px] font-bold text-white transition-opacity hover:opacity-90"
-        >
-          לצפייה בדירה
-        </Link>
-      </div>
-    )
-  }
-
-  const canPublish = photos.length > 0
+  const canPublish = photos.length > 0 && !uploading
+  const hero = photos[0]
 
   return (
-    <div className="mt-3 ms-11 max-w-[620px] rounded-[28px] border border-primary/30 bg-white p-5 card-shadow">
-      <div className="mb-1 flex items-center gap-2 font-black text-navy">
-        <Edit2 size={18} color="currentColor" className="text-primary" />
-        {isEditing ? 'עריכת המודעה' : 'טיוטת המודעה — מתעדכנת תוך כדי השיחה'}
-      </div>
-      <p className="mb-4 text-[12px] font-semibold text-secondary-text">
-        אפשר לערוך כל שדה. מה שתערכו — עזרא לא ידרוס בהמשך השיחה.
-      </p>
-
-      {/* Photos — required before publish */}
-      <div className="mb-4">
-        <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-secondary-text">
-          תמונות הדירה
-          <span className="text-coral">*</span>
-          {photos.length === 0 && pending.length === 0 && (
-            <span className="font-semibold text-coral">— חובה להעלות לפחות תמונה אחת</span>
+    <div className="mt-3 ms-11 max-w-[420px] overflow-hidden rounded-[28px] border border-primary/30 bg-white card-shadow">
+      {/* ── Media block — same 4px inset / 22px inner radius as PropertyCard ── */}
+      <div className="p-1">
+        <div className="relative aspect-[2.1] overflow-hidden rounded-[22px] bg-primary-light2">
+          {hero ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-primary">
+              <Building size={40} color="#2563EB" />
+              <span className="text-[11.5px] font-bold">אין עדיין תמונה</span>
+            </div>
           )}
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {photos.map((url) => (
-            <div key={url} className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border-app">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" />
-              <button
-                type="button"
-                onClick={() => removePhoto(url)}
-                aria-label="הסרת תמונה"
-                className="absolute end-1 top-1 rounded-full bg-navy/70 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                <CloseCircle size={16} color="currentColor" />
-              </button>
-            </div>
-          ))}
-          {pending.map((p) => (
-            <div key={p.id} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border-app">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.previewUrl} alt="" className="h-full w-full object-cover opacity-50" />
-              {p.status === 'uploading' ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/40">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => removePending(p.id)}
-                  title={p.error}
-                  className="absolute inset-0 flex items-center justify-center bg-[#FFF2F2]/90 text-coral"
-                >
-                  <CloseCircle size={20} color="currentColor" />
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addPhotos}
-            className="flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border-app text-secondary-text transition hover:border-primary hover:text-primary"
+          <span
+            className={`absolute top-2.5 start-2.5 rounded-full px-3 py-1 text-[11px] font-extrabold badge-shadow ${
+              publishedId ? 'bg-success/90 text-white' : 'bg-white/90 text-secondary-text'
+            }`}
           >
-            <GalleryAdd size={20} color="currentColor" />
-            <span className="text-[10.5px] font-bold">הוספה</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              void handleFiles(e.target.files)
-              e.target.value = ''
-            }}
-          />
+            {publishedId ? 'פורסם' : 'טיוטה'}
+          </span>
+          {publishedId && (
+            <Link
+              href={`/listing/${publishedId}`}
+              className="absolute top-2.5 end-2.5 flex h-[30px] w-[30px] items-center justify-center rounded-full bg-white badge-shadow transition hover:text-primary"
+              aria-label="לצפייה בדירה"
+            >
+              <Eye size={15} color="#072946" />
+            </Link>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Field label="עיר" value={fields.city} dirty={dirty.includes('city')} onChange={(v) => onEdit('city', v)} />
-        <Field
-          label="רחוב ומספר"
-          value={fields.streetLine}
-          dirty={dirty.includes('streetLine')}
-          onChange={(v) => onEdit('streetLine', v)}
-        />
-        <Field
-          label="חדרים"
-          value={fields.rooms}
-          inputMode="decimal"
-          dirty={dirty.includes('rooms')}
-          onChange={(v) => onEdit('rooms', v)}
-        />
-        <Field
-          label='מ"ר'
-          value={fields.sizeM2}
-          inputMode="numeric"
-          dirty={dirty.includes('sizeM2')}
-          onChange={(v) => onEdit('sizeM2', v)}
-        />
-        <Field label="קומה" value={fields.floor} dirty={dirty.includes('floor')} onChange={(v) => onEdit('floor', v)} />
-        <Field
-          label="מחיר (₪)"
+      {/* ── Photo strip — every photo removable, always-open add button ── */}
+      <div className="no-scrollbar flex gap-2 overflow-x-auto px-3.5 pt-2">
+        {photos.map((url) => (
+          <div key={url} className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border-app">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => removePhoto(url)}
+              aria-label="הסרת תמונה"
+              className="absolute end-0.5 top-0.5 rounded-full bg-navy/70 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <CloseCircle size={14} color="currentColor" />
+            </button>
+          </div>
+        ))}
+        {pending.map((p) => (
+          <div key={p.id} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border-app">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.previewUrl} alt="" className="h-full w-full object-cover opacity-50" />
+            {p.status === 'uploading' ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/40">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => removePending(p.id)}
+                title={p.error}
+                className="absolute inset-0 flex items-center justify-center bg-[#FFF2F2]/90 text-coral"
+              >
+                <CloseCircle size={18} color="currentColor" />
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addPhotos}
+          className="flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-dashed border-border-app text-secondary-text transition hover:border-primary hover:text-primary"
+        >
+          <AddCircle size={18} color="currentColor" />
+          <span className="text-[10px] font-bold">תמונה</span>
+        </button>
+      </div>
+      {photos.length === 0 && pending.length === 0 && (
+        <p className="px-3.5 pt-1.5 text-[11.5px] font-bold text-coral">חובה להעלות לפחות תמונה אחת כדי לפרסם</p>
+      )}
+
+      {/* ── Row 1 — editable price, like the listing's own price row ── */}
+      <div className="flex items-center gap-2 px-3.5 pt-3">
+        <span className="text-[15px] font-black text-secondary-text">₪</span>
+        <input
           value={fields.price}
           inputMode="numeric"
-          dirty={dirty.includes('price')}
-          onChange={(v) => onEdit('price', v.replace(/[^\d]/g, ''))}
+          placeholder="מחיר"
+          onChange={(e) => onEdit('price', e.target.value.replace(/[^\d]/g, ''))}
+          className="w-full min-w-0 border-0 bg-transparent text-[19px] font-black text-navy outline-none placeholder:text-secondary-text/60"
         />
-        <Select
-          label="סוג עסקה"
+        {dirty.includes('price') && <DirtyDot />}
+      </div>
+
+      {/* ── Row 2 — rooms / size / floor / transaction / condition, chip-styled ── */}
+      <div className="no-scrollbar mt-2 flex flex-row gap-1.5 overflow-x-auto px-3.5">
+        <ChipInput
+          value={fields.rooms}
+          onChange={(v) => onEdit('rooms', v)}
+          suffix="חדרים"
+          inputMode="decimal"
+          dirty={dirty.includes('rooms')}
+          width="w-10"
+        />
+        <ChipInput
+          value={fields.sizeM2}
+          onChange={(v) => onEdit('sizeM2', v)}
+          suffix='מ״ר'
+          inputMode="numeric"
+          dirty={dirty.includes('sizeM2')}
+          width="w-10"
+        />
+        <ChipInput
+          value={fields.floor}
+          onChange={(v) => onEdit('floor', v)}
+          suffix="קומה"
+          dirty={dirty.includes('floor')}
+          width="w-8"
+        />
+        <ChipSelect
           value={fields.transactionType}
+          onChange={(v) => onEdit('transactionType', v)}
           dirty={dirty.includes('transactionType')}
           options={[
             { value: 'rent', label: 'השכרה' },
             { value: 'sale', label: 'מכירה' },
           ]}
-          onChange={(v) => onEdit('transactionType', v)}
         />
-        <Select
-          label="מצב הנכס"
+        <ChipSelect
           value={fields.condition}
+          onChange={(v) => onEdit('condition', v)}
           dirty={dirty.includes('condition')}
           options={CONDITIONS.map((c) => ({ value: c, label: c }))}
-          onChange={(v) => onEdit('condition', v)}
         />
       </div>
 
-      <label className="mt-3 flex flex-col gap-1 text-xs font-bold text-secondary-text">
+      {/* ── Row 3 — city + street, like the listing's address line ── */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 px-3.5">
+        <input
+          value={fields.streetLine}
+          placeholder="רחוב ומספר"
+          onChange={(e) => onEdit('streetLine', e.target.value)}
+          className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-black text-navy outline-none placeholder:text-secondary-text/60"
+        />
+        {dirty.includes('streetLine') && <DirtyDot />}
+        <span className="text-[12px] font-semibold text-secondary-text">·</span>
+        <input
+          value={fields.city}
+          placeholder="עיר"
+          onChange={(e) => onEdit('city', e.target.value)}
+          className="w-24 min-w-0 border-0 bg-transparent text-[12px] font-semibold text-secondary-text outline-none placeholder:text-secondary-text/60"
+        />
+        {dirty.includes('city') && <DirtyDot />}
+      </div>
+
+      {/* ── Description ── */}
+      <label className="mt-3 flex flex-col gap-1 px-3.5 text-xs font-bold text-secondary-text">
         <span className="flex items-center gap-1.5">
           תיאור
           {dirty.includes('description') && <DirtyDot />}
         </span>
         <textarea
           value={fields.description}
+          placeholder="כמה מילים על הדירה — למה כדאי לגור בה"
           onChange={(e) => onEdit('description', e.target.value)}
           rows={3}
-          className="resize-y rounded-xl border border-border-app px-3 py-2 text-sm text-navy outline-none focus:border-primary"
+          className="resize-y rounded-xl border border-border-app px-3 py-2 text-sm font-normal text-navy outline-none focus:border-primary"
         />
       </label>
 
-      {error && <p className="mt-3 text-[13px] font-bold text-coral">{error}</p>}
-
-      <button
-        type="button"
-        onClick={() => requireAuth(PUBLISH_REASON, () => void publish())}
-        disabled={publishing || !canPublish}
-        title={!canPublish ? 'יש להעלות לפחות תמונה אחת' : undefined}
-        className="mt-4 w-full rounded-full bg-primary py-3 font-bold text-white transition-colors hover:bg-primary-dark disabled:opacity-60"
-      >
-        {publishing ? 'שומרים…' : isEditing ? 'שמירת שינויים' : 'פרסום הדירה'}
-      </button>
+      <div className="p-3.5 pt-3">
+        {error && <p className="mb-2 text-[13px] font-bold text-coral">{error}</p>}
+        {justSaved && !error && (
+          <div className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-success">
+            <TickCircle size={16} variant="Bold" color="currentColor" />
+            {isEditing ? 'השינויים נשמרו' : 'הדירה פורסמה'} — מופיע גם באפליקציה
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => requireAuth(PUBLISH_REASON, () => void publish())}
+          disabled={publishing || !canPublish}
+          title={!canPublish ? (uploading ? 'ממתינים לסיום העלאת התמונה' : 'יש להעלות לפחות תמונה אחת') : undefined}
+          className="w-full rounded-full bg-primary py-3 font-bold text-white transition-colors hover:bg-primary-dark disabled:opacity-60"
+        >
+          {publishing
+            ? 'שומרים…'
+            : uploading
+              ? 'מעלים תמונה…'
+              : publishedId
+                ? 'שמירת שינוי נוסף'
+                : 'פרסום הדירה'}
+        </button>
+      </div>
     </div>
   )
 }
 
 function DirtyDot() {
-  return <span className="h-1.5 w-1.5 rounded-full bg-primary" title="נערך על ידך" aria-hidden />
+  return <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" title="נערך על ידך" aria-hidden />
 }
 
-function Field({
-  label,
+function ChipInput({
   value,
   onChange,
+  suffix,
   inputMode,
   dirty,
+  width,
 }: {
-  label: string
   value: string
   onChange: (v: string) => void
+  suffix: string
   inputMode?: 'numeric' | 'decimal'
   dirty?: boolean
+  width: string
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-bold text-secondary-text">
-      <span className="flex items-center gap-1.5">
-        {label}
-        {dirty && <DirtyDot />}
-      </span>
+    <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy">
       <input
         value={value}
         inputMode={inputMode}
         onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 rounded-xl border border-border-app px-3 py-2 text-sm text-navy outline-none focus:border-primary"
+        className={`${width} border-0 bg-transparent text-[11.5px] font-bold text-navy outline-none`}
       />
-    </label>
+      {suffix}
+      {dirty && <DirtyDot />}
+    </span>
   )
 }
 
-function Select({
-  label,
+function ChipSelect({
   value,
-  options,
   onChange,
+  options,
   dirty,
 }: {
-  label: string
   value: string
-  options: { value: string; label: string }[]
   onChange: (v: string) => void
+  options: { value: string; label: string }[]
   dirty?: boolean
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-bold text-secondary-text">
-      <span className="flex items-center gap-1.5">
-        {label}
-        {dirty && <DirtyDot />}
-      </span>
+    <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-border-app bg-white px-3 py-2 text-sm text-navy outline-none focus:border-primary"
+        className="border-0 bg-transparent text-[11.5px] font-bold text-navy outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -367,6 +413,7 @@ function Select({
           </option>
         ))}
       </select>
-    </label>
+      {dirty && <DirtyDot />}
+    </span>
   )
 }

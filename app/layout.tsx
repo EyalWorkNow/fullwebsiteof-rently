@@ -7,6 +7,7 @@ import BackToTop from "@/components/BackToTop";
 import TopBar from "@/components/keyz/TopBar";
 import SiteFooter from "@/components/keyz/SiteFooter";
 import { AuthGateModal } from "@/components/keyz/auth/AuthGate";
+import AccessibilityWidget from "@/components/AccessibilityWidget";
 
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <SiteFooter />
           <BackToTop />
+          <AccessibilityWidget />
           {/* Action-triggered registration gate — rendered once for the whole app. */}
           <AuthGateModal />
         </LanguageProvider>

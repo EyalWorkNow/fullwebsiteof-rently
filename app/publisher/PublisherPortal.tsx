@@ -18,6 +18,7 @@ import {
   Home2,
   Logout,
   MessageText1,
+  Messages3,
   ProfileCircle,
   SearchNormal1,
   User,
@@ -31,13 +32,15 @@ import CalendarTab from './CalendarTab'
 import PropertiesTab from './PropertiesTab'
 import OverviewTab from './OverviewTab'
 import AudienceTab from './AudienceTab'
+import MessagesTab from './MessagesTab'
 
-type TabId = 'overview' | 'ezra' | 'properties' | 'audience' | 'calendar'
+type TabId = 'overview' | 'ezra' | 'properties' | 'messages' | 'audience' | 'calendar'
 
 const TABS: { id: TabId; label: string; Icon: typeof Calendar; desc: string }[] = [
   { id: 'overview', label: 'סקירה', Icon: Chart21, desc: 'איך הדירות שלכם מתפקדות מול האזור' },
   { id: 'ezra', label: 'עזרא — הוספת דירה', Icon: MessageText1, desc: 'שיחה אינטראקטיבית ליצירת מודעה ב-2 דקות' },
   { id: 'properties', label: 'הנכסים שלי', Icon: Home2, desc: 'מעקב וניהול כל המודעות שפורסמו' },
+  { id: 'messages', label: 'הודעות ופניות', Icon: Messages3, desc: 'מתעניינים חדשים ושיחות פעילות — אישור או דחייה' },
   { id: 'audience', label: 'קהל', Icon: UserOctagon, desc: 'מי באמת מתעניין בדירות שלכם' },
   { id: 'calendar', label: 'היומן שלי', Icon: Calendar, desc: 'ניהול ביקורים וסיורים בדירה' },
 ]
@@ -289,6 +292,7 @@ export default function PublisherPortal() {
               }}
             />
           )}
+          {tab === 'messages' && <MessagesTab user={user} />}
           {tab === 'audience' && <AudienceTab user={user} />}
           {tab === 'calendar' && <CalendarTab user={user} />}
         </div>

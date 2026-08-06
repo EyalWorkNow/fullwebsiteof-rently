@@ -35,6 +35,19 @@ async function authHeaders(): Promise<Record<string, string>> {
   }
 }
 
+/** The router replies `{message}` on failure — surface that instead of a bare
+ *  status code so a real cause (e.g. "Forbidden" on someone else's listing)
+ *  is visible instead of a generic "try again". */
+async function serverErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json()
+    if (body && typeof body.message === 'string' && body.message.trim()) return `${fallback} (${body.message})`
+  } catch {
+    /* body wasn't JSON — fall through to the generic message */
+  }
+  return `${fallback} (שגיאה ${res.status})`
+}
+
 const str = (v: unknown) => (v == null ? '' : String(v).trim())
 
 const coerceList = <T,>(v: unknown): T[] => {
@@ -398,7 +411,7 @@ export async function publishDraft(
       headers: await authHeaders(),
       body: JSON.stringify(row),
     })
-    if (!res.ok) throw new Error(`שמירת השינויים נכשלה (שגיאה ${res.status}). נסו שוב בעוד רגע.`)
+    if (!res.ok) throw new Error(await serverErrorMessage(res, 'שמירת השינויים נכשלה'))
     return { id }
   }
 
@@ -466,6 +479,6 @@ export async function publishDraft(
     headers: await authHeaders(),
     body: JSON.stringify(row),
   })
-  if (!res.ok) throw new Error(`הפרסום נכשל (שגיאה ${res.status}). נסו שוב בעוד רגע.`)
+  if (!res.ok) throw new Error(await serverErrorMessage(res, 'הפרסום נכשל'))
   return { id }
 }

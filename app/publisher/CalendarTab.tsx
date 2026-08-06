@@ -135,12 +135,13 @@ export default function CalendarTab({ user }: { user: User | null }) {
       <div className="flex items-center gap-1.5">
         <button
           onClick={() => shiftWeek(-1)}
-          className="w-8 h-8 rounded-full text-secondary-text hover:bg-cloud flex items-center justify-center shrink-0"
+          className="w-10 h-10 rounded-full text-secondary-text hover:bg-cloud flex items-center justify-center shrink-0"
           title="שבוע קודם"
         >
           <ArrowRight2 size={16} color="currentColor" />
         </button>
-        <div className="grid grid-cols-7 gap-1.5 flex-1">
+        <div className="no-scrollbar flex-1 overflow-x-auto">
+        <div className="grid grid-cols-7 gap-1.5 min-w-[420px]">
           {days.map((d) => {
             const iso = toISO(d)
             const count = slots.filter((s) => s.dateISO === iso).length
@@ -169,9 +170,10 @@ export default function CalendarTab({ user }: { user: User | null }) {
             )
           })}
         </div>
+        </div>
         <button
           onClick={() => shiftWeek(1)}
-          className="w-8 h-8 rounded-full text-secondary-text hover:bg-cloud flex items-center justify-center shrink-0"
+          className="w-10 h-10 rounded-full text-secondary-text hover:bg-cloud flex items-center justify-center shrink-0"
           title="שבוע הבא"
         >
           <ArrowLeft2 size={16} color="currentColor" />
@@ -245,7 +247,7 @@ export default function CalendarTab({ user }: { user: User | null }) {
               )}
               <button
                 onClick={() => removeSlot(slot)}
-                className="w-9 h-9 rounded-full text-secondary-text hover:text-coral hover:bg-coral/10 flex items-center justify-center shrink-0 transition-colors"
+                className="w-10 h-10 rounded-full text-secondary-text hover:text-coral hover:bg-coral/10 flex items-center justify-center shrink-0 transition-colors"
                 title="מחיקה"
               >
                 <Trash size={17} color="currentColor" />

@@ -154,7 +154,7 @@ function PublisherPropertyCard({
                 e.stopPropagation()
                 setMenuOpen((v) => !v)
               }}
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-white badge-shadow hover:bg-cloud transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white badge-shadow hover:bg-cloud transition-colors"
             >
               <More size={15} color="#072946" />
             </button>

@@ -8,6 +8,7 @@ import {
   Key,
   Logout,
   MagicStar,
+  Messages3,
   ProfileCircle,
   SearchNormal1,
   User,
@@ -20,6 +21,7 @@ const NAV_LINKS = [
   { label: "חיפוש דירות", href: "/real-estate", icon: SearchNormal1 },
   { label: "אתי AI", href: "/ati", icon: MagicStar, boldIcon: true },
   { label: "שירותים", href: "/#services", icon: Category },
+  { label: "השיחות שלי", href: "/messages", icon: Messages3 },
   { label: "בעל נכס", href: "/publisher", icon: Key },
 ];
 
@@ -182,7 +184,7 @@ export default function TopBar() {
             {/* Mobile Menu Toggle Button */}
             <button
               type="button"
-              className="md:hidden flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-800"
+              className="md:hidden flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-800"
               aria-label="תפריט"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((open) => !open)}

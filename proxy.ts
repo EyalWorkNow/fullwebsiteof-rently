@@ -54,7 +54,7 @@ function tooManyRequests(): NextResponse {
   })
 }
 
-export function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const ip = clientIp(req)
 
   if (!hit(`${ip}:general`, GENERAL_LIMIT)) {

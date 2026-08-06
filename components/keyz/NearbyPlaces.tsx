@@ -568,7 +568,7 @@ export default function NearbyPlaces({
                   type="button"
                   aria-label="סגור"
                   onClick={() => setOpenKind(null)}
-                  className="shrink-0 text-secondary-text transition hover:text-navy"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center text-secondary-text transition hover:text-navy"
                 >
                   <CloseCircle size={20} color="currentColor" />
                 </button>

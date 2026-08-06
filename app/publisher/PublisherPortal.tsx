@@ -84,7 +84,7 @@ export default function PublisherPortal() {
   const sidebarContent = (
     <div
       className={`relative flex h-full flex-col overflow-hidden rounded-3xl border border-border-app bg-white/95 shadow-lg backdrop-blur-xl transition-all duration-300 ${
-        isSidebarCollapsed ? 'w-[72px]' : 'w-[270px]'
+        isSidebarCollapsed ? 'w-[72px]' : 'w-[min(270px,80vw)]'
       }`}
     >
       <div className="flex items-center justify-between border-b border-border-app p-3.5">
@@ -193,7 +193,7 @@ export default function PublisherPortal() {
                 type="button"
                 onClick={() => signOut()}
                 title="התנתקות"
-                className="rounded-xl p-1.5 text-secondary-text transition hover:bg-[#FFF2F2] hover:text-coral"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-secondary-text transition hover:bg-[#FFF2F2] hover:text-coral"
               >
                 <Logout size={16} color="currentColor" />
               </button>

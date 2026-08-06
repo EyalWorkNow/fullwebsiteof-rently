@@ -108,8 +108,8 @@ export default function DualRange({
           -webkit-appearance: none;
           appearance: none;
           pointer-events: auto;
-          width: 18px;
-          height: 18px;
+          width: 26px;
+          height: 26px;
           border-radius: 9999px;
           background: #fff;
           border: 2.5px solid #2563EB;
@@ -118,8 +118,8 @@ export default function DualRange({
         }
         .dual-range-input::-moz-range-thumb {
           pointer-events: auto;
-          width: 18px;
-          height: 18px;
+          width: 26px;
+          height: 26px;
           border-radius: 9999px;
           background: #fff;
           border: 2.5px solid #2563EB;

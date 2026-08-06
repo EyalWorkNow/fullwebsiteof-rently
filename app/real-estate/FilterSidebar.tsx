@@ -149,7 +149,7 @@ function Chip({
       onClick={onClick}
       aria-pressed={selected}
       title={title}
-      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold transition ${
+      className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-2 text-[12.5px] font-bold transition ${
         selected
           ? 'border-primary bg-primary text-white'
           : empty
@@ -438,7 +438,7 @@ export default function FilterSidebar({
                 aria-pressed={inRange}
                 aria-label={`${chip.label} חדרים`}
                 onClick={() => onRoomChip(chip.value)}
-                className={`min-w-9 rounded-full border px-2 py-1.5 text-[12.5px] font-bold transition ${
+                className={`min-h-10 min-w-10 rounded-full border px-2 py-2 text-[12.5px] font-bold transition ${
                   inRange
                     ? 'border-primary bg-primary text-white'
                     : 'border-border-app bg-white text-navy hover:border-primary/40'
@@ -477,6 +477,7 @@ export default function FilterSidebar({
                 setCityQuery('')
                 onChange({ ...f, city: '' })
               }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center -me-1"
             >
               <CloseCircle size={16} color="#5B7A99" />
             </button>
@@ -489,7 +490,7 @@ export default function FilterSidebar({
                 key={city}
                 type="button"
                 onClick={() => setCity(city)}
-                className={`flex w-full items-center justify-between px-3 py-2 text-right text-[13px] font-bold transition hover:bg-cloud ${
+                className={`flex min-h-10 w-full items-center justify-between px-3 py-2.5 text-right text-[13px] font-bold transition hover:bg-cloud ${
                   f.city === city ? 'bg-primary-light2 text-primary' : 'text-navy'
                 }`}
               >

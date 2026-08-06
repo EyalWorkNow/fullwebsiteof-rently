@@ -285,7 +285,7 @@ export function AuthGateModal() {
           type="button"
           aria-label="סגירה"
           onClick={dismissGate}
-          className="absolute top-4 end-4 text-secondary-text transition-colors hover:text-navy"
+          className="absolute top-2.5 end-2.5 flex h-9 w-9 items-center justify-center text-secondary-text transition-colors hover:text-navy"
         >
           <CloseCircle size={22} color="currentColor" />
         </button>

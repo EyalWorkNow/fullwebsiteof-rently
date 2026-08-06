@@ -594,7 +594,7 @@ export default function Hero() {
                     type="button"
                     aria-label="סגירת תוצאות"
                     onClick={() => setResult(null)}
-                    className="shrink-0 text-secondary-text transition hover:text-coral"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center text-secondary-text transition hover:text-coral"
                   >
                     <CloseCircle size={20} color="currentColor" />
                   </button>

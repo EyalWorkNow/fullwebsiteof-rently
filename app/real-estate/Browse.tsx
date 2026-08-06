@@ -201,7 +201,12 @@ export default function Browse() {
               className="w-full bg-transparent text-[14px] font-semibold text-navy outline-none placeholder:text-secondary-text"
             />
             {queryInput && (
-              <button type="button" aria-label="נקה חיפוש" onClick={() => commitQuery('')}>
+              <button
+                type="button"
+                aria-label="נקה חיפוש"
+                onClick={() => commitQuery('')}
+                className="flex h-8 w-8 shrink-0 items-center justify-center -me-1"
+              >
                 <CloseCircle size={16} color="#5B7A99" />
               </button>
             )}

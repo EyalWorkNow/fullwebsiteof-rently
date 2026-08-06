@@ -99,7 +99,7 @@ export default function PropertyCard({
               type="button"
               aria-label={saved ? 'הסרה מהשמורים' : 'שמירה'}
               onClick={toggleSaved}
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-white badge-shadow"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white badge-shadow"
             >
               <Heart size={15} variant={saved ? 'Bold' : 'Linear'} color={saved ? '#FF5A67' : '#072946'} />
             </button>
@@ -107,7 +107,7 @@ export default function PropertyCard({
               type="button"
               aria-label="שיתוף"
               onClick={share}
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-white badge-shadow"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white badge-shadow"
             >
               <Send2 size={15} color="#072946" />
             </button>

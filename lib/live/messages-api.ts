@@ -59,24 +59,16 @@ export interface MatchRow {
 }
 
 /** landlordUid/tenantUid is server-stamped on write, and the read is gated to
- *  "mine" — see router.mjs's per-caller matches filter. Fetches both sides of
- *  the account (properties this uid owns, and properties this uid liked as a
- *  tenant) so nothing gets lost behind a single role. */
-export async function fetchMatches(uid: string): Promise<MatchRow[]> {
-  const [asLandlord, asTenant] = await Promise.all([
-    fetch(`${BASE}/matches?landlordUid=${encodeURIComponent(uid)}`, { headers: await authHeaders() }),
-    fetch(`${BASE}/matches?tenantUid=${encodeURIComponent(uid)}`, { headers: await authHeaders() }),
-  ])
-  const readItems = async (res: Response): Promise<MatchRow[]> => {
-    if (!res.ok) return []
-    const data = await res.json().catch(() => null)
-    return Array.isArray(data?.items) ? data.items : []
-  }
-  const [landlordRows, tenantRows] = await Promise.all([readItems(asLandlord), readItems(asTenant)])
-  return [
-    ...landlordRows.map((m) => ({ ...m, role: 'landlord' as const })),
-    ...tenantRows.map((m) => ({ ...m, role: 'tenant' as const })),
-  ]
+ *  "mine" — see router.mjs's per-caller matches filter. A single account can
+ *  be both a landlord and a tenant, but those are two unrelated conversation
+ *  lists shown on two separate pages — the caller picks which side to fetch. */
+export async function fetchMatches(uid: string, role: 'landlord' | 'tenant'): Promise<MatchRow[]> {
+  const key = role === 'landlord' ? 'landlordUid' : 'tenantUid'
+  const res = await fetch(`${BASE}/matches?${key}=${encodeURIComponent(uid)}`, { headers: await authHeaders() })
+  if (!res.ok) return []
+  const data = await res.json().catch(() => null)
+  const items: MatchRow[] = Array.isArray(data?.items) ? data.items : []
+  return items.map((m) => ({ ...m, role }))
 }
 
 /** Same matchId format the app's _createMatch uses, so both sides see one thread. */

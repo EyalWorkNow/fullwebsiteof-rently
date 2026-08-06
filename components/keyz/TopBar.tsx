@@ -21,7 +21,7 @@ const NAV_LINKS = [
   { label: "אתי AI", href: "/ati", icon: MagicStar, boldIcon: true },
   { label: "שירותים", href: "/#services", icon: Category },
   { label: "פרסום דירה", href: "/publish", icon: AddCircle },
-  { label: "אזור בעל דירה", href: "/landlord", icon: Key },
+  { label: "אזור המפרסם", href: "/publisher", icon: Key },
 ];
 
 export default function TopBar() {

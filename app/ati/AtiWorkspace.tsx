@@ -1124,7 +1124,7 @@ export default function AtiWorkspace() {
 
   // ── Floating Collapsible Sidebar Component ─────────────────────────────────
   const sidebarContent = (
-    <div className={`relative flex h-[calc(100vh-80px)] flex-col bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl shadow-lg transition-all duration-300 overflow-hidden ${
+    <div className={`relative flex h-full flex-col bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl shadow-lg transition-all duration-300 overflow-hidden ${
       isSidebarCollapsed ? 'w-[72px]' : 'w-[270px]'
     }`}>
       {/* Sidebar Header: Brand & Collapse Toggle */}
@@ -1529,8 +1529,8 @@ export default function AtiWorkspace() {
         {/* Scrollable Conversation Content */}
         <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-4 md:px-8 py-4">
           {showHeroState ? (
-            /* Welcome Hero View — Raised slightly for perfect focal view */
-            <div className="flex flex-col items-center justify-start max-w-[760px] mx-auto text-center pt-8 md:pt-14 pb-8">
+            /* Welcome Hero View — Vertically and Horizontally Centered */
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-160px)] max-w-[760px] mx-auto text-center my-auto py-6">
               {/* Floating 3D Iridescent Blue Orb */}
               <IridescentOrb />
 

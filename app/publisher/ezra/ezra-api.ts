@@ -2,7 +2,7 @@
 
 // עזרא (publisher assistant) API layer.
 //
-// Same VERIFIED contracts as app/landlord/portal-api.ts — copied, not imported,
+// Same VERIFIED contracts app/publisher/portal-api.ts uses — copied, not imported,
 // so the publisher workspace owns its own surface (portal-api.ts stays exactly
 // as it is for the landlord tab):
 // • Chat:    POST /assistant {messages:[{role,text}]} — NO mode field (only the

@@ -18,7 +18,14 @@ const heebo = Heebo({
 export const metadata: Metadata = {
   title: "Rently — כיף שבאת, איזו דירה נחפש היום?",
   description: "חיפוש דירות עם AI — אתי מוצאת לך את הדירה הבאה, עם נתוני סביבה אמיתיים, סיורי 360 והתאמה חכמה.",
-  icons: { icon: "/brand/app_icon.png", apple: "/brand/app_icon.png" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/brand/app_icon.png", type: "image/png" },
+    ],
+    shortcut: ["/brand/app_icon.png"],
+    apple: [{ url: "/brand/app_icon.png" }],
+  },
   openGraph: {
     title: "Rently — כיף שבאת, איזו דירה נחפש היום?",
     description: "האפליקציה הכי חכמה לחיפוש דירה בישראל",

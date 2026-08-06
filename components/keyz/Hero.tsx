@@ -517,7 +517,7 @@ export default function Hero() {
           transition={{ duration: 0.5, delay: 0.16 }}
           className="mt-4 text-lg text-secondary-text"
         >
-          ספרו לאתי מה חשוב לכם — והיא תמצא דירות אמיתיות שמתאימות בדיוק לכם
+          ספרו לאתי מה חשוב לכם ותבדוק אם היא באמת עוזרת חכמה
         </motion.p>
 
         <motion.div {...rise} transition={{ duration: 0.5, delay: 0.24 }}>

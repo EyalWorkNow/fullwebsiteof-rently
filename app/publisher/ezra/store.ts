@@ -6,7 +6,7 @@
 //   [{ id, title, createdAt, messages: [{ role: 'user'|'ezra', text, chips?, listingIds?, draftHere? }],
 //      draft?, dirty?, publishedId? }]
 
-import { DRAFT_KEYS, type DraftKey, type EzraDraftFields } from './ezra-api'
+import { DRAFT_KEYS, type DraftKey, type ExistingProperty, type EzraDraftFields } from './ezra-api'
 
 export interface EzraMessage {
   /** Stable id — the streaming reveal targets one bubble by id. */
@@ -38,6 +38,12 @@ export interface EzraConversation {
   dirty?: DraftKey[]
   /** Set once the draft was published — the card turns into a confirmation. */
   publishedId?: string
+  /** Uploaded photo public URLs — required (non-empty) before a NEW listing can publish. */
+  photos?: string[]
+  /** Set when this conversation is EDITING an existing listing rather than creating
+   *  a new one — the full row, so publish can PUT back to its id while preserving
+   *  every field the 9-field draft doesn't surface (features/legal/tour/etc). */
+  editingProperty?: ExistingProperty
 }
 
 const KEY = 'ezra-conversations'
@@ -91,6 +97,11 @@ export function loadConversations(): EzraConversation[] {
           ? c.dirty.filter((k): k is DraftKey => DRAFT_KEYS.includes(k as DraftKey))
           : [],
         publishedId: typeof c.publishedId === 'string' ? c.publishedId : undefined,
+        photos: Array.isArray(c.photos) ? c.photos.filter((p): p is string => typeof p === 'string') : [],
+        editingProperty:
+          c.editingProperty && typeof c.editingProperty === 'object' && typeof c.editingProperty.id === 'string'
+            ? c.editingProperty
+            : undefined,
       }))
       .slice(0, MAX_CONVERSATIONS)
   } catch {

@@ -25,6 +25,7 @@ import {
 } from 'iconsax-react'
 import type { User as FbUser } from 'firebase/auth'
 import { onUser, signInWithGoogle, signOut } from '@/lib/live/firebase'
+import type { ExistingProperty } from './ezra/ezra-api'
 import EzraWorkspace from './ezra/EzraWorkspace'
 import CalendarTab from './CalendarTab'
 import PropertiesTab from './PropertiesTab'
@@ -48,6 +49,7 @@ export default function PublisherPortal() {
   const [tab, setTab] = useState<TabId>('overview')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [editRequest, setEditRequest] = useState<ExistingProperty | null>(null)
 
   useEffect(() => {
     const off = onUser((u) => {
@@ -90,7 +92,7 @@ export default function PublisherPortal() {
             </div>
             <div className="min-w-0">
               <span className="block truncate text-[15px] font-black leading-tight text-navy">Rently</span>
-              <span className="block truncate text-[11px] font-bold text-primary">אזור המפרסם</span>
+              <span className="block truncate text-[11px] font-bold text-primary">בעל נכס</span>
             </div>
           </div>
         ) : (
@@ -236,7 +238,7 @@ export default function PublisherPortal() {
       <aside className="z-20 hidden shrink-0 lg:block">{sidebarContent}</aside>
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border-app bg-white/95 shadow-lg backdrop-blur-xl">
-        <header className="flex shrink-0 items-center justify-between border-b border-border-app bg-white/80 px-5 py-3.5">
+        <header className="flex shrink-0 items-center justify-between bg-white/80 px-6 py-4">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -256,9 +258,9 @@ export default function PublisherPortal() {
           </div>
           <div className="flex items-center gap-3">
             {signedIn ? (
-              <div className="hidden items-center gap-2 rounded-full border border-success/20 bg-[#F0FBF5] px-3 py-1.5 text-xs font-bold text-success sm:flex">
-                <ProfileCircle size={14} color="currentColor" variant="Bold" />
-                <span>מחוברים</span>
+              <div className="hidden items-center gap-2 rounded-full border border-success/20 bg-[#F0FBF5] px-3.5 py-1.5 text-xs font-bold text-success sm:flex shadow-sm">
+                <ProfileCircle size={15} color="currentColor" variant="Bold" />
+                <span>מחוברים כבעל דירה</span>
               </div>
             ) : (
               <button
@@ -273,10 +275,20 @@ export default function PublisherPortal() {
           </div>
         </header>
 
-        <div className="no-scrollbar relative flex flex-1 flex-col overflow-y-auto bg-[#F8FAFC]/50">
+        <div className="no-scrollbar relative flex flex-1 flex-col overflow-y-auto bg-[#F8FAFC]/50 px-4 md:px-8 py-6 md:py-8">
           {tab === 'overview' && <OverviewTab user={user} />}
-          {tab === 'ezra' && <EzraWorkspace />}
-          {tab === 'properties' && <PropertiesTab user={user} />}
+          {tab === 'ezra' && (
+            <EzraWorkspace pendingEdit={editRequest} onConsumePendingEdit={() => setEditRequest(null)} />
+          )}
+          {tab === 'properties' && (
+            <PropertiesTab
+              user={user}
+              onEditProperty={(p) => {
+                setEditRequest(p as import('./ezra/ezra-api').ExistingProperty)
+                setTab('ezra')
+              }}
+            />
+          )}
           {tab === 'audience' && <AudienceTab user={user} />}
           {tab === 'calendar' && <CalendarTab user={user} />}
         </div>

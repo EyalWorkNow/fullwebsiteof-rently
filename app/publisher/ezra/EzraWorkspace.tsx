@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Add,
+  Building,
+  CloseCircle,
   Edit2,
   HambergerMenu,
   MagicStar,
@@ -22,9 +24,18 @@ import { currentUser } from '@/lib/live/firebase'
 import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 import PropertyCard from '@/components/keyz/PropertyCard'
 import type { ChatTurn, Property } from '@/lib/live/types'
+import { fetchMyProperties } from '../portal-api'
 import DraftCard from './DraftCard'
 import SendButton from './SendButton'
-import { EMPTY_DRAFT, ezraChat, mergeDraft, type DraftKey } from './ezra-api'
+import {
+  EMPTY_DRAFT,
+  ezraChat,
+  fieldsFromExistingProperty,
+  mergeDraft,
+  photosFromExistingProperty,
+  type DraftKey,
+  type ExistingProperty,
+} from './ezra-api'
 import {
   loadConversations,
   newConversationId,
@@ -77,6 +88,7 @@ function speakHebrew(text: string) {
 }
 
 const SEND_REASON = 'כדי שעזרא ישמור את הטיוטה של הדירה שלך'
+const EDIT_REASON = 'כדי לערוך את הדירות שפרסמת'
 
 const STARTER_CHIPS = [
   'יש לי דירת 3 חדרים בתל אביב',
@@ -90,6 +102,22 @@ const STARTER_CHIPS = [
 const REVEAL_STEPS = 12
 const REVEAL_STEP_MS = 32
 
+function IridescentOrb() {
+  return (
+    <div className="relative flex items-center justify-center my-4">
+      <div className="absolute h-36 w-36 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#0061FF]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
+      <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(0,97,255,0.25)] transition-transform duration-700 hover:scale-105">
+        <div className="h-full w-full rounded-full bg-gradient-to-br from-white/90 via-sky-50/70 to-blue-100/90 backdrop-blur-md relative overflow-hidden flex items-center justify-center">
+          <div className="absolute -top-3 -left-3 h-10 w-10 rounded-full bg-white/80 blur-sm" />
+          <div className="absolute bottom-1 right-2 h-7 w-7 rounded-full bg-sky-300/40 blur-md" />
+          <div className="absolute top-4 right-3 h-4 w-4 rounded-full bg-blue-300/30 blur-sm" />
+          <MagicStar size={32} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-sm relative z-10" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EzraAvatar({ size = 32 }: { size?: number }) {
   return (
     <span
@@ -101,7 +129,15 @@ function EzraAvatar({ size = 32 }: { size?: number }) {
   )
 }
 
-export default function EzraWorkspace() {
+export default function EzraWorkspace({
+  pendingEdit,
+  onConsumePendingEdit,
+}: {
+  /** A property handed over from "הנכסים שלי" (its edit button) — auto-opens
+   *  as an editing conversation as soon as this workspace mounts. */
+  pendingEdit?: ExistingProperty | null
+  onConsumePendingEdit?: () => void
+} = {}) {
   const [conversations, setConversations] = useState<EzraConversation[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -117,6 +153,14 @@ export default function EzraWorkspace() {
   const [speakReplies, setSpeakReplies] = useState(false)
   const [hasMic, setHasMic] = useState(false)
   const [revealMap, setRevealMap] = useState<Record<string, number>>({})
+
+  // ── Edit an existing listing ────────────────────────────────────────────
+  const [editPicker, setEditPicker] = useState<{
+    open: boolean
+    loading: boolean
+    properties: ExistingProperty[] | null
+    error: string | null
+  }>({ open: false, loading: false, properties: null, error: null })
 
   const listingsMapRef = useRef<Map<string, Property>>(new Map())
   const [, setListingsVersion] = useState(0)
@@ -183,6 +227,58 @@ export default function EzraWorkspace() {
     setActiveId(id)
     return id
   }, [])
+
+  async function openEditPicker() {
+    const u = currentUser()
+    if (!u || u.isAnonymous) return
+    setEditPicker({ open: true, loading: true, properties: null, error: null })
+    try {
+      const props = await fetchMyProperties(u.uid)
+      setEditPicker({ open: true, loading: false, properties: props as ExistingProperty[], error: null })
+    } catch {
+      setEditPicker({ open: true, loading: false, properties: null, error: 'לא הצלחנו לטעון את הנכסים שלך. נסו שוב.' })
+    }
+  }
+
+  function startEditing(property: ExistingProperty) {
+    setEditPicker({ open: false, loading: false, properties: null, error: null })
+    const id = newConversationId()
+    const draft = fieldsFromExistingProperty(property)
+    const photos = photosFromExistingProperty(property)
+    const msgId = newMessageId()
+    const title = `עריכה: ${property.street || property.city || 'דירה'}`
+    setConversations((prev) =>
+      [
+        {
+          id,
+          title,
+          createdAt: Date.now(),
+          messages: [
+            {
+              id: msgId,
+              role: 'ezra' as const,
+              text: `טוענת את הדירה ב${property.city || ''}${property.street ? `, ${property.street}` : ''} לעריכה — מה תרצו לשנות?`,
+              draftHere: true,
+            },
+          ],
+          draft,
+          dirty: [],
+          photos,
+          editingProperty: property,
+        },
+        ...prev,
+      ].slice(0, 50),
+    )
+    setActiveId(id)
+  }
+
+  useEffect(() => {
+    if (pendingEdit) {
+      startEditing(pendingEdit)
+      onConsumePendingEdit?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEdit])
 
   const deleteConversation = (id: string) => {
     setConversations((prev) => prev.filter((c) => c.id !== id))
@@ -345,6 +441,11 @@ export default function EzraWorkspace() {
     setConversations((prev) => prev.map((c) => (c.id === activeId ? { ...c, publishedId: id } : c)))
   }
 
+  function handlePhotosChange(photos: string[]) {
+    if (!activeId) return
+    setConversations((prev) => prev.map((c) => (c.id === activeId ? { ...c, photos } : c)))
+  }
+
   // ── Sidebar data ─────────────────────────────────────────────────────────
   const filteredConversations = useMemo(() => {
     if (!searchFilter.trim()) return conversations
@@ -487,7 +588,7 @@ export default function EzraWorkspace() {
         </button>
       </div>
 
-      <div className="p-3">
+      <div className="space-y-2 p-3">
         <button
           type="button"
           onClick={() => {
@@ -501,6 +602,17 @@ export default function EzraWorkspace() {
         >
           <Add size={isSidebarCollapsed ? 20 : 18} color="currentColor" />
           {!isSidebarCollapsed && <span>שיחה חדשה</span>}
+        </button>
+        <button
+          type="button"
+          onClick={() => requireAuth(EDIT_REASON, openEditPicker)}
+          className={`flex items-center justify-center gap-2 rounded-2xl border border-border-app bg-white font-bold text-navy shadow-sm transition hover:bg-cloud ${
+            isSidebarCollapsed ? 'mx-auto h-10 w-10' : 'w-full px-4 py-2.5 text-[13.5px]'
+          }`}
+          title="עריכת דירה קיימת"
+        >
+          <Building size={isSidebarCollapsed ? 20 : 18} color="currentColor" />
+          {!isSidebarCollapsed && <span>עריכת דירה קיימת</span>}
         </button>
       </div>
 
@@ -607,18 +719,24 @@ export default function EzraWorkspace() {
 
         <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-4 py-4 md:px-8">
           {showHeroState ? (
-            <div className="mx-auto flex max-w-[760px] flex-col items-center justify-start pb-8 pt-8 text-center md:pt-14">
-              <div className="relative my-4 flex items-center justify-center">
-                <div className="absolute h-36 w-36 animate-pulse rounded-full bg-navy-deep/10 blur-2xl" />
-                <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-navy-deep text-white shadow-[0_10px_35px_rgba(6,36,58,0.25)]">
-                  <span className="text-3xl font-black">ע</span>
-                </div>
-              </div>
-              <h1 className="text-2xl font-black leading-snug tracking-tight text-navy md:text-3xl">
-                עזרא — עוזר הפרסום שלך
+            /* Welcome Hero View — identical to Ati design */
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-160px)] max-w-[760px] mx-auto text-center my-auto py-6">
+              <IridescentOrb />
+
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+                שלום, כיצד אוכל{' '}
+                <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+                  לעזור לך לפרסם?
+                </span>
               </h1>
-              <p className="mt-1 text-sm font-semibold text-secondary-text">
-                מספרים לו על הדירה, הוא בונה את המודעה ומכין אותה לפרסום
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                ספרו על הדירה ועזרא יבנה את המודעה ויכין אותה לפרסום
+              </p>
+              <p className="mt-3 max-w-[560px] text-[12.5px] font-semibold leading-relaxed text-slate-500">
+                כדי שהמודעה תהיה מדויקת ומושכת כבר מההתחלה, כדאי לכלול בהודעה הראשונה כמה שיותר
+                פרטים: <span className="text-slate-700">עיר ורחוב, מספר חדרים, גודל במ״ר, קומה,
+                מחיר, סוג עסקה (השכרה/מכירה), מצב הנכס ותיאור קצר</span>. אפשר גם פשוט להקליט הודעה
+                קולית עם כל הפרטים. לפני הפרסום תצטרכו להעלות גם לפחות תמונה אחת של הדירה.
               </p>
 
               <div className="mt-6 w-full max-w-[680px]">
@@ -627,10 +745,10 @@ export default function EzraWorkspace() {
                     e.preventDefault()
                     guardedSend(input)
                   }}
-                  className="relative rounded-3xl border border-white/90 bg-white/90 p-4 shadow-[0_20px_50px_rgba(6,36,58,0.08)] backdrop-blur-xl transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-light2"
+                  className="relative rounded-3xl border border-white/90 bg-white/90 p-4 shadow-[0_20px_50px_rgba(0,97,255,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
                 >
                   <div className="flex items-start gap-2.5">
-                    <MagicStar size={20} variant="Bold" color="currentColor" className="mt-1.5 shrink-0 text-primary" />
+                    <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0 mt-1.5" />
                     <textarea
                       value={input}
                       onChange={(e) => {
@@ -646,10 +764,11 @@ export default function EzraWorkspace() {
                       }}
                       rows={1}
                       placeholder="ספרו על הדירה… (למשל: יש לי דירת 3 חדרים בתל אביב עם מרפסת)"
-                      className="min-h-[44px] max-h-[180px] w-full resize-none overflow-y-auto bg-transparent text-[14.5px] font-medium leading-relaxed text-navy outline-none placeholder:text-secondary-text"
+                      className="w-full resize-none bg-transparent text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-relaxed min-h-[44px] max-h-[180px] overflow-y-auto transition-all"
                     />
                   </div>
-                  <div className="mt-4 flex items-center justify-end border-t border-border-app pt-3">
+
+                  <div className="mt-4 flex items-center justify-end border-t border-slate-100/90 pt-3">
                     <SendButton disabled={!input.trim()} onClick={() => guardedSend(input)} />
                   </div>
                 </form>
@@ -660,7 +779,7 @@ export default function EzraWorkspace() {
                       key={chip}
                       type="button"
                       onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-border-app bg-white/80 px-3.5 py-1.5 text-[12.5px] font-semibold text-navy shadow-sm backdrop-blur-sm transition hover:border-primary hover:bg-white hover:text-primary"
+                      className="rounded-full border border-slate-200/70 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
                     >
                       {chip}
                     </button>
@@ -729,9 +848,13 @@ export default function EzraWorkspace() {
                       <DraftCard
                         fields={active.draft!}
                         dirty={active.dirty ?? []}
+                        photos={(active as EzraConversation).photos ?? []}
+                        onPhotosChange={handlePhotosChange}
                         publishedId={active.publishedId}
                         onEdit={handleDraftEdit}
                         onPublished={handleDraftPublished}
+                        isEditing={!!active.editingProperty}
+                        existing={active.editingProperty}
                       />
                     )}
                   </div>
@@ -815,6 +938,67 @@ export default function EzraWorkspace() {
             aria-hidden
           />
           <div className="absolute inset-y-0 end-0 flex max-w-[85vw] p-2 shadow-2xl">{sidebarContent}</div>
+        </div>
+      )}
+
+      {editPicker.open && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-navy/40 backdrop-blur-sm"
+            onClick={() => setEditPicker({ open: false, loading: false, properties: null, error: null })}
+            aria-hidden
+          />
+          <div className="relative flex max-h-[80vh] w-full max-w-md flex-col rounded-3xl bg-white p-5 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[15px] font-black text-navy">בחר דירה לעריכה</h2>
+              <button
+                type="button"
+                onClick={() => setEditPicker({ open: false, loading: false, properties: null, error: null })}
+                className="text-secondary-text transition hover:text-navy"
+                aria-label="סגור"
+              >
+                <CloseCircle size={22} color="currentColor" />
+              </button>
+            </div>
+
+            {editPicker.loading && (
+              <p className="py-8 text-center text-[13px] font-bold text-secondary-text">טוען את הדירות שלך…</p>
+            )}
+            {editPicker.error && (
+              <p className="py-8 text-center text-[13px] font-bold text-coral">{editPicker.error}</p>
+            )}
+            {!editPicker.loading && !editPicker.error && editPicker.properties?.length === 0 && (
+              <p className="py-8 text-center text-[13px] font-bold text-secondary-text">
+                עדיין לא פרסמת אף דירה.
+              </p>
+            )}
+            {!editPicker.loading && (editPicker.properties?.length ?? 0) > 0 && (
+              <div className="no-scrollbar flex-1 space-y-2 overflow-y-auto">
+                {editPicker.properties!.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => startEditing(p)}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-border-app bg-white p-2.5 text-start transition hover:border-primary hover:bg-primary-light2"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-cloud text-secondary-text">
+                      <Building size={20} color="currentColor" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-bold text-navy">
+                        {p.city as string}
+                        {p.street ? `, ${p.street as string}` : ''}
+                      </p>
+                      <p className="truncate text-[11.5px] font-bold text-secondary-text">
+                        {p.rooms ? `${p.rooms as string | number} חדרים · ` : ''}
+                        {p.price ? `₪${p.price as string | number}` : ''}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -16,21 +16,31 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import {
+  Bag,
+  Briefcase,
+  Building3,
   Bus,
   Buildings,
+  Car,
   CloseCircle,
   EmojiHappy,
   ExportSquare,
   Gallery,
   Game,
   Health,
+  Heart,
   Hospital,
+  Moon,
+  Pet,
   Refresh2,
   Reserve,
+  Routing,
+  Routing2,
   ShoppingCart,
   Teacher,
   Tree,
   Weight,
+  Drop,
   type Icon,
 } from 'iconsax-react'
 import {
@@ -41,6 +51,15 @@ import {
   type NearbyByKind,
   type NearbyPlace,
 } from '@/lib/live/nearby'
+import {
+  coastDistance,
+  loadGovdataPois,
+  nearestCbd,
+  nearestStation,
+  nearestUniversity,
+  poisWithin,
+  type GovKind,
+} from '@/lib/live/govdata'
 import NearbyMap from './NearbyMap'
 import NearbyRadar from './NearbyRadar'
 import {
@@ -69,7 +88,61 @@ const KINDS: { key: string; label: string; icon: Icon; group: string }[] = [
   { key: 'culture', label: 'מוסדות תרבות קרובים', icon: Gallery, group: 'other' },
   { key: 'dining', label: 'מסעדות ובתי קפה קרובים', icon: Reserve, group: 'dining' },
   { key: 'gyms', label: 'חדרי כושר קרובים', icon: Weight, group: 'other' },
+  // Bundled (offline) kinds ported from the app's govdata assets — see
+  // lib/live/govdata.ts. Grouped into the SAME 7 palette colors above rather
+  // than growing the palette: synagogues joins worship's group ('other'),
+  // pools/dog_parks join parks, bike_share/parking/future_infra join transit,
+  // coworking joins the culture/misc group ('other'), nightlife joins dining,
+  // and retail joins shopping.
+  { key: 'synagogues', label: 'בתי כנסת', icon: Building3, group: 'other' },
+  { key: 'pools', label: 'בריכות שחייה', icon: Drop, group: 'parks' },
+  { key: 'dog_parks', label: 'גני כלבים', icon: Pet, group: 'parks' },
+  { key: 'vets', label: 'וטרינרים', icon: Heart, group: 'health' },
+  { key: 'bike_share', label: 'אופניים משותפים', icon: Routing2, group: 'transit' },
+  { key: 'coworking', label: 'חללי עבודה', icon: Briefcase, group: 'other' },
+  { key: 'parking', label: 'חניה ציבורית', icon: Car, group: 'transit' },
+  { key: 'nightlife_venues', label: 'חיי לילה', icon: Moon, group: 'dining' },
+  { key: 'poi_retail', label: 'קניונים ומרכזי מסחר', icon: Bag, group: 'shopping' },
+  { key: 'future_infra', label: 'תשתיות עתידיות', icon: Routing, group: 'transit' },
 ]
+
+// Bundled govdata kinds merged into the same `byKind` map the Overpass fetch
+// fills. Radius per kind is a judgment call: these datasets are much sparser
+// than Overpass POIs (a handful of bike-share racks or dog parks per city,
+// not per block), so a "nearby" radius wider than the 1.2km Overpass query
+// still reads as genuinely local rather than noise. future_infra and
+// poi_retail get the widest radius — planned transit lines and retail
+// centers are relevant even a few km out.
+const GOV_KINDS: GovKind[] = [
+  'synagogues',
+  'pools',
+  'dog_parks',
+  'vets',
+  'bike_share',
+  'coworking',
+  'parking',
+  'nightlife_venues',
+  'poi_retail',
+  'future_infra',
+]
+
+const GOV_RADIUS_KM: Record<GovKind, number> = {
+  synagogues: 2,
+  pools: 4,
+  dog_parks: 3,
+  vets: 4,
+  bike_share: 2,
+  coworking: 4,
+  parking: 2,
+  nightlife_venues: 3,
+  poi_retail: 5,
+  future_infra: 6,
+}
+
+// "מרחקים מרכזיים" hero pills — only shown when the distance is close enough
+// to be a feature rather than noise (a property 90km from a university tells
+// you nothing useful).
+const KEY_DISTANCE_MAX_KM = 40
 
 // Decision-critical kinds for the hero strip (nearest place → walking minutes).
 const HERO_KINDS: { key: string; label: string; icon: Icon }[] = [
@@ -135,6 +208,25 @@ function Skeleton() {
   )
 }
 
+// "מרחקים מרכזיים" pills — distinct tint (primary-light2 fill) from the
+// walking-minutes hero strip (white fill) so the two rows read as separate
+// facts: "how far to walk" vs. "how far to the big landmarks".
+function KeyDistances({ items }: { items: { key: string; text: string }[] }) {
+  if (items.length === 0) return null
+  return (
+    <div className="mb-4 flex flex-wrap gap-2">
+      {items.map((d) => (
+        <span
+          key={d.key}
+          className="flex items-center gap-1.5 rounded-full border border-border-app bg-primary-light2 px-3.5 py-2 text-[13px] font-extrabold text-primary card-shadow"
+        >
+          {d.text}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function ErrorCard({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="rounded-[28px] border border-border-app bg-white p-8 text-center card-shadow">
@@ -176,6 +268,10 @@ export default function NearbyPlaces({
   // Group visibility is lifted here so the legend chips drive BOTH views and
   // stay in sync when switching between the map and the radar.
   const [hiddenGroups, setHiddenGroups] = useState<ReadonlySet<string>>(new Set())
+  // Flips once the bundled govdata JSON (incl. the precise rail_stations
+  // list) has loaded, so the key-distances pills can upgrade from the
+  // curated STATIONS fallback to the richer bundled station list.
+  const [govReady, setGovReady] = useState(false)
 
   const validCoords = Number.isFinite(lat) && Number.isFinite(lon)
 
@@ -186,10 +282,21 @@ export default function NearbyPlaces({
     setOpenKind(null)
     setShowMore(false)
     const { promise, release } = loadNearby(lat, lon)
-    promise
-      .then((data) => {
+    Promise.all([promise, loadGovdataPois()])
+      .then(([data]) => {
         if (cancelled) return
-        setByKind(data)
+        setGovReady(true)
+        // Merge the bundled govdata kinds into the same NearbyByKind shape
+        // the Overpass fetch produces, so the rest of the pipeline (sections,
+        // radar dots, map, legend) treats all 22 kinds identically.
+        const merged: NearbyByKind = { ...data }
+        for (const kind of GOV_KINDS) {
+          const places = poisWithin(kind, lat, lon, GOV_RADIUS_KM[kind])
+          if (places.length > 0) {
+            merged[kind] = places.map((p) => ({ ...p, kind }))
+          }
+        }
+        setByKind(merged)
         setStatus('ready')
       })
       .catch(() => {
@@ -200,6 +307,36 @@ export default function NearbyPlaces({
       release() // aborts the Overpass fetch once no subscriber needs it
     }
   }, [lat, lon, retryTick, validCoords])
+
+  // "מרחקים מרכזיים" — independent of the Overpass load (pure math over the
+  // bundled constant lists), so it renders even while the section above is
+  // still loading/erroring. Recomputes once govReady flips true so
+  // nearestStation() can pick up the richer bundled rail_stations list.
+  const keyDistances = useMemo(() => {
+    if (!validCoords) return []
+    const items: { key: string; text: string }[] = []
+    const coast = coastDistance(lat, lon)
+    if (coast != null && coast <= KEY_DISTANCE_MAX_KM) {
+      items.push({ key: 'coast', text: `🌊 ${distLabel(coast)} מהים` })
+    }
+    const station = nearestStation(lat, lon)
+    if (station && station.km <= KEY_DISTANCE_MAX_KM) {
+      items.push({ key: 'station', text: `🚆 ${station.name} — ${distLabel(station.km)}` })
+    }
+    const cbd = nearestCbd(lat, lon)
+    if (cbd && cbd.km <= KEY_DISTANCE_MAX_KM) {
+      items.push({
+        key: 'cbd',
+        text: `🏙️ מרכז תעסוקה: ${cbd.name} — ${distLabel(cbd.km)}`,
+      })
+    }
+    const uni = nearestUniversity(lat, lon)
+    if (uni && uni.km <= KEY_DISTANCE_MAX_KM) {
+      items.push({ key: 'university', text: `🎓 ${distLabel(uni.km)} מ-${uni.name}` })
+    }
+    return items
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lon, validCoords, govReady])
 
   // ----- derived structures (memoized, guarded) -----
 
@@ -278,6 +415,7 @@ export default function NearbyPlaces({
     return (
       <section dir="rtl">
         <h2 className="mt-8 mb-3 text-xl font-black text-navy">מה יש בסביבה</h2>
+        <KeyDistances items={keyDistances} />
         <Skeleton />
       </section>
     )
@@ -287,12 +425,25 @@ export default function NearbyPlaces({
     return (
       <section dir="rtl">
         <h2 className="mt-8 mb-3 text-xl font-black text-navy">מה יש בסביבה</h2>
+        <KeyDistances items={keyDistances} />
         <ErrorCard onRetry={() => setRetryTick((t) => t + 1)} />
       </section>
     )
   }
 
-  if (sections.length === 0) return null
+  if (sections.length === 0) {
+    // No Overpass POIs at all — the section would normally vanish entirely,
+    // but the key-distances facts are independent of Overpass and still
+    // worth showing (e.g. a rural property with no nearby POIs but a real
+    // "12km from the sea" fact).
+    if (keyDistances.length === 0) return null
+    return (
+      <section dir="rtl">
+        <h2 className="mt-8 mb-3 text-xl font-black text-navy">מה יש בסביבה</h2>
+        <KeyDistances items={keyDistances} />
+      </section>
+    )
+  }
 
   return (
     <section dir="rtl">
@@ -323,6 +474,9 @@ export default function NearbyPlaces({
           </div>
         )}
       </div>
+
+      {/* 0 — key distances (sea / train / employment center / university) */}
+      <KeyDistances items={keyDistances} />
 
       {/* 1 — walking-minutes hero strip */}
       {heroPills.length > 0 && (

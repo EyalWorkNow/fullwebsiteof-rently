@@ -257,38 +257,62 @@ export default function Browse() {
           )}
         </div>
 
-        {/* Collapsible filter panel. The grid-rows 0fr→1fr trick animates to the
-            content's natural height without hard-coding a max-height, and it
-            lives inside the results column so expanding never reflows the map. */}
-        <div
-          id="filters-panel"
-          className={`grid transition-all duration-300 ease-out ${
-            panelOpen ? 'mb-3 grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-          }`}
-          aria-hidden={!panelOpen}
-        >
-          <div className="overflow-hidden">
-            {/* Kept mounted so the collapse animates and facet state persists;
-                inert while closed so nothing inside is tabbable. */}
-            <fieldset disabled={!panelOpen} className="min-w-0 border-0 p-0">
-              <FilterSidebar
-                items={items}
-                filters={filters}
-                onChange={setAndKeep}
-                onClear={clearAll}
-                footer={
-                  <button
-                    type="button"
-                    onClick={() => setPanelOpen(false)}
-                    className="rounded-full bg-primary px-5 py-2.5 text-[13px] font-black text-white"
-                  >
-                    הצג {visible.length} דירות
-                  </button>
-                }
-              />
-            </fieldset>
+        {/* Floating Sidebar Drawer for Filters & Sort */}
+        {panelOpen && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            {/* Backdrop Overlay */}
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+              onClick={() => setPanelOpen(false)}
+              aria-hidden="true"
+            />
+
+            {/* Right Sliding Drawer - Floating with rounded corners */}
+            <div className="fixed top-4 bottom-4 right-4 z-50 flex w-[calc(100%-32px)] sm:w-[480px] max-w-full flex-col rounded-3xl border border-border-app bg-white/98 backdrop-blur-2xl shadow-[0_20px_60px_rgba(6,36,58,0.25)] overflow-hidden transition-all duration-300 ease-out">
+              {/* Drawer Header */}
+              <div className="flex shrink-0 items-center justify-between border-b border-border-app bg-white px-5 py-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary-light2 text-primary">
+                    <Filter size={20} variant="Bold" color="currentColor" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-navy">סינון ומיון דירות</h2>
+                    <p className="text-xs font-semibold text-secondary-text">
+                      {visible.length} דירות מתאימות להגדרות שלך
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPanelOpen(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-secondary-text hover:bg-cloud hover:text-navy transition-colors"
+                  aria-label="סגור תפריט"
+                >
+                  <CloseCircle size={22} color="currentColor" />
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="no-scrollbar flex-1 overflow-y-auto px-5 py-4">
+                <FilterSidebar
+                  items={items}
+                  filters={filters}
+                  onChange={setAndKeep}
+                  onClear={clearAll}
+                  footer={
+                    <button
+                      type="button"
+                      onClick={() => setPanelOpen(false)}
+                      className="w-full sm:w-auto rounded-full bg-primary hover:bg-primary-dark transition-colors px-6 py-2.5 text-[13.5px] font-black text-white shadow-md"
+                    >
+                      הצג {visible.length} דירות
+                    </button>
+                  }
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Result count + badges */}
         <div className="mb-3 flex flex-wrap items-center gap-2">

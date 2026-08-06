@@ -4,32 +4,103 @@
 // recent draft turn. Controlled by the workspace: every keystroke marks the field
 // dirty there, so a later assistant draft can refine the untouched fields without
 // ever undoing what the landlord typed.
+//
+// A photo is REQUIRED before publish is allowed — a listing nobody can see a
+// picture of doesn't get published. Editing an existing listing pre-loads its
+// current photos, so an edit that doesn't touch photos still satisfies the gate.
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { Edit2, TickCircle } from 'iconsax-react'
+import { useRef, useState } from 'react'
+import { AddCircle, CloseCircle, Edit2, GalleryAdd, TickCircle } from 'iconsax-react'
 import { currentUser } from '@/lib/live/firebase'
 import { useAuthGate } from '@/components/keyz/auth/AuthGate'
-import { CONDITIONS, publishDraft, type DraftKey, type EzraDraftFields } from './ezra-api'
+import {
+  CONDITIONS,
+  publishDraft,
+  uploadPhoto,
+  type DraftKey,
+  type ExistingProperty,
+  type EzraDraftFields,
+} from './ezra-api'
 
 const PUBLISH_REASON = 'כדי לפרסם דירה ולנהל אותה'
+const PHOTO_REASON = 'כדי להעלות תמונות ולפרסם דירה'
+
+interface PendingUpload {
+  id: string
+  previewUrl: string
+  status: 'uploading' | 'error'
+  error?: string
+}
 
 export default function DraftCard({
   fields,
   dirty,
+  photos,
+  onPhotosChange,
   publishedId,
+  isEditing,
+  existing,
   onEdit,
   onPublished,
 }: {
   fields: EzraDraftFields
   dirty: DraftKey[]
+  photos: string[]
+  onPhotosChange: (photos: string[]) => void
   publishedId?: string
+  /** true when this draft is editing a listing that already exists. */
+  isEditing?: boolean
+  /** the full existing row — round-tripped on publish so untouched fields survive. */
+  existing?: ExistingProperty
   onEdit: (key: DraftKey, value: string) => void
   onPublished: (id: string) => void
 }) {
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState<PendingUpload[]>([])
   const { requireAuth } = useAuthGate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return
+    const files = Array.from(fileList)
+    const entries: PendingUpload[] = files.map((f) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      previewUrl: URL.createObjectURL(f),
+      status: 'uploading',
+    }))
+    setPending((p) => [...p, ...entries])
+
+    await Promise.all(
+      files.map(async (file, i) => {
+        const entry = entries[i]
+        try {
+          const url = await uploadPhoto(file)
+          onPhotosChange([...photos, url])
+        } catch (e) {
+          setPending((p) =>
+            p.map((x) => (x.id === entry.id ? { ...x, status: 'error', error: (e as Error).message } : x)),
+          )
+          return
+        }
+        setPending((p) => p.filter((x) => x.id !== entry.id))
+        URL.revokeObjectURL(entry.previewUrl)
+      }),
+    )
+  }
+
+  function addPhotos() {
+    requireAuth(PHOTO_REASON, () => fileInputRef.current?.click())
+  }
+
+  function removePhoto(url: string) {
+    onPhotosChange(photos.filter((p) => p !== url))
+  }
+
+  function removePending(id: string) {
+    setPending((p) => p.filter((x) => x.id !== id))
+  }
 
   async function publish() {
     if (publishing) return
@@ -40,10 +111,14 @@ export default function DraftCard({
       setError('צריך להתחבר כדי לפרסם דירה.')
       return
     }
+    if (photos.length === 0) {
+      setError('יש להעלות לפחות תמונה אחת של הדירה כדי לפרסם.')
+      return
+    }
     setPublishing(true)
     setError(null)
     try {
-      const { id } = await publishDraft(fields, u.uid, u.displayName ?? '')
+      const { id } = await publishDraft(fields, u.uid, u.displayName ?? '', photos, existing)
       onPublished(id)
     } catch (e) {
       setError((e as Error).message || 'הפרסום נכשל. נסו שוב.')
@@ -57,7 +132,7 @@ export default function DraftCard({
       <div className="mt-3 ms-11 max-w-[620px] rounded-[28px] border border-success/40 bg-[#F0FBF5] p-5 card-shadow">
         <div className="flex items-center gap-2 font-black text-success">
           <TickCircle size={20} variant="Bold" color="currentColor" />
-          הדירה פורסמה! היא מופיעה גם באפליקציה
+          {isEditing ? 'השינויים נשמרו! הם מופיעים גם באפליקציה' : 'הדירה פורסמה! היא מופיעה גם באפליקציה'}
         </div>
         <p className="mt-1.5 text-[13px] font-semibold text-secondary-text">
           {fields.city}
@@ -74,15 +149,83 @@ export default function DraftCard({
     )
   }
 
+  const canPublish = photos.length > 0
+
   return (
     <div className="mt-3 ms-11 max-w-[620px] rounded-[28px] border border-primary/30 bg-white p-5 card-shadow">
       <div className="mb-1 flex items-center gap-2 font-black text-navy">
         <Edit2 size={18} color="currentColor" className="text-primary" />
-        טיוטת המודעה — מתעדכנת תוך כדי השיחה
+        {isEditing ? 'עריכת המודעה' : 'טיוטת המודעה — מתעדכנת תוך כדי השיחה'}
       </div>
       <p className="mb-4 text-[12px] font-semibold text-secondary-text">
         אפשר לערוך כל שדה. מה שתערכו — עזרא לא ידרוס בהמשך השיחה.
       </p>
+
+      {/* Photos — required before publish */}
+      <div className="mb-4">
+        <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-secondary-text">
+          תמונות הדירה
+          <span className="text-coral">*</span>
+          {photos.length === 0 && pending.length === 0 && (
+            <span className="font-semibold text-coral">— חובה להעלות לפחות תמונה אחת</span>
+          )}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {photos.map((url) => (
+            <div key={url} className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border-app">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => removePhoto(url)}
+                aria-label="הסרת תמונה"
+                className="absolute end-1 top-1 rounded-full bg-navy/70 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <CloseCircle size={16} color="currentColor" />
+              </button>
+            </div>
+          ))}
+          {pending.map((p) => (
+            <div key={p.id} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border-app">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.previewUrl} alt="" className="h-full w-full object-cover opacity-50" />
+              {p.status === 'uploading' ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/40">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => removePending(p.id)}
+                  title={p.error}
+                  className="absolute inset-0 flex items-center justify-center bg-[#FFF2F2]/90 text-coral"
+                >
+                  <CloseCircle size={20} color="currentColor" />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addPhotos}
+            className="flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border-app text-secondary-text transition hover:border-primary hover:text-primary"
+          >
+            <GalleryAdd size={20} color="currentColor" />
+            <span className="text-[10.5px] font-bold">הוספה</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              void handleFiles(e.target.files)
+              e.target.value = ''
+            }}
+          />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Field label="עיר" value={fields.city} dirty={dirty.includes('city')} onChange={(v) => onEdit('city', v)} />
@@ -151,10 +294,11 @@ export default function DraftCard({
       <button
         type="button"
         onClick={() => requireAuth(PUBLISH_REASON, () => void publish())}
-        disabled={publishing}
+        disabled={publishing || !canPublish}
+        title={!canPublish ? 'יש להעלות לפחות תמונה אחת' : undefined}
         className="mt-4 w-full rounded-full bg-primary py-3 font-bold text-white transition-colors hover:bg-primary-dark disabled:opacity-60"
       >
-        {publishing ? 'מפרסמים…' : 'פרסום הדירה'}
+        {publishing ? 'שומרים…' : isEditing ? 'שמירת שינויים' : 'פרסום הדירה'}
       </button>
     </div>
   )

@@ -1527,10 +1527,10 @@ export default function AtiWorkspace() {
         </div>
 
         {/* Scrollable Conversation Content */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-4 md:px-8 py-4">
+        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-4 md:px-8 py-4 h-full">
           {showHeroState ? (
-            /* Welcome Hero View — Vertically and Horizontally Centered */
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-160px)] max-w-[760px] mx-auto text-center my-auto py-6">
+            /* Welcome Hero View — lower-center on screen */
+            <div className="flex h-full flex-col items-center justify-center max-w-[760px] mx-auto text-center pb-4 pt-16">
               {/* Floating 3D Iridescent Blue Orb */}
               <IridescentOrb />
 

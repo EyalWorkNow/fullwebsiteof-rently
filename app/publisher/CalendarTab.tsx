@@ -110,10 +110,9 @@ export default function CalendarTab({ user }: { user: User | null }) {
   }
 
   return (
-    <div className="max-w-[760px] mx-auto">
+    <div className="max-w-[900px] mx-auto w-full py-4 space-y-6">
       {/* Sync badge */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-black text-navy">היומן שלי</h2>
+      <div className="flex items-center justify-between mb-2">
         {!uid ? (
           <span className="flex items-center gap-1.5 text-xs font-bold text-secondary-text bg-cloud rounded-full px-3 py-1.5">
             <Danger size={14} variant="Bold" color="currentColor" />

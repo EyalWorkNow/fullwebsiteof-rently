@@ -20,8 +20,7 @@ const NAV_LINKS = [
   { label: "חיפוש דירות", href: "/real-estate", icon: SearchNormal1 },
   { label: "אתי AI", href: "/ati", icon: MagicStar, boldIcon: true },
   { label: "שירותים", href: "/#services", icon: Category },
-  { label: "פרסום דירה", href: "/publish", icon: AddCircle },
-  { label: "אזור המפרסם", href: "/publisher", icon: Key },
+  { label: "בעל נכס", href: "/publisher", icon: Key },
 ];
 
 export default function TopBar() {

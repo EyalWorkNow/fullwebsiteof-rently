@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import PublisherPortal from './PublisherPortal'
 
 export const metadata: Metadata = {
-  title: 'אזור המפרסם | Rently',
+  title: 'בעל נכס | Rently',
   description: 'עזרא, סקירת ביצועים, קהל, נכסים ויומן — הכול במקום אחד עבור בעלי דירות ומתווכים.',
 }
 

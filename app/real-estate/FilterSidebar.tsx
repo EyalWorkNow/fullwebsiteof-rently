@@ -30,6 +30,7 @@ import {
   Home2,
   Hospital,
   Location,
+  MagicStar,
   Maximize4,
   Money,
   Pet,
@@ -62,6 +63,7 @@ import {
   formatPrice,
   formatSize,
   nearbyHasSignal,
+  parseNaturalLanguageToFilters,
   priceBounds,
   sectionCounts,
   toggleValue,
@@ -166,6 +168,88 @@ function Chip({
   )
 }
 
+function AtiAssistantSticky({
+  filters,
+  onChange,
+}: {
+  filters: WebFilters
+  onChange: (next: WebFilters) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [prompt, setPrompt] = useState('')
+  const [applied, setApplied] = useState(false)
+
+  const handleApply = () => {
+    if (!prompt.trim()) return
+    const next = parseNaturalLanguageToFilters(prompt, filters)
+    onChange(next)
+    setApplied(true)
+    setTimeout(() => {
+      setApplied(false)
+      setOpen(false)
+    }, 1800)
+  }
+
+  return (
+    <div className="relative">
+      {open && (
+        <div className="absolute bottom-full mb-3 right-0 z-40 w-72 sm:w-80 rounded-2xl border border-primary/30 bg-white p-3.5 shadow-[0_15px_40px_rgba(6,36,58,0.2)] backdrop-blur-xl animate-fadeIn">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white text-[11px] font-black">
+                א
+              </span>
+              <h4 className="text-[12.5px] font-black text-navy">עזרה מאתי — סינון בשפה חופשית</h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-secondary-text hover:text-navy"
+            >
+              <CloseCircle size={16} color="currentColor" />
+            </button>
+          </div>
+          <p className="text-[11px] font-semibold text-secondary-text mb-2 leading-relaxed">
+            ספרו במילים פשוטות מה חשוב לכם ואתי תגדיר את הסינון אוטומטית:
+          </p>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="למשל: 'דירת 3.5 חדרים בתל אביב עם מרפסת וחניה עד 7,500 ₪ ושמותר חיות מחמד'"
+            rows={2}
+            className="w-full rounded-xl border border-border-app bg-cloud p-2.5 text-[12px] font-medium text-navy outline-none focus:border-primary focus:bg-white resize-none"
+          />
+          <div className="mt-2 flex items-center justify-between gap-2">
+            {applied ? (
+              <span className="text-[11px] font-bold text-success">✓ הסינון עודכן בהצלחה!</span>
+            ) : (
+              <span className="text-[10px] font-semibold text-secondary-text">אתי תזהה חדרים, עיר ומאפיינים</span>
+            )}
+            <button
+              type="button"
+              onClick={handleApply}
+              disabled={!prompt.trim()}
+              className="flex items-center gap-1 rounded-full bg-primary hover:bg-primary-dark transition-colors px-3 py-1.5 text-[11.5px] font-bold text-white shadow-sm disabled:opacity-50"
+            >
+              <MagicStar size={13} color="currentColor" variant="Bold" />
+              <span>מלא סינון</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary-light2 px-3.5 py-2 text-[12.5px] font-black text-primary shadow-sm hover:bg-primary hover:text-white transition-all"
+      >
+        <MagicStar size={15} color="currentColor" variant="Bold" />
+        <span>עזרה מאתי</span>
+      </button>
+    </div>
+  )
+}
+
 export default function FilterSidebar({
   items,
   filters,
@@ -228,11 +312,17 @@ export default function FilterSidebar({
       .sort((a, b) => (b.count > 0 ? 1 : 0) - (a.count > 0 ? 1 : 0) || a.label.localeCompare(b.label, 'he'))
   }, [items, facets])
 
-  const [showAllFeatures, setShowAllFeatures] = useState(false)
+  // Accordion state: only one section can show more than 5 items at a time to save space.
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const toggleExpanded = (name: string) => {
+    setExpandedSection((prev) => (prev === name ? null : name))
+  }
+
+  const isFeaturesExpanded = expandedSection === 'features'
   const visibleFeatureChips = useMemo(() => {
-    if (showAllFeatures) return featureChips
-    return featureChips.filter((c) => c.count > 0 || f.requiredFeatures.includes(c.key))
-  }, [featureChips, showAllFeatures, f.requiredFeatures])
+    if (isFeaturesExpanded) return featureChips
+    return featureChips.slice(0, 5)
+  }, [featureChips, isFeaturesExpanded])
 
   const citySuggestions = useMemo(() => {
     const q = cityQuery.trim().toLowerCase()
@@ -409,17 +499,6 @@ export default function FilterSidebar({
             ))}
           </div>
         )}
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {QUICK_CITIES.map((city) => (
-            <Chip
-              key={city}
-              label={city}
-              count={facets.city[city] ?? 0}
-              selected={f.city === city}
-              onClick={() => setCity(city)}
-            />
-          ))}
-        </div>
       </Section>
 
       {/* ── טווח גודל ── */}
@@ -462,17 +541,28 @@ export default function FilterSidebar({
         {availablePropertyTypes.length === 0 ? (
           <p className="text-[12px] font-semibold text-secondary-text">אין נתוני סוג נכס בקטלוג הנוכחי</p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {availablePropertyTypes.map((type) => (
-              <Chip
-                key={type}
-                label={type}
-                icon={Building}
-                count={facets.propertyType[type] ?? 0}
-                selected={f.propertyTypes.includes(type)}
-                onClick={() => onChange({ ...f, propertyTypes: toggleValue(f.propertyTypes, type) })}
-              />
-            ))}
+          <div>
+            <div className="flex flex-wrap gap-1.5">
+              {(expandedSection === 'propertyTypes' ? availablePropertyTypes : availablePropertyTypes.slice(0, 5)).map((type) => (
+                <Chip
+                  key={type}
+                  label={type}
+                  icon={Building}
+                  count={facets.propertyType[type] ?? 0}
+                  selected={f.propertyTypes.includes(type)}
+                  onClick={() => onChange({ ...f, propertyTypes: toggleValue(f.propertyTypes, type) })}
+                />
+              ))}
+            </div>
+            {availablePropertyTypes.length > 5 && (
+              <button
+                type="button"
+                onClick={() => toggleExpanded('propertyTypes')}
+                className="mt-2 text-[11.5px] font-bold text-primary hover:underline"
+              >
+                {expandedSection === 'propertyTypes' ? 'הצג פחות' : `הצג עוד ${availablePropertyTypes.length - 5} סוגים…`}
+              </button>
+            )}
           </div>
         )}
       </Section>
@@ -484,7 +574,7 @@ export default function FilterSidebar({
         ) : (
           <>
             <div className="flex flex-wrap gap-1.5">
-              {availableConditions.map((condition) => (
+              {(expandedSection === 'conditions' ? availableConditions : availableConditions.slice(0, 5)).map((condition) => (
                 <Chip
                   key={condition}
                   label={condition}
@@ -494,6 +584,15 @@ export default function FilterSidebar({
                 />
               ))}
             </div>
+            {availableConditions.length > 5 && (
+              <button
+                type="button"
+                onClick={() => toggleExpanded('conditions')}
+                className="mt-2 text-[11.5px] font-bold text-primary hover:underline"
+              >
+                {expandedSection === 'conditions' ? 'הצג פחות' : `הצג עוד ${availableConditions.length - 5} מצבים…`}
+              </button>
+            )}
             <p className="mt-2 text-[11px] font-semibold text-secondary-text">
               רוב המודעות לא מציינות מצב נכס — בחירה כאן תסתיר אותן
             </p>
@@ -551,22 +650,15 @@ export default function FilterSidebar({
             />
           ))}
         </div>
-        {featureChips.length > visibleFeatureChips.length && (
+        {featureChips.length > 5 && (
           <button
             type="button"
-            onClick={() => setShowAllFeatures(true)}
-            className="mt-2 text-[11.5px] font-bold text-primary"
+            onClick={() => toggleExpanded('features')}
+            className="mt-2 text-[11.5px] font-bold text-primary hover:underline"
           >
-            הצג עוד {featureChips.length - visibleFeatureChips.length} מאפיינים (ללא תוצאות כרגע)
-          </button>
-        )}
-        {showAllFeatures && (
-          <button
-            type="button"
-            onClick={() => setShowAllFeatures(false)}
-            className="mt-2 text-[11.5px] font-bold text-primary"
-          >
-            הצג רק מאפיינים עם תוצאות
+            {expandedSection === 'features'
+              ? 'הצג פחות'
+              : `הצג עוד ${featureChips.length - 5} מאפיינים…`}
           </button>
         )}
       </Section>
@@ -577,32 +669,42 @@ export default function FilterSidebar({
           מה שתבחרו יופיע ראשון בעמוד הדירה. משפיע על סדר התוצאות במיון &quot;התאמה חכמה&quot;.
         </p>
         <div className="flex flex-wrap gap-1.5">
-          {NEARBY_OPTIONS.map((opt) => (
+          {(expandedSection === 'nearby' ? NEARBY_OPTIONS : NEARBY_OPTIONS.slice(0, 5)).map((opt) => (
             <Chip
               key={opt.kind}
               label={opt.label}
               icon={NEARBY_ICONS[opt.kind]}
               selected={f.preferredNearby.includes(opt.kind)}
-              // Only a handful of kinds map onto a field the web actually has;
-              // the rest are stored for the property page but cannot move the
-              // ranking. Say so instead of implying they all do.
               title={nearbyHasSignal(opt.kind) ? undefined : 'נשמר להעדפות — עדיין לא משפיע על הדירוג'}
               onClick={() => onChange({ ...f, preferredNearby: toggleValue(f.preferredNearby, opt.kind) })}
             />
           ))}
         </div>
+        {NEARBY_OPTIONS.length > 5 && (
+          <button
+            type="button"
+            onClick={() => toggleExpanded('nearby')}
+            className="mt-2 text-[11.5px] font-bold text-primary hover:underline"
+          >
+            {expandedSection === 'nearby' ? 'הצג פחות' : `הצג עוד ${NEARBY_OPTIONS.length - 5} מקומות…`}
+          </button>
+        )}
       </Section>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border-app pt-4">
-        <button
-          type="button"
-          onClick={onClear}
-          className="rounded-full border border-border-app bg-cloud px-4 py-2.5 text-[13px] font-bold text-navy transition hover:text-coral"
-        >
-          נקה הכל
-        </button>
-        {footer}
+      {/* Sticky Bottom Bar */}
+      <div className="sticky bottom-0 z-20 mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border-app bg-white/95 backdrop-blur-xl py-3 px-1">
+        <AtiAssistantSticky filters={f} onChange={onChange} />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClear}
+            className="rounded-full border border-border-app bg-cloud px-4 py-2 text-[12.5px] font-bold text-navy transition hover:text-coral"
+          >
+            נקה הכל
+          </button>
+          {footer}
+        </div>
       </div>
     </div>
   )

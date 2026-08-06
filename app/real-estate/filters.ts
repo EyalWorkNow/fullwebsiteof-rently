@@ -1021,3 +1021,108 @@ export function storePanelOpen(open: boolean): void {
 export function toggleValue<T extends string>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
+
+/**
+ * Natural language AI filter auto-fill parser.
+ * Extracts rooms, budget, city, size, floor, features, and source from free Hebrew text.
+ */
+export function parseNaturalLanguageToFilters(rawText: string, current: WebFilters): WebFilters {
+  const text = rawText.trim()
+  if (!text) return current
+
+  const updated: WebFilters = { ...current, requiredFeatures: [...current.requiredFeatures] }
+
+  // 1. Rooms (e.g. "3 חדרים", "3.5 חדרים", "4 חד'")
+  const roomsMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:חדרים|חדר|חד׳)/i)
+  if (roomsMatch) {
+    const numRooms = parseFloat(roomsMatch[1])
+    if (!isNaN(numRooms)) {
+      updated.minRooms = numRooms
+      updated.maxRooms = numRooms
+    }
+  }
+
+  // 2. Max Budget (e.g. "עד 7,500 ₪", "עד 8000", "עד 7000 שח")
+  const priceMatch = text.match(/(?:עד|מקסימום|תקציב)?\s*([1-9]\d{0,2}(?:,\d{3})+|[5-9]\d{3}|\d{5})\s*(?:ש"ח|₪|לחודש)?/i)
+  if (priceMatch) {
+    const parsedPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10)
+    if (!isNaN(parsedPrice) && parsedPrice >= 1000 && parsedPrice <= 50000) {
+      updated.maxBudget = parsedPrice
+    }
+  }
+
+  // 3. City (e.g. "בתל אביב", "בגבעתיים", "ברמת גן")
+  const cities = [
+    'תל אביב',
+    'גבעתיים',
+    'רמת גן',
+    'ירושלים',
+    'חיפה',
+    'נתניה',
+    'הרצליה',
+    'ראשון לציון',
+    'בת ים',
+    'חולון',
+    'פתח תקווה',
+    'רעננה',
+    'כפר סבא',
+    'אשדוד',
+    'באר שבע',
+  ]
+  for (const c of cities) {
+    if (text.includes(c) || text.includes(`ב${c}`)) {
+      updated.city = c
+      break
+    }
+  }
+
+  // 4. Size in m² (e.g. "80 מ"ר", "מ-100 מטר")
+  const sizeMatch = text.match(/(\d+)\s*(?:מ"ר|מטר)/i)
+  if (sizeMatch) {
+    const size = parseInt(sizeMatch[1], 10)
+    if (!isNaN(size) && size > 20) {
+      updated.minSizeM2 = size
+    }
+  }
+
+  // 5. Floor (e.g. "קומה 3", "מעל קומה 2")
+  const floorMatch = text.match(/קומה\s*(\d+)/i)
+  if (floorMatch) {
+    const floor = parseInt(floorMatch[1], 10)
+    if (!isNaN(floor)) {
+      updated.minFloor = floor
+    }
+  }
+
+  // 6. Direct / Agency (לא מתיווך / פרטי)
+  if (text.includes('לא מתיווך') || text.includes('ללא תיווך') || text.includes('פרטי')) {
+    updated.listingSources = ['private']
+  } else if (text.includes('מתווך') || text.includes('מתיווך')) {
+    updated.listingSources = ['agency']
+  }
+
+  // 7. Features
+  const addFeat = (k: string) => {
+    if (!updated.requiredFeatures.includes(k)) {
+      updated.requiredFeatures.push(k)
+    }
+  }
+
+  if (text.includes('מרפסת שמש')) addFeat('sunBalcony')
+  else if (text.includes('מרפסת')) addFeat('balcony')
+
+  if (text.includes('חניה') || text.includes('חנייה')) addFeat('parking')
+  if (text.includes('מעלית')) addFeat('elevator')
+  if (text.includes('ממ"ד') || text.includes('ממד')) addFeat('mamad')
+  if (text.includes('מיזוג') || text.includes('מזגן')) addFeat('airConditioning')
+  if (text.includes('סורגים')) addFeat('bars')
+  if (text.includes('משופצת') || text.includes('משופץ')) addFeat('renovated')
+  if (text.includes('חיות מחמד') || text.includes('מותר חיות') || text.includes('כלבים') || text.includes('חתולים')) addFeat('petsAllowed')
+  if (text.includes('מרוהטת') || text.includes('מרוהט') || text.includes('ריהוט')) addFeat('furnished')
+  if (text.includes('גינה')) addFeat('garden')
+  if (text.includes('מחסן')) addFeat('storage')
+  if (text.includes('שותפים') || text.includes('שותף')) addFeat('roommates')
+  if (text.includes('נגישות') || text.includes('נגיש')) addFeat('accessible')
+
+  return updated
+}

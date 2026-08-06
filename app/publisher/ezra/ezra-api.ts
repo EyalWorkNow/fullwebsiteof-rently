@@ -19,6 +19,11 @@
 import { getToken } from '@/lib/live/firebase'
 import type { ChatTurn, Property } from '@/lib/live/types'
 
+/** A property row as returned by GET /properties — used for edit mode (loading
+ *  an existing listing back into the draft, and round-tripping the fields the
+ *  9-field draft form doesn't surface: features/legal/verification/etc). */
+export type ExistingProperty = Property & { [key: string]: unknown }
+
 const BASE = '/api/rently'
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -43,6 +48,56 @@ const coerceList = <T,>(v: unknown): T[] => {
     }
   }
   return []
+}
+
+// ── Photo upload ─────────────────────────────────────────────────────────────
+// Same presigned-S3 contract the app's StorageService.uploadToCloud uses
+// (AwsApiClient.uploadFile): POST /storage/presign -> {uploadUrl, publicUrl},
+// then a raw PUT of the file bytes straight to S3 (no auth header — the
+// presigned URL carries it), folder 'uploads' like every other generic upload
+// in the app (property photos aren't a separate folder there either).
+
+function sanitizeFileName(name: string): string {
+  const base = name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-60)
+  return base || 'photo'
+}
+
+/** Uploads one image file, returns its public HTTPS URL. Throws a Hebrew-message
+ *  Error on any failure — the caller decides how to surface it (per-file status). */
+export async function uploadPhoto(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('אפשר להעלות קבצי תמונה בלבד.')
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const key = `uploads/${Date.now()}_${sanitizeFileName(file.name.replace(/\.[^.]+$/, ''))}.${ext}`
+
+  const presignRes = await fetch(`${BASE}/storage/presign`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ key, contentType: file.type }),
+  })
+  if (presignRes.status === 401 || presignRes.status === 403) {
+    throw new Error('צריך להתחבר כדי להעלות תמונות.')
+  }
+  if (!presignRes.ok) throw new Error('לא הצלחנו להכין את ההעלאה. נסו שוב.')
+  const { uploadUrl, publicUrl } = await presignRes.json()
+  if (!uploadUrl || !publicUrl) throw new Error('לא הצלחנו להכין את ההעלאה. נסו שוב.')
+
+  const putRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  })
+  if (!putRes.ok) throw new Error('העלאת התמונה נכשלה. נסו שוב.')
+  return publicUrl as string
+}
+
+/** DELETE /properties/{id} — server enforces ownerUserId === caller. */
+export async function deleteProperty(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/properties/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  })
+  if (res.status === 401 || res.status === 403) throw new Error('אין הרשאה למחוק את הדירה הזו.')
+  if (!res.ok) throw new Error('מחיקת הדירה נכשלה. נסו שוב.')
 }
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
@@ -200,6 +255,48 @@ export function mergeDraft(
   }
 }
 
+/** Loads an existing property row into the editable 9-field draft (edit mode) —
+ *  the reverse direction of draftPatch/mergeDraft. Fields the draft doesn't
+ *  surface (features/legal/media/etc) stay on the original row and are
+ *  round-tripped untouched by publishDraft's edit path below. */
+export function fieldsFromExistingProperty(p: ExistingProperty): EzraDraftFields {
+  const streetLine = [str(p.street), p.streetNumber != null ? str(p.streetNumber) : ''].filter(Boolean).join(' ')
+  return {
+    city: str(p.city),
+    streetLine,
+    rooms: p.rooms != null ? str(p.rooms) : '',
+    sizeM2: p.sizeM2 != null ? str(p.sizeM2) : '',
+    floor: str(p.floor),
+    price: p.price != null ? str(p.price) : '',
+    transactionType: String(p.transactionType).toLowerCase() === 'sale' ? 'sale' : 'rent',
+    condition: str(p.condition) || 'תקין',
+    description: str(p.description),
+  }
+}
+
+/** Existing photo URLs on a property row, whatever shape they're stored in
+ *  (media: [{url}] or imageUrls: string[], possibly JSON-encoded strings —
+ *  same DB quirk lib/live/api.ts's coerceList already handles elsewhere). */
+export function photosFromExistingProperty(p: ExistingProperty): string[] {
+  const coerce = (v: unknown): unknown[] => {
+    if (Array.isArray(v)) return v
+    if (typeof v === 'string') {
+      try {
+        const parsed = JSON.parse(v)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+  const fromMedia = coerce(p.media)
+    .map((m) => (typeof m === 'string' ? m : (m as { url?: string })?.url))
+    .filter((u): u is string => !!u)
+  if (fromMedia.length) return fromMedia
+  return coerce(p.imageUrls).filter((u): u is string => typeof u === 'string' && !!u)
+}
+
 // ── Publish ──────────────────────────────────────────────────────────────────
 
 // Best-effort geocode (the app uses the platform geocoder with a TLV-centre
@@ -241,10 +338,22 @@ export function splitStreetLine(line: string): { street: string; streetNumber: n
   return { street: m[1].trim(), streetNumber: parseInt(m[2], 10) || -1 }
 }
 
+/**
+ * Publishes a NEW listing, or saves edits to an EXISTING one when `existing`
+ * is passed (PUT to the same id, preserving every field the 9-field draft
+ * doesn't surface — features/legal/verification/tour/etc — round-tripped from
+ * the row we loaded, not reconstructed).
+ *
+ * `photos` (public S3 URLs) are REQUIRED for a new listing — a landlord can't
+ * publish a property nobody can see a picture of. An edit may keep whatever
+ * photos already exist even if none were re-uploaded this session.
+ */
 export async function publishDraft(
   fields: EzraDraftFields,
   ownerUserId: string,
   ownerName: string,
+  photos: string[],
+  existing?: ExistingProperty,
 ): Promise<{ id: string }> {
   const price = parseInt(fields.price, 10) || 0
   const rooms = parseFloat(fields.rooms) || 3
@@ -252,13 +361,48 @@ export async function publishDraft(
   const { street, streetNumber } = splitStreetLine(fields.streetLine)
   if (!fields.city.trim()) throw new Error('חסרה עיר — אי אפשר לפרסם בלי כתובת.')
   if (price <= 0) throw new Error('חסר מחיר — אי אפשר לפרסם בלי מחיר.')
+  if (photos.length === 0) throw new Error('חסרה תמונה — יש להעלות לפחות תמונה אחת של הדירה כדי לפרסם.')
 
   const { lat, lon } = await geocode(street, streetNumber > 0 ? String(streetNumber) : '', fields.city.trim())
-
-  const id = `custom-${Date.now()}`
   const nowIso = new Date().toISOString()
   const dateOnly = nowIso.slice(0, 10)
+  const media = JSON.stringify(photos.map((url) => ({ url, type: 'image' })))
+  const imageUrls = JSON.stringify(photos)
 
+  if (existing) {
+    // Edit: keep the existing row's untouched fields (features, legal, tour,
+    // verification, createdAt…) and overwrite only what the draft form owns.
+    const id = existing.id
+    const row: Record<string, unknown> = {
+      ...existing,
+      id,
+      propertyId: id,
+      price,
+      rooms,
+      sizeM2,
+      floor: fields.floor.trim(),
+      city: fields.city.trim(),
+      street,
+      streetNumber,
+      lat,
+      lon,
+      condition: fields.condition.trim() || 'תקין',
+      description: fields.description.trim(),
+      transactionType: fields.transactionType,
+      media,
+      imageUrls,
+      updatedAt: nowIso,
+    }
+    const res = await fetch(`${BASE}/properties/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: await authHeaders(),
+      body: JSON.stringify(row),
+    })
+    if (!res.ok) throw new Error(`שמירת השינויים נכשלה (שגיאה ${res.status}). נסו שוב בעוד רגע.`)
+    return { id }
+  }
+
+  const id = `custom-${Date.now()}`
   const row: Record<string, unknown> = {
     id,
     propertyId: id,
@@ -284,7 +428,8 @@ export async function publishDraft(
     features: JSON.stringify(Object.fromEntries(FEAT_KEYS.map((k) => [k, false]))),
     featureLabels: JSON.stringify([]),
     ...Object.fromEntries(FEAT_KEYS.map((k) => [`feat_${k}`, false])),
-    media: JSON.stringify([]),
+    media,
+    imageUrls,
     transactionType: fields.transactionType,
     status: 'active',
     createdAt: nowIso,

@@ -7,15 +7,22 @@ import {
   Add,
   CloseCircle,
   Convertshape,
+  DirectNotification,
   DocumentText,
   Eye,
+  EyeSlash,
   Flash,
   InfoCircle,
   MagicStar,
+  Maximize1,
+  Maximize4,
   Minus,
+  Moon,
   Refresh2,
   Sun1,
   Text,
+  TextalignRight,
+  TickCircle,
 } from 'iconsax-react'
 
 // ── USER COMPONENT: Custom Gooey Fluid SVG Toggle Switch ──────────────────────
@@ -68,7 +75,7 @@ const StyledSwitchWrapper = styled.div`
     --inactive-color: #CBD5E1;
     position: relative;
     aspect-ratio: 292 / 142;
-    height: 1.65em;
+    height: 1.6em;
     flex-shrink: 0;
   }
 
@@ -153,13 +160,41 @@ const StyledSwitchWrapper = styled.div`
 
 export default function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'display' | 'colors' | 'tools'>('display')
+
+  // Accessibility State Options
   const [fontSize, setFontSize] = useState(100) // 90, 100, 110, 120, 130
+  const [letterSpacing, setLetterSpacing] = useState(false)
+  const [lineHeight, setLineHeight] = useState(false)
+  const [alignRight, setAlignRight] = useState(false)
+  const [readableFont, setReadableFont] = useState(false)
+
   const [highContrast, setHighContrast] = useState(false)
   const [grayscale, setGrayscale] = useState(false)
-  const [readableFont, setReadableFont] = useState(false)
+  const [invertColors, setInvertColors] = useState(false)
+  const [darkContrast, setDarkContrast] = useState(false)
   const [highlightLinks, setHighlightLinks] = useState(false)
+  const [highlightHeadings, setHighlightHeadings] = useState(false)
+
+  const [largeCursor, setLargeCursor] = useState(false)
+  const [readingLine, setReadingLine] = useState(false)
+  const [readingMask, setReadingMask] = useState(false)
+  const [focusBox, setFocusBox] = useState(false)
   const [stopAnimations, setStopAnimations] = useState(false)
+
+  const [mouseY, setMouseY] = useState(200)
   const panelRef = useRef<HTMLDivElement>(null)
+
+  // Track Mouse Y for Reading Line & Reading Mask
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      setMouseY(e.clientY)
+    }
+    if (readingLine || readingMask) {
+      window.addEventListener('mousemove', handleMouseMove)
+    }
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [readingLine, readingMask])
 
   // Sync accessibility states with documentElement classes
   useEffect(() => {
@@ -169,28 +204,73 @@ export default function AccessibilityWidget() {
     root.style.fontSize = fontSize === 100 ? '' : `${fontSize}%`
 
     // Toggles
+    root.classList.toggle('acc-letter-spacing', letterSpacing)
+    root.classList.toggle('acc-line-height', lineHeight)
+    root.classList.toggle('acc-align-right', alignRight)
+    root.classList.toggle('acc-readable-font', readableFont)
+
     root.classList.toggle('acc-contrast', highContrast)
     root.classList.toggle('acc-grayscale', grayscale)
-    root.classList.toggle('acc-readable-font', readableFont)
+    root.classList.toggle('acc-invert', invertColors)
+    root.classList.toggle('acc-dark-contrast', darkContrast)
     root.classList.toggle('acc-highlight-links', highlightLinks)
-    root.classList.toggle('acc-stop-animations', stopAnimations)
-  }, [fontSize, highContrast, grayscale, readableFont, highlightLinks, stopAnimations])
+    root.classList.toggle('acc-highlight-headings', highlightHeadings)
 
-  // Active accessibility settings count
+    root.classList.toggle('acc-large-cursor', largeCursor)
+    root.classList.toggle('acc-focus-box', focusBox)
+    root.classList.toggle('acc-stop-animations', stopAnimations)
+  }, [
+    fontSize,
+    letterSpacing,
+    lineHeight,
+    alignRight,
+    readableFont,
+    highContrast,
+    grayscale,
+    invertColors,
+    darkContrast,
+    highlightLinks,
+    highlightHeadings,
+    largeCursor,
+    focusBox,
+    stopAnimations,
+  ])
+
+  // Count active settings
   const activeCount =
     (fontSize !== 100 ? 1 : 0) +
+    (letterSpacing ? 1 : 0) +
+    (lineHeight ? 1 : 0) +
+    (alignRight ? 1 : 0) +
+    (readableFont ? 1 : 0) +
     (highContrast ? 1 : 0) +
     (grayscale ? 1 : 0) +
-    (readableFont ? 1 : 0) +
+    (invertColors ? 1 : 0) +
+    (darkContrast ? 1 : 0) +
     (highlightLinks ? 1 : 0) +
+    (highlightHeadings ? 1 : 0) +
+    (largeCursor ? 1 : 0) +
+    (readingLine ? 1 : 0) +
+    (readingMask ? 1 : 0) +
+    (focusBox ? 1 : 0) +
     (stopAnimations ? 1 : 0)
 
   const resetAll = () => {
     setFontSize(100)
+    setLetterSpacing(false)
+    setLineHeight(false)
+    setAlignRight(false)
+    setReadableFont(false)
     setHighContrast(false)
     setGrayscale(false)
-    setReadableFont(false)
+    setInvertColors(false)
+    setDarkContrast(false)
     setHighlightLinks(false)
+    setHighlightHeadings(false)
+    setLargeCursor(false)
+    setReadingLine(false)
+    setReadingMask(false)
+    setFocusBox(false)
     setStopAnimations(false)
   }
 
@@ -217,6 +297,22 @@ export default function AccessibilityWidget() {
         html.acc-grayscale {
           filter: grayscale(100%) !important;
         }
+        html.acc-invert {
+          filter: invert(90%) hue-rotate(180deg) !important;
+        }
+        html.acc-dark-contrast body {
+          background-color: #070d18 !important;
+          color: #ffffff !important;
+        }
+        html.acc-letter-spacing * {
+          letter-spacing: 0.12em !important;
+        }
+        html.acc-line-height * {
+          line-height: 1.95 !important;
+        }
+        html.acc-align-right * {
+          text-align: right !important;
+        }
         html.acc-readable-font * {
           font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         }
@@ -225,6 +321,26 @@ export default function AccessibilityWidget() {
           text-decoration-thickness: 2.5px !important;
           text-underline-offset: 3.5px !important;
           color: #0061FF !important;
+          background-color: rgba(0, 97, 255, 0.08) !important;
+        }
+        html.acc-highlight-headings h1,
+        html.acc-highlight-headings h2,
+        html.acc-highlight-headings h3,
+        html.acc-highlight-headings h4,
+        html.acc-highlight-headings h5,
+        html.acc-highlight-headings h6 {
+          border-right: 4px solid #0061FF !important;
+          padding-right: 8px !important;
+          text-decoration: underline !important;
+        }
+        html.acc-large-cursor,
+        html.acc-large-cursor * {
+          cursor: crosshair !important;
+        }
+        html.acc-focus-box *:focus,
+        html.acc-focus-box *:focus-visible {
+          outline: 4px solid #0061FF !important;
+          outline-offset: 3px !important;
         }
         html.acc-stop-animations *,
         html.acc-stop-animations *::before,
@@ -233,6 +349,28 @@ export default function AccessibilityWidget() {
           transition: none !important;
         }
       `}</style>
+
+      {/* Reading Line Overlay */}
+      {readingLine && (
+        <div
+          className="pointer-events-none fixed left-0 right-0 h-2 bg-[#0061FF] shadow-[0_0_15px_#0061FF] z-[99999]"
+          style={{ top: mouseY - 4 }}
+        />
+      )}
+
+      {/* Reading Mask Overlay */}
+      {readingMask && (
+        <>
+          <div
+            className="pointer-events-none fixed top-0 left-0 right-0 bg-slate-950/70 z-[99998]"
+            style={{ height: Math.max(0, mouseY - 45) }}
+          />
+          <div
+            className="pointer-events-none fixed bottom-0 left-0 right-0 bg-slate-950/70 z-[99998]"
+            style={{ top: mouseY + 45 }}
+          />
+        </>
+      )}
 
       {/* Floating Accessibility Trigger Button (Bottom-Right) */}
       <div className="fixed bottom-5 right-5 z-50">
@@ -269,7 +407,7 @@ export default function AccessibilityWidget() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 20 }}
               transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-              className="pointer-events-auto w-full max-w-[380px] rounded-3xl border border-slate-200/80 bg-white/95 p-4 sm:p-5 shadow-[0_20px_60px_rgba(7,41,70,0.22)] backdrop-blur-2xl text-slate-800 dir-rtl"
+              className="pointer-events-auto w-full max-w-[400px] rounded-3xl border border-slate-200/80 bg-white/95 p-4 sm:p-5 shadow-[0_20px_60px_rgba(7,41,70,0.22)] backdrop-blur-2xl text-slate-800 dir-rtl"
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -284,7 +422,7 @@ export default function AccessibilityWidget() {
                         תקן 5568 AA
                       </span>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-500">התאמת הממשק לצרכים אישיים</p>
+                    <p className="text-[11px] font-semibold text-slate-500">מרכז התאמות נגישות מתקדם</p>
                   </div>
                 </div>
 
@@ -298,103 +436,275 @@ export default function AccessibilityWidget() {
                 </button>
               </div>
 
-              {/* Options List */}
-              <div className="mt-3.5 space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar pe-1">
-                {/* 1. Font Size Scaler */}
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <Text size={18} color="#0061FF" />
-                    <div>
-                      <span className="block text-[13px] font-black text-slate-800">גודל גופן</span>
-                      <span className="block text-[10.5px] font-semibold text-slate-500">{fontSize}%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 bg-white rounded-xl p-1 border border-slate-200/80 shadow-sm">
-                    <button
-                      type="button"
-                      disabled={fontSize <= 90}
-                      onClick={() => setFontSize((s) => Math.max(90, s - 10))}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 disabled:opacity-30 text-slate-700 font-bold"
-                    >
-                      <Minus size={14} color="currentColor" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFontSize(100)}
-                      className="px-2 text-[11px] font-bold text-slate-600 hover:text-[#0061FF]"
-                    >
-                      100%
-                    </button>
-                    <button
-                      type="button"
-                      disabled={fontSize >= 130}
-                      onClick={() => setFontSize((s) => Math.min(130, s + 10))}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 disabled:opacity-30 text-slate-700 font-bold"
-                    >
-                      <Add size={14} color="currentColor" />
-                    </button>
-                  </div>
-                </div>
+              {/* Navigation Category Tabs */}
+              <div className="mt-3 grid grid-cols-3 gap-1 rounded-2xl bg-slate-100/80 p-1 text-[12px] font-extrabold">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('display')}
+                  className={`py-1.5 rounded-xl transition ${
+                    activeTab === 'display'
+                      ? 'bg-white text-[#0061FF] shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  טקסט ותצוגה
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('colors')}
+                  className={`py-1.5 rounded-xl transition ${
+                    activeTab === 'colors'
+                      ? 'bg-white text-[#0061FF] shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  צבעים וסגנון
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('tools')}
+                  className={`py-1.5 rounded-xl transition ${
+                    activeTab === 'tools'
+                      ? 'bg-white text-[#0061FF] shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  עזרי מיקוד
+                </button>
+              </div>
 
-                {/* 2. High Contrast */}
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <Sun1 size={18} color="#0061FF" />
-                    <div>
-                      <span className="block text-[13px] font-black text-slate-800">ניגודיות גבוהה</span>
-                      <span className="block text-[10.5px] font-semibold text-slate-500">הגברת ניגודיות הטקסט והצבעים</span>
+              {/* Options Body */}
+              <div className="mt-3.5 space-y-3 max-h-[54vh] overflow-y-auto no-scrollbar pe-1">
+                {/* ── TAB 1: Display & Text ── */}
+                {activeTab === 'display' && (
+                  <>
+                    {/* Font Scaler */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Text size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">גודל גופן</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">{fontSize}%</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 bg-white rounded-xl p-1 border border-slate-200/80 shadow-sm">
+                        <button
+                          type="button"
+                          disabled={fontSize <= 90}
+                          onClick={() => setFontSize((s) => Math.max(90, s - 10))}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 disabled:opacity-30 text-slate-700 font-bold"
+                        >
+                          <Minus size={14} color="currentColor" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFontSize(100)}
+                          className="px-2 text-[11px] font-bold text-slate-600 hover:text-[#0061FF]"
+                        >
+                          100%
+                        </button>
+                        <button
+                          type="button"
+                          disabled={fontSize >= 140}
+                          onClick={() => setFontSize((s) => Math.min(140, s + 10))}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-slate-100 disabled:opacity-30 text-slate-700 font-bold"
+                        >
+                          <Add size={14} color="currentColor" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <CustomSwitch checked={highContrast} onChange={setHighContrast} id="contrast" />
-                </div>
 
-                {/* 3. Grayscale Mode */}
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <Eye size={18} color="#0061FF" />
-                    <div>
-                      <span className="block text-[13px] font-black text-slate-800">גווני אפור</span>
-                      <span className="block text-[10.5px] font-semibold text-slate-500">המרת תצוגת האתר לשחור-לבן</span>
+                    {/* Letter Spacing */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Maximize4 size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">מרווח בין אותיות</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">הגדלת מרווח האותיות בטקסט</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={letterSpacing} onChange={setLetterSpacing} id="spacing" />
                     </div>
-                  </div>
-                  <CustomSwitch checked={grayscale} onChange={setGrayscale} id="grayscale" />
-                </div>
 
-                {/* 4. Readable Font */}
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <Convertshape size={18} color="#0061FF" />
-                    <div>
-                      <span className="block text-[13px] font-black text-slate-800">גופן קריא</span>
-                      <span className="block text-[10.5px] font-semibold text-slate-500">החלפה לפונט מערכת תקני</span>
+                    {/* Line Height */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <DocumentText size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">מרווח בין שורות</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">הגדלת גובה השורות לקריאה נוחה</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={lineHeight} onChange={setLineHeight} id="lh" />
                     </div>
-                  </div>
-                  <CustomSwitch checked={readableFont} onChange={setReadableFont} id="font" />
-                </div>
 
-                {/* 5. Highlight Links */}
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <DocumentText size={18} color="#0061FF" />
-                    <div>
-                      <span className="block text-[13px] font-black text-slate-800">הדגשת קישורים</span>
-                      <span className="block text-[10.5px] font-semibold text-slate-500">הוספת קו תחתון בולט לקישורים</span>
+                    {/* Text Align Right */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <TextalignRight size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">יישור טקסט לימין</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">יישור ימני מוחלט לכל התכנים</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={alignRight} onChange={setAlignRight} id="align" />
                     </div>
-                  </div>
-                  <CustomSwitch checked={highlightLinks} onChange={setHighlightLinks} id="links" />
-                </div>
 
-                {/* 6. Stop Animations */}
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <Flash size={18} color="#0061FF" />
-                    <div>
-                      <span className="block text-[13px] font-black text-slate-800">עצירת הנפשות</span>
-                      <span className="block text-[10.5px] font-semibold text-slate-500">ביטול אפקטים ותנועות באתר</span>
+                    {/* Readable Font */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Convertshape size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">גופן קריא במיוחד</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">החלפה לפונט מערכת תקני</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={readableFont} onChange={setReadableFont} id="font" />
                     </div>
-                  </div>
-                  <CustomSwitch checked={stopAnimations} onChange={setStopAnimations} id="animations" />
-                </div>
+                  </>
+                )}
+
+                {/* ── TAB 2: Colors & Contrast ── */}
+                {activeTab === 'colors' && (
+                  <>
+                    {/* High Contrast */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Sun1 size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">ניגודיות גבוהה</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">הגברת ניגודיות הטקסט והצבעים</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={highContrast} onChange={setHighContrast} id="contrast" />
+                    </div>
+
+                    {/* Grayscale Mode */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Eye size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">גווני אפור</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">המרת תצוגת האתר לשחור-לבן</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={grayscale} onChange={setGrayscale} id="grayscale" />
+                    </div>
+
+                    {/* Invert Colors */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Moon size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">צבעים הפוכים</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">היפוך צבעים כהה למניעת סנוור</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={invertColors} onChange={setInvertColors} id="invert" />
+                    </div>
+
+                    {/* Dark Contrast Background */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Flash size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">ניגודיות כהה</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">רקע כהה עם טקסט בהיר וחד</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={darkContrast} onChange={setDarkContrast} id="darkbg" />
+                    </div>
+
+                    {/* Highlight Links */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <DocumentText size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">הדגשת קישורים</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">הוספת קו תחתון ורקע לקישורים</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={highlightLinks} onChange={setHighlightLinks} id="links" />
+                    </div>
+
+                    {/* Highlight Headings */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <MagicStar size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">הדגשת כותרות</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">סימון בולט לכל כותרות האתר</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={highlightHeadings} onChange={setHighlightHeadings} id="headings" />
+                    </div>
+                  </>
+                )}
+
+                {/* ── TAB 3: Focus & Assist Tools ── */}
+                {activeTab === 'tools' && (
+                  <>
+                    {/* Large Cursor */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <DirectNotification size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">סמן עכבר מוגדל</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">הגדלת סמן העכבר לניווט קל</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={largeCursor} onChange={setLargeCursor} id="cursor" />
+                    </div>
+
+                    {/* Reading Line */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Maximize1 size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">סרגל קריאה</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">פס מעקב אופקי המלווה את העכבר</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={readingLine} onChange={setReadingLine} id="rline" />
+                    </div>
+
+                    {/* Reading Mask */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <EyeSlash size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">מסכת קריאה</span>
+                          <span className="block text-[10.5px] font-[#0061FF]">הצללת המסך והשארת חלון מיקוד</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={readingMask} onChange={setReadingMask} id="rmask" />
+                    </div>
+
+                    {/* Focus Box */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <TickCircle size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">הדגשת פוקוס</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">מסגרת בולטת לרכיבים בפוקוס</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={focusBox} onChange={setFocusBox} id="focus" />
+                    </div>
+
+                    {/* Stop Animations */}
+                    <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <CloseCircle size={18} color="#0061FF" />
+                        <div>
+                          <span className="block text-[13px] font-black text-slate-800">עצירת הנפשות</span>
+                          <span className="block text-[10.5px] font-semibold text-slate-500">ביטול אפקטים ותנועות באתר</span>
+                        </div>
+                      </div>
+                      <CustomSwitch checked={stopAnimations} onChange={setStopAnimations} id="animations" />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Footer Actions */}
@@ -402,10 +712,10 @@ export default function AccessibilityWidget() {
                 <button
                   type="button"
                   onClick={resetAll}
-                  className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-slate-600 hover:bg-slate-100 transition"
+                  className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                 >
                   <Refresh2 size={15} color="currentColor" />
-                  <span>איפוס הגדרות</span>
+                  <span>איפוס הגדרות ({activeCount})</span>
                 </button>
 
                 <a

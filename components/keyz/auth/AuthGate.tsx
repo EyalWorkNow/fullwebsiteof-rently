@@ -291,7 +291,7 @@ export function AuthGateModal() {
         </button>
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/rently_logo_full.svg" alt="Rently" className="mx-auto h-8 w-auto" />
+        <img src="/logo.png" alt="Rently" className="mx-auto h-8 w-auto" />
 
         <h2 id="auth-gate-title" className="mt-5 text-2xl font-black text-navy">
           רגע לפני שנמשיך

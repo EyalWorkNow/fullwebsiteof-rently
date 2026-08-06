@@ -27,7 +27,7 @@ export default function SiteFooter() {
         <div className="grid md:grid-cols-4 gap-10">
           <div>
             <img
-              src="/brand/rently_logo.svg"
+              src="/logo.png"
               alt="Rently"
               className="h-10 w-auto brightness-0 invert"
             />

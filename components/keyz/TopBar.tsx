@@ -75,7 +75,7 @@ export default function TopBar() {
           {/* Logo */}
           <a href="/" aria-label="Rently" className="flex items-center gap-2 shrink-0">
             <img
-              src="/brand/rently_logo_full.svg"
+              src="/logo.png"
               alt="Rently"
               className="h-8 md:h-9 w-auto"
             />

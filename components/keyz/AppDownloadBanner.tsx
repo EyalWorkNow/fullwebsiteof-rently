@@ -40,7 +40,7 @@ export default function AppDownloadBanner() {
             <div className="rounded-[34px] bg-white overflow-hidden aspect-[9/19] p-4 flex flex-col gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/brand/rently_logo_full.svg"
+                src="/logo.png"
                 alt="Rently"
                 className="h-6 w-auto mx-auto mt-1"
               />

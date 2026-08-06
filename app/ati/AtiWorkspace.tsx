@@ -1527,35 +1527,36 @@ export default function AtiWorkspace() {
         </div>
 
         {/* Scrollable Conversation Content */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-4 md:px-8 py-4 h-full">
+        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-2 sm:px-4 md:px-8 py-2 md:py-4 h-full">
           {showHeroState ? (
-            /* Welcome Hero View — lower-center on screen */
-            <div className="flex h-full flex-col items-center justify-center max-w-[760px] mx-auto text-center pb-4 pt-16">
-              {/* Floating 3D Iridescent Blue Orb */}
-              <IridescentOrb />
-
+            /* Welcome Hero View — top greeting + bottom chatbox on mobile */
+            <div className="flex h-full flex-col justify-between items-center max-w-[760px] mx-auto text-center pt-2 pb-2 md:pt-12 md:pb-4 min-h-0">
               {/* Central Greeting Header */}
-              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-                שלום, במה אוכל{' '}
-                <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
-                  לסייע לך היום?
-                </span>
-              </h1>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
-                חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית
-              </p>
+              <div className="flex flex-col items-center my-auto md:my-0 py-2 shrink-0">
+                <IridescentOrb />
 
-              {/* Floating Prompt Card Container */}
-              <div className="mt-6 w-full max-w-[680px]">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+                  שלום, במה אוכל{' '}
+                  <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+                    לסייע לך היום?
+                  </span>
+                </h1>
+                <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500 max-w-[480px]">
+                  חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית
+                </p>
+              </div>
+
+              {/* Floating Prompt Card Container (Bottom Anchored on Mobile) */}
+              <div className="w-full max-w-[680px] mt-auto shrink-0 pb-1 md:pb-0">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
                     guardedSend(input)
                   }}
-                  className="relative rounded-3xl border border-white/90 bg-white/90 p-4 shadow-[0_20px_50px_rgba(0,97,255,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
+                  className="relative rounded-2xl md:rounded-3xl border border-white/90 bg-white/95 p-3 md:p-4 shadow-[0_15px_40px_rgba(0,97,255,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
                 >
                   {/* Multiline Auto-expanding Prompt Text Input */}
-                  <div className="flex items-start gap-2.5">
+                  <div className="flex items-start gap-2 sm:gap-2.5">
                     <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0 mt-1.5" />
                     <textarea
                       ref={textareaRef}
@@ -1573,46 +1574,46 @@ export default function AtiWorkspace() {
                       }}
                       rows={1}
                       placeholder="שאל כל דבר או חפש דירה... (למשל: דירת 3 חדרים בתל אביב עם מרפסת עד 7,000 ₪)"
-                      className="w-full resize-none bg-transparent text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-relaxed min-h-[44px] max-h-[180px] overflow-y-auto transition-all"
+                      className="w-full resize-none bg-transparent text-[13.5px] sm:text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-relaxed min-h-[40px] max-h-[180px] overflow-y-auto transition-all"
                     />
                   </div>
 
                   {/* Bottom Action Bar inside Prompt Card — Real Rently Features */}
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100/90 pt-3">
-                    <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="mt-3 md:mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100/90 pt-2.5 md:pt-3">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
                       <button
                         type="button"
                         onClick={() => guardedSend('בצע ניתוח אינטליגנציית אזור על תחבורה, בתי ספר ושקט בסביבה')}
-                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11px] sm:text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
                       >
-                        <Location size={14} color="currentColor" />
+                        <Location size={13} color="currentColor" />
                         <span>אינטליגנציית אזור</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => guardedSend('בצע השוואת מחירי שוק מול דירות דומות באזור')}
-                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11px] sm:text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
                       >
-                        <ChartSquare size={14} color="currentColor" />
+                        <ChartSquare size={13} color="currentColor" />
                         <span>השוואת מחירי שוק</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => guardedSend('סנן דירות שמתאימות לסגנון החיים וההרגלים שלי')}
-                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11px] sm:text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
                       >
-                        <Magicpen size={14} color="currentColor" />
+                        <Magicpen size={13} color="currentColor" />
                         <span>סינון סגנון חיים</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => guardedSend('אני רוצה להתייעץ ולנתח חוזה שכירות')}
-                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11px] sm:text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
                       >
-                        <DocumentText size={14} color="currentColor" />
+                        <DocumentText size={13} color="currentColor" />
                         <span>בדיקת חוזים</span>
                       </button>
                     </div>
@@ -1626,13 +1627,13 @@ export default function AtiWorkspace() {
                 </form>
 
                 {/* Quick Chips suggestions below prompt */}
-                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <div className="mt-2.5 md:mt-4 flex flex-wrap justify-center gap-1.5 sm:gap-2">
                   {CHIPS.map((chip) => (
                     <button
                       key={chip}
                       type="button"
                       onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-slate-200/70 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
+                      className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11.5px] sm:text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
                     >
                       {chip}
                     </button>

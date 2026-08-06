@@ -717,37 +717,38 @@ export default function EzraWorkspace({
           <span className="text-[14px] font-black text-navy">עזרא — עוזר הפרסום</span>
         </div>
 
-        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-4 py-4 md:px-8">
+        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-2 sm:px-4 md:px-8 py-2 md:py-4 h-full">
           {showHeroState ? (
-            /* Welcome Hero View — identical to Ati design */
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-160px)] max-w-[760px] mx-auto text-center my-auto py-6">
-              <IridescentOrb />
+            /* Welcome Hero View — top greeting + bottom chatbox on mobile */
+            <div className="flex h-full flex-col justify-between items-center max-w-[760px] mx-auto text-center pt-2 pb-2 md:pt-12 md:pb-4 min-h-0">
+              <div className="flex flex-col items-center my-auto md:my-0 py-2 shrink-0">
+                <IridescentOrb />
 
-              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
-                שלום, כיצד אוכל{' '}
-                <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
-                  לעזור לך לפרסם?
-                </span>
-              </h1>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
-                ספרו על הדירה ועזרא יבנה את המודעה ויכין אותה לפרסום
-              </p>
-              <p className="mt-3 max-w-[560px] text-[12.5px] font-semibold leading-relaxed text-slate-500">
-                כדי שהמודעה תהיה מדויקת ומושכת כבר מההתחלה, כדאי לכלול בהודעה הראשונה כמה שיותר
-                פרטים: <span className="text-slate-700">עיר ורחוב, מספר חדרים, גודל במ״ר, קומה,
-                מחיר, סוג עסקה (השכרה/מכירה), מצב הנכס ותיאור קצר</span>. אפשר גם פשוט להקליט הודעה
-                קולית עם כל הפרטים. לפני הפרסום תצטרכו להעלות גם לפחות תמונה אחת של הדירה.
-              </p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+                  שלום, כיצד אוכל{' '}
+                  <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+                    לעזור לך לפרסם?
+                  </span>
+                </h1>
+                <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-500 max-w-[480px]">
+                  ספרו על הדירה ועזרא יבנה את המודעה ויכין אותה לפרסום
+                </p>
+                <p className="mt-2 hidden sm:block max-w-[560px] text-[12px] font-semibold leading-relaxed text-slate-500">
+                  כדי שהמודעה תהיה מדויקת ומושכת כבר מההתחלה, כדאי לכלול בהודעה הראשונה כמה שיותר
+                  פרטים: <span className="text-slate-700">עיר ורחוב, מספר חדרים, גודל במ״ר, קומה,
+                  מחיר, סוג עסקה, מצב הנכס ותיאור קצר</span>.
+                </p>
+              </div>
 
-              <div className="mt-6 w-full max-w-[680px]">
+              <div className="w-full max-w-[680px] mt-auto shrink-0 pb-1 md:pb-0">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
                     guardedSend(input)
                   }}
-                  className="relative rounded-3xl border border-white/90 bg-white/90 p-4 shadow-[0_20px_50px_rgba(0,97,255,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
+                  className="relative rounded-2xl md:rounded-3xl border border-white/90 bg-white/95 p-3 md:p-4 shadow-[0_15px_40px_rgba(0,97,255,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
                 >
-                  <div className="flex items-start gap-2.5">
+                  <div className="flex items-start gap-2 sm:gap-2.5">
                     <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0 mt-1.5" />
                     <textarea
                       value={input}
@@ -764,22 +765,22 @@ export default function EzraWorkspace({
                       }}
                       rows={1}
                       placeholder="ספרו על הדירה… (למשל: יש לי דירת 3 חדרים בתל אביב עם מרפסת)"
-                      className="w-full resize-none bg-transparent text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-relaxed min-h-[44px] max-h-[180px] overflow-y-auto transition-all"
+                      className="w-full resize-none bg-transparent text-[13.5px] sm:text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-relaxed min-h-[40px] max-h-[180px] overflow-y-auto transition-all"
                     />
                   </div>
 
-                  <div className="mt-4 flex items-center justify-end border-t border-slate-100/90 pt-3">
+                  <div className="mt-3 md:mt-4 flex items-center justify-end border-t border-slate-100/90 pt-2.5 md:pt-3">
                     <SendButton disabled={!input.trim()} onClick={() => guardedSend(input)} />
                   </div>
                 </form>
 
-                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <div className="mt-2.5 md:mt-4 flex flex-wrap justify-center gap-1.5 sm:gap-2">
                   {STARTER_CHIPS.map((chip) => (
                     <button
                       key={chip}
                       type="button"
                       onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-slate-200/70 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
+                      className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11.5px] sm:text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
                     >
                       {chip}
                     </button>

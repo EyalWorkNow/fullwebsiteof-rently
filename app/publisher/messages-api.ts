@@ -50,18 +50,33 @@ export interface MatchRow {
   id: string
   propertyId: string
   tenantUid: string
+  landlordUid?: string
   createdAt?: string
+  /** Which side of this account the match belongs to — a single login can be
+   *  both a landlord (properties they publish) and a tenant (properties they
+   *  search for), and those are two unrelated conversation lists. */
+  role: 'landlord' | 'tenant'
 }
 
-/** landlordUid is server-stamped on write, and the read is gated to "mine" —
- *  see router.mjs's per-caller matches filter. */
+/** landlordUid/tenantUid is server-stamped on write, and the read is gated to
+ *  "mine" — see router.mjs's per-caller matches filter. Fetches both sides of
+ *  the account (properties this uid owns, and properties this uid liked as a
+ *  tenant) so nothing gets lost behind a single role. */
 export async function fetchMatches(uid: string): Promise<MatchRow[]> {
-  const res = await fetch(`${BASE}/matches?landlordUid=${encodeURIComponent(uid)}`, {
-    headers: await authHeaders(),
-  })
-  if (!res.ok) return []
-  const data = await res.json().catch(() => null)
-  return Array.isArray(data?.items) ? data.items : []
+  const [asLandlord, asTenant] = await Promise.all([
+    fetch(`${BASE}/matches?landlordUid=${encodeURIComponent(uid)}`, { headers: await authHeaders() }),
+    fetch(`${BASE}/matches?tenantUid=${encodeURIComponent(uid)}`, { headers: await authHeaders() }),
+  ])
+  const readItems = async (res: Response): Promise<MatchRow[]> => {
+    if (!res.ok) return []
+    const data = await res.json().catch(() => null)
+    return Array.isArray(data?.items) ? data.items : []
+  }
+  const [landlordRows, tenantRows] = await Promise.all([readItems(asLandlord), readItems(asTenant)])
+  return [
+    ...landlordRows.map((m) => ({ ...m, role: 'landlord' as const })),
+    ...tenantRows.map((m) => ({ ...m, role: 'tenant' as const })),
+  ]
 }
 
 /** Same matchId format the app's _createMatch uses, so both sides see one thread. */

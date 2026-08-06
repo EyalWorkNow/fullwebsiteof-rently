@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { CloseCircle, Messages3, Send2, TickCircle, User } from 'iconsax-react'
 import type { User as FbUser } from 'firebase/auth'
 import { useAuthGate } from '@/components/keyz/auth/AuthGate'
+import { addressLabel, cityLabel, fetchPropertyById } from '@/lib/live/api'
 import {
   approveLead,
   dismissLead,
@@ -24,6 +25,11 @@ import {
   type Lead,
   type MatchRow,
 } from './messages-api'
+
+const ROLE_BADGE: Record<MatchRow['role'], { text: string; cls: string }> = {
+  landlord: { text: 'כבעל/ת דירה', cls: 'bg-primary-light2 text-primary' },
+  tenant: { text: 'כמחפש/ת דירה', cls: 'bg-violet-50 text-violet-600' },
+}
 
 const MESSAGES_REASON = 'כדי לראות פניות ולנהל שיחות עם מתעניינים'
 
@@ -55,7 +61,9 @@ export default function MessagesTab({ user }: { user: FbUser | null }) {
     }
   }, [uid])
 
-  const matchedPairs = new Set((matches ?? []).map((m) => `${m.propertyId}~${m.tenantUid}`))
+  const matchedPairs = new Set(
+    (matches ?? []).filter((m) => m.role === 'landlord').map((m) => `${m.propertyId}~${m.tenantUid}`),
+  )
   const visibleLeads = (leads ?? []).filter(
     (l) => !matchedPairs.has(`${l.propertyId}~${l.tenantId}`) && !isDismissed(l.propertyId, l.tenantId),
   )
@@ -67,7 +75,12 @@ export default function MessagesTab({ user }: { user: FbUser | null }) {
       await approveLead(lead.propertyId, lead.tenantId)
       setMatches((prev) => [
         ...(prev ?? []),
-        { id: `match-${lead.propertyId}~${lead.tenantId}`, propertyId: lead.propertyId, tenantUid: lead.tenantId },
+        {
+          id: `match-${lead.propertyId}~${lead.tenantId}`,
+          propertyId: lead.propertyId,
+          tenantUid: lead.tenantId,
+          role: 'landlord',
+        },
       ])
     } catch {
       /* leave it in the candidates list so the landlord can retry */
@@ -204,6 +217,25 @@ export default function MessagesTab({ user }: { user: FbUser | null }) {
   )
 }
 
+function MatchTitle({ propertyId }: { propertyId: string }) {
+  const [label, setLabel] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    fetchPropertyById(propertyId).then(({ item }) => {
+      if (!alive || !item) return
+      const addr = addressLabel(item)
+      const city = cityLabel(item)
+      setLabel(city && addr !== city ? `${addr} · ${city}` : addr)
+    })
+    return () => {
+      alive = false
+    }
+  }, [propertyId])
+
+  return <>{label ?? 'שיחה על דירה'}</>
+}
+
 function MatchThread({
   match,
   uid,
@@ -255,9 +287,14 @@ function MatchThread({
           <User size={20} variant="Bold" color="currentColor" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13.5px] font-black text-navy">שיחה על {match.propertyId}</p>
+          <p className="truncate text-[13.5px] font-black text-navy">
+            <MatchTitle propertyId={match.propertyId} />
+          </p>
           <p className="truncate text-[12px] font-semibold text-secondary-text">לחיצה לפתיחת השיחה</p>
         </div>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${ROLE_BADGE[match.role].cls}`}>
+          {ROLE_BADGE[match.role].text}
+        </span>
       </button>
 
       {open && (

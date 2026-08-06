@@ -65,7 +65,9 @@ export default function TopBar() {
   return (
     <header className="fixed top-3 inset-x-3 md:top-4 md:inset-x-6 z-50 max-w-[1240px] mx-auto pointer-events-none">
       <div
-        className={`pointer-events-auto w-full rounded-full border transition-all duration-300 ${
+        className={`pointer-events-auto w-full ${
+          menuOpen ? "rounded-2xl md:rounded-full" : "rounded-full"
+        } border transition-all duration-300 ${
           scrolled
             ? "border-slate-200/90 bg-white/95 backdrop-blur-2xl shadow-[0_12px_40px_rgba(7,41,70,0.12)]"
             : "border-slate-200/70 bg-white/90 backdrop-blur-xl shadow-[0_8px_30px_rgba(7,41,70,0.08)]"

@@ -116,14 +116,29 @@ export const UNIVERSITIES: NamedPoint[] = [
   { name: 'עמק יזרעאל', lat: 32.647, lon: 35.296 },
 ]
 
-/** Coarse Mediterranean coastline reference points (port of `_coast`). */
+/**
+ * Mediterranean coastline reference points (port of `_coast`), ~10-15km apart
+ * from Rosh Hanikra to the Gaza border — dense enough that `coastDistance`
+ * approximates distance to the nearest shoreline point rather than to the
+ * nearest of a handful of city beaches (which badly overestimated distance
+ * for everywhere in between, e.g. Hadera/Caesarea/Ashkelon).
+ */
 export const COAST: NamedPoint[] = [
-  { name: 'ת"א חוף', lat: 32.08, lon: 34.766 },
-  { name: 'הרצליה חוף', lat: 32.164, lon: 34.792 },
-  { name: 'נתניה חוף', lat: 32.33, lon: 34.85 },
+  { name: 'ראש הנקרה', lat: 33.09, lon: 35.106 },
+  { name: 'נהריה חוף', lat: 33.006, lon: 35.094 },
+  { name: 'עכו חוף', lat: 32.928, lon: 35.07 },
   { name: 'חיפה חוף', lat: 32.82, lon: 34.97 },
-  { name: 'אשדוד חוף', lat: 31.79, lon: 34.63 },
+  { name: 'עתלית', lat: 32.686, lon: 34.941 },
+  { name: 'קיסריה חוף', lat: 32.5, lon: 34.895 },
+  { name: 'חדרה חוף', lat: 32.428, lon: 34.873 },
+  { name: 'נתניה חוף', lat: 32.33, lon: 34.85 },
+  { name: 'הרצליה חוף', lat: 32.164, lon: 34.792 },
+  { name: 'ת"א חוף', lat: 32.08, lon: 34.766 },
   { name: 'בת ים חוף', lat: 32.015, lon: 34.735 },
+  { name: 'ראשל"צ חוף', lat: 31.965, lon: 34.7 },
+  { name: 'אשדוד חוף', lat: 31.79, lon: 34.63 },
+  { name: 'אשקלון חוף', lat: 31.66, lon: 34.56 },
+  { name: 'זיקים חוף', lat: 31.56, lon: 34.5 },
 ]
 
 /** Nearest point in `list` by haversine distance, or null (bad input / empty list). */

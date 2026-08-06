@@ -496,9 +496,19 @@ const Switch: React.FC<UserSwitchProps> = ({ checked, onChange }) => {
 }
 
 const StyledWrapper = styled.div`
+  /* The unscaled switch is 150x195; centering via top/left/margin (not
+     transform) puts its center at the parent's center BEFORE scaling, so the
+     0.35 scale shrinks it in place instead of leaving it anchored at the
+     parent's top-left corner and spilling out to the bottom-right (which is
+     what a bare position:absolute + transform:scale did — the switch
+     rendered shifted out of its 56x72 box, clipped by whatever sat next to it). */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -97.5px;
+  margin-left: -75px;
   transform: scale(0.35);
   transform-origin: center center;
-  position: absolute;
 
   .switch {
     display: block;
@@ -1044,15 +1054,26 @@ export default function AtiWorkspace() {
     ],
   )
 
-  const { requireAuth } = useAuthGate()
+  const { requireAuth, isRegistered } = useAuthGate()
   const sendRef = useRef(send)
   sendRef.current = send
+  // Declining the sign-in gate is intentional (see AuthGate's dismissGate) —
+  // the message is silently dropped so browsing stays frictionless. But for
+  // a chat send that LOOKS like it should just work, silence reads as "stuck":
+  // the input keeps the text and the send button stays enabled, so tapping it
+  // again just reopens the identical modal with no clue why. This hint is the
+  // only thing that changes — it explains once, it doesn't touch the gate.
+  const [showAuthHint, setShowAuthHint] = useState(false)
   const guardedSend = useCallback(
     (raw: string) => {
       if (!raw.trim()) return
-      requireAuth(SEND_REASON, () => sendRef.current(raw))
+      if (!isRegistered) setShowAuthHint(true)
+      requireAuth(SEND_REASON, () => {
+        setShowAuthHint(false)
+        sendRef.current(raw)
+      })
     },
-    [requireAuth],
+    [requireAuth, isRegistered],
   )
 
   const onChipTap = useCallback(
@@ -1632,6 +1653,11 @@ export default function AtiWorkspace() {
                     </button>
                   </div>
                 </form>
+                {showAuthHint && !isRegistered && (
+                  <p className="mt-2 text-center text-[11.5px] font-semibold text-secondary-text">
+                    כדי שאתי תענה צריך להתחבר קודם (בחינם, אותו חשבון כמו באפליקציה) — לחצו על שלח שוב כדי להתחבר.
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -1742,6 +1768,11 @@ export default function AtiWorkspace() {
                 onClick={() => guardedSend(input)}
               />
             </form>
+            {showAuthHint && !isRegistered && (
+              <p className="mx-auto mt-2 max-w-[800px] rounded-full bg-white/95 px-3 py-1 text-center text-[11.5px] font-semibold text-secondary-text shadow-sm backdrop-blur-xl">
+                כדי שאתי תענה צריך להתחבר קודם (בחינם, אותו חשבון כמו באפליקציה) — לחצו על שלח שוב כדי להתחבר.
+              </p>
+            )}
           </div>
         )}
       </section>

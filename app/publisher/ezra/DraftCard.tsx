@@ -200,7 +200,7 @@ export default function DraftCard({
               type="button"
               onClick={() => removePhoto(url)}
               aria-label="הסרת תמונה"
-              className="absolute end-0.5 top-0.5 rounded-full bg-navy/70 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              className="absolute end-0.5 top-0.5 rounded-full bg-navy/70 p-1 text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
             >
               <CloseCircle size={14} color="currentColor" />
             </button>

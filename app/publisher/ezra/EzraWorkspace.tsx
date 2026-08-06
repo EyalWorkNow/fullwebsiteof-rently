@@ -531,7 +531,11 @@ export default function EzraWorkspace({
           </div>
         ) : (
           renameId !== c.id && (
-            <div className="absolute end-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 group-hover:flex">
+            // Always visible below lg (touch has no hover state — the mobile
+            // drawer reuses this exact markup, so hover-only here meant these
+            // controls were permanently undiscoverable on a phone) — hover-
+            // reveal stays as the desktop-only progressive disclosure.
+            <div className="absolute end-2 top-1/2 flex -translate-y-1/2 items-center gap-1 lg:hidden lg:group-hover:flex">
               <button
                 type="button"
                 aria-label="שינוי שם"
@@ -539,7 +543,7 @@ export default function EzraWorkspace({
                   setRenameId(c.id)
                   setRenameText(c.title)
                 }}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-secondary-text shadow-sm transition hover:text-primary"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-secondary-text shadow-sm transition hover:text-primary lg:h-6 lg:w-6"
               >
                 <Edit2 size={12} color="currentColor" />
               </button>
@@ -547,7 +551,7 @@ export default function EzraWorkspace({
                 type="button"
                 aria-label="מחיקת שיחה"
                 onClick={() => setConfirmDeleteId(c.id)}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-secondary-text shadow-sm transition hover:text-coral"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-secondary-text shadow-sm transition hover:text-coral lg:h-6 lg:w-6"
               >
                 <Trash size={12} color="currentColor" />
               </button>

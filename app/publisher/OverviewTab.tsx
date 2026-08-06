@@ -242,7 +242,12 @@ export default function OverviewTab({ user }: { user: User | null }) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <RankingCard cards={cards} />
+        <HealthDonutCard cards={cards} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {portfolio && <PriceTiersCard portfolio={portfolio} total={cards.length} />}
+        {audience && <AudienceDonutCard audience={audience} />}
       </div>
 
       {audience && <AudienceRollupCard audience={audience} />}
@@ -260,15 +265,29 @@ function StatTile({
   label,
   value,
   caption,
+  icon: IconCmp,
+  tone = '#2563EB',
 }: {
   label: string
   value: string
   caption?: string
+  icon?: typeof Eye
+  tone?: string
 }) {
   return (
     <div className="rounded-[18px] border border-border-app bg-white p-4 card-shadow">
-      <div className="text-[12.5px] font-bold text-secondary-text">{label}</div>
-      <div className="mt-1 text-[28px] font-black leading-none text-navy">{value}</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[12.5px] font-bold text-secondary-text">{label}</div>
+        {IconCmp && (
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: `${tone}1A`, color: tone }}
+          >
+            <IconCmp size={14} color={tone} variant="Bold" />
+          </span>
+        )}
+      </div>
+      <div className="mt-1.5 text-[28px] font-black leading-none text-navy">{value}</div>
       {caption && <div className="mt-1.5 text-[11.5px] font-semibold text-secondary-text">{caption}</div>}
     </div>
   )
@@ -290,16 +309,45 @@ function KpiRow({
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      <StatTile label="דירות פעילות" value={String(cards.length)} caption={needsAction > 0 ? `${needsAction} דורשות טיפול` : 'הכול תקין'} />
+      <StatTile
+        label="דירות פעילות"
+        value={String(cards.length)}
+        caption={needsAction > 0 ? `${needsAction} דורשות טיפול` : 'הכול תקין'}
+        icon={Building}
+        tone="#2563EB"
+      />
       <StatTile
         label="סה״כ צפיות"
         value={portfolio.views.known > 0 ? compact(portfolio.views.total) : '—'}
         caption={portfolio.views.known < cards.length ? `${cards.length - portfolio.views.known} דירות בלי נתון` : undefined}
+        icon={Eye}
+        tone="#17BDB0"
       />
-      <StatTile label="סה״כ שמירות" value={portfolio.saves.known > 0 ? compact(portfolio.saves.total) : '—'} />
-      <StatTile label="סה״כ פניות" value={portfolio.inquiries.known > 0 ? compact(portfolio.inquiries.total) : '—'} />
-      <StatTile label="ימים בשוק (ממוצע)" value={avgDom != null ? String(avgDom) : '—'} />
-      <StatTile label="יחס פנייה־לצפייה" value={rate ? rate.text : '—'} caption={rate && !rate.isRate ? 'מדגם קטן' : undefined} />
+      <StatTile
+        label="סה״כ שמירות"
+        value={portfolio.saves.known > 0 ? compact(portfolio.saves.total) : '—'}
+        icon={Heart}
+        tone="#FF6B7A"
+      />
+      <StatTile
+        label="סה״כ פניות"
+        value={portfolio.inquiries.known > 0 ? compact(portfolio.inquiries.total) : '—'}
+        icon={MessageQuestion}
+        tone="#8B5CF6"
+      />
+      <StatTile
+        label="ימים בשוק (ממוצע)"
+        value={avgDom != null ? String(avgDom) : '—'}
+        icon={Chart2}
+        tone="#F59E0B"
+      />
+      <StatTile
+        label="יחס פנייה־לצפייה"
+        value={rate ? rate.text : '—'}
+        caption={rate && !rate.isRate ? 'מדגם קטן' : undefined}
+        icon={TrendUp}
+        tone="#2563EB"
+      />
     </div>
   )
 }
@@ -345,6 +393,97 @@ function FunnelCard({
         <FunnelBar label="שמירות" value={portfolio.saves.total} max={max} color={FUNNEL_STEPS[1]} formatted={portfolio.saves.known > 0 ? compact(portfolio.saves.total) : '—'} />
         <FunnelBar label="פניות" value={portfolio.inquiries.total} max={max} color={FUNNEL_STEPS[2]} formatted={portfolio.inquiries.known > 0 ? compact(portfolio.inquiries.total) : '—'} />
       </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════ Donut chart (status/nominal) ════════════════════
+// Reusable ring: a 2px surface gap between adjacent segments (marks-and-anatomy),
+// thin stroke, no fabricated segments — value===0 entries are skipped entirely
+// rather than drawn as a sliver. Center label carries the total so the ring
+// reads at a glance without hunting the legend for a sum.
+
+function DonutChart({
+  segments,
+  size = 132,
+  strokeWidth = 20,
+  centerLabel,
+}: {
+  segments: { label: string; value: number; color: string }[]
+  size?: number
+  strokeWidth?: number
+  centerLabel?: string
+}) {
+  const total = segments.reduce((s, x) => s + x.value, 0)
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const gapPx = total > 0 ? Math.min(3, circumference * 0.01) : 0
+  let offset = 0
+
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#F1F5F9" strokeWidth={strokeWidth} />
+          {total > 0 &&
+            segments
+              .filter((s) => s.value > 0)
+              .map((s) => {
+                const frac = s.value / total
+                const dash = Math.max(0, frac * circumference - gapPx)
+                const el = (
+                  <circle
+                    key={s.label}
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke={s.color}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${dash} ${circumference - dash}`}
+                    strokeDashoffset={-offset}
+                    strokeLinecap="round"
+                  />
+                )
+                offset += frac * circumference
+                return el
+              })}
+        </svg>
+        {centerLabel && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[22px] font-black leading-none text-navy">{centerLabel}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-col gap-2">
+        {segments
+          .filter((s) => s.value > 0)
+          .map((s) => (
+            <div key={s.label} className="flex items-center gap-2 text-[12.5px] font-bold text-navy">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+              <span className="truncate">{s.label}</span>
+              <span className="shrink-0 font-semibold text-secondary-text">· {s.value}</span>
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════ Listing health mix (status) ═════════════════════
+
+function HealthDonutCard({ cards }: { cards: ListingHealth[] }) {
+  const counts = { healthy: 0, watch: 0, needs_action: 0 }
+  for (const c of cards) counts[c.state]++
+  const segments = (['healthy', 'watch', 'needs_action'] as const).map((k) => ({
+    label: STATE_META[k].label,
+    value: counts[k],
+    color: k === 'healthy' ? '#22C55E' : k === 'watch' ? '#F59E0B' : '#FF5A67',
+  }))
+  return (
+    <div className="rounded-[22px] border border-border-app bg-white p-5 card-shadow">
+      <h2 className="mb-4 font-black text-navy">מצב התיק</h2>
+      <DonutChart segments={segments} centerLabel={String(cards.length)} />
     </div>
   )
 }
@@ -410,6 +549,19 @@ function PriceTiersCard({ portfolio, total }: { portfolio: { tiers: Record<strin
       {classified === 0 ? (
         <p className="text-[13px] text-secondary-text">המיצוב יופיע כאן ברגע שיהיו מספיק דירות דומות באזור להשוואה.</p>
       ) : (
+        <>
+          <div className="mb-4">
+            <DonutChart
+              segments={(['great_deal', 'fair', 'above_market'] as const).map((t) => ({
+                label: PRICE_TIERS[t].label,
+                value: portfolio.tiers[t],
+                color: PRICE_TIERS[t].fg,
+              }))}
+              centerLabel={String(classified)}
+              size={104}
+              strokeWidth={16}
+            />
+          </div>
         <div className="flex flex-col gap-2.5">
           {(['great_deal', 'fair', 'above_market'] as const).map((tier) => {
             const meta = PRICE_TIERS[tier]
@@ -432,7 +584,34 @@ function PriceTiersCard({ portfolio, total }: { portfolio: { tiers: Record<strin
             )
           })}
         </div>
+        </>
       )}
+    </div>
+  )
+}
+
+// ═══════════════════════ Audience mix — top segments (nominal) ═══════════════
+// A donut needs identity per slice, unlike the magnitude bar list below it — a
+// single hue would make every wedge indistinguishable. Fixed categorical order,
+// never cycled/reassigned when the segment list changes (color-formula.md).
+const AUDIENCE_DONUT_HUES = ['#2563EB', '#17BDB0', '#F59E0B', '#8B5CF6', '#FF6B7A']
+const AUDIENCE_OTHER_HUE = '#CBD5E1'
+
+function AudienceDonutCard({ audience }: { audience: AudienceBreakdown }) {
+  if (audience.suppressed || audience.segments.length === 0) return null
+  const top = audience.segments.slice(0, 5)
+  const rest = audience.segments.slice(5).reduce((s, x) => s + x.count, 0)
+  const segments = [
+    ...top.map((s, i) => ({ label: s.label, value: s.count, color: AUDIENCE_DONUT_HUES[i] })),
+    ...(rest > 0 ? [{ label: 'אחר', value: rest, color: AUDIENCE_OTHER_HUE }] : []),
+  ]
+  return (
+    <div className="rounded-[22px] border border-border-app bg-white p-5 card-shadow">
+      <h2 className="mb-4 flex items-center gap-2 font-black text-navy">
+        <UserOctagon size={18} color="currentColor" className="text-primary" />
+        תמהיל הקהל
+      </h2>
+      <DonutChart segments={segments} centerLabel={compact(audience.total)} />
     </div>
   )
 }

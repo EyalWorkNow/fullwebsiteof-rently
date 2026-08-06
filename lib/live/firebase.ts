@@ -7,6 +7,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as fbSignOut,
   type User,
 } from 'firebase/auth'
@@ -60,15 +62,64 @@ export async function getToken(): Promise<string | null> {
 // ── Real sign-in for the landlord portal — same Firebase project as the app,
 // so a Google account signed in here gets the SAME uid as in the mobile app
 // (that's what makes listings/calendar truly synced). Falls back to anon.
+// Last failure code, so the UI can say something specific instead of a generic
+// "it didn't work" (the code is otherwise swallowed and invisible to the user).
+let lastAuthError: string | null = null
+export function lastAuthErrorCode(): string | null {
+  return lastAuthError
+}
+
+// Popup failures that are about the BROWSER, not the credentials — a redirect
+// completes the same sign-in without a popup. Covers blocked popups, Chrome's
+// COOP isolation breaking the popup handshake, and embedded webviews.
+const REDIRECTABLE = new Set([
+  'auth/popup-blocked',
+  'auth/popup-closed-by-user',
+  'auth/cancelled-popup-request',
+  'auth/operation-not-supported-in-this-environment',
+  'auth/web-storage-unsupported',
+  'auth/internal-error',
+])
+
 export async function signInWithGoogle(): Promise<User | null> {
+  lastAuthError = null
+  const provider = new GoogleAuthProvider()
+  provider.setCustomParameters({ prompt: 'select_account' })
   try {
-    const res = await signInWithPopup(auth, new GoogleAuthProvider())
+    const res = await signInWithPopup(auth, provider)
     cachedUser = res.user
     return res.user
   } catch (e) {
-    console.warn('[firebase] Google sign-in failed:', (e as { code?: string })?.code || e)
+    const code = (e as { code?: string })?.code ?? 'unknown'
+    lastAuthError = code
+    console.warn('[firebase] popup sign-in failed:', code, e)
+    if (REDIRECTABLE.has(code)) {
+      try {
+        // Navigates away; the result is picked up by completeRedirectSignIn()
+        // on the way back, so this call never resolves with a user.
+        await signInWithRedirect(auth, provider)
+        return null
+      } catch (e2) {
+        lastAuthError = (e2 as { code?: string })?.code ?? code
+        console.warn('[firebase] redirect sign-in failed:', lastAuthError, e2)
+      }
+    }
     return null
   }
+}
+
+/** Completes a redirect sign-in after the browser comes back. Safe to call always. */
+export async function completeRedirectSignIn(): Promise<User | null> {
+  try {
+    const res = await getRedirectResult(auth)
+    if (res?.user) {
+      cachedUser = res.user
+      return res.user
+    }
+  } catch (e) {
+    console.warn('[firebase] redirect result failed:', (e as { code?: string })?.code || e)
+  }
+  return null
 }
 
 export async function signOut(): Promise<void> {

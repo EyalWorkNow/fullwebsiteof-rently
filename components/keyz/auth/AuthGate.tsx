@@ -24,7 +24,13 @@ import {
 } from 'react'
 import { CloseCircle } from 'iconsax-react'
 import type { User } from 'firebase/auth'
-import { currentUser, onUser, signInWithGoogle } from '@/lib/live/firebase'
+import {
+  completeRedirectSignIn,
+  currentUser,
+  lastAuthErrorCode,
+  onUser,
+  signInWithGoogle,
+} from '@/lib/live/firebase'
 
 // ── Auth store (one Firebase listener for the whole app) ─────────────────────
 
@@ -46,6 +52,9 @@ function subscribeAuth(listener: () => void): () => void {
   authListeners.add(listener)
   if (!authWatching && typeof window !== 'undefined') {
     authWatching = true
+    // Finish a redirect sign-in (the popup fallback) before wiring the watcher,
+    // otherwise the returning user looks signed-out for a beat.
+    void completeRedirectSignIn()
     onUser((u) => {
       authSnapshot = { user: u, ready: true }
       emitAuth()
@@ -160,6 +169,16 @@ export function useAuthGate(): AuthGateApi {
 // <AuthGateModal /> can never produce two dialogs.
 let claimed: symbol | null = null
 
+// Firebase error code -> something the visitor can act on.
+const AUTH_ERROR_TEXT: Record<string, string> = {
+  'auth/popup-blocked': 'הדפדפן חסם את חלון ההתחברות — אישרו חלונות קופצים ונסו שוב.',
+  'auth/popup-closed-by-user': 'חלון ההתחברות נסגר לפני שהסתיים. נסו שוב.',
+  'auth/cancelled-popup-request': 'ההתחברות בוטלה. נסו שוב.',
+  'auth/network-request-failed': 'אין חיבור לרשת כרגע. בדקו את החיבור ונסו שוב.',
+  'auth/unauthorized-domain': 'הכתובת הזו לא מאושרת בהגדרות ההתחברות של הפרויקט.',
+  'auth/operation-not-allowed': 'התחברות עם Google לא מופעלת בפרויקט.',
+}
+
 const FOCUSABLE =
   'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
@@ -176,7 +195,7 @@ export function AuthGateModal() {
   const cardRef = useRef<HTMLDivElement>(null)
   const signInRef = useRef<HTMLButtonElement>(null)
   const [signingIn, setSigningIn] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const id = idRef.current!
@@ -228,7 +247,7 @@ export function AuthGateModal() {
   // Focus the sign-in button on open, and reset any previous error.
   useEffect(() => {
     if (!visible) return
-    setError(false)
+    setError(null)
     setSigningIn(false)
     const t = setTimeout(() => signInRef.current?.focus(), 0)
     return () => clearTimeout(t)
@@ -238,11 +257,11 @@ export function AuthGateModal() {
 
   async function handleGoogle() {
     setSigningIn(true)
-    setError(false)
+    setError(null)
     const u = await signInWithGoogle()
     setSigningIn(false)
     if (isRegisteredUser(u)) resolveGate()
-    else setError(true)
+    else setError(lastAuthErrorCode() ?? 'unknown')
   }
 
   return (
@@ -294,7 +313,11 @@ export function AuthGateModal() {
           {signingIn ? 'מתחברים…' : 'התחברות עם Google'}
         </button>
 
-        {error && <p className="mt-3 text-sm text-coral">ההתחברות לא הצליחה. נסו שוב.</p>}
+        {error && (
+          <p className="mt-3 text-sm text-coral">
+            {AUTH_ERROR_TEXT[error] ?? 'ההתחברות לא הצליחה. נסו שוב.'}
+          </p>
+        )}
 
         <p className="mt-4 text-xs font-semibold text-secondary-text">
           בחינם · מתחברים עם אותו חשבון כמו באפליקציה

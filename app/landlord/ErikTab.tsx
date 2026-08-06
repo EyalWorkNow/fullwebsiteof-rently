@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Microphone2, Send2, TickCircle, VolumeHigh, VolumeSlash } from 'iconsax-react'
-import type { User } from 'firebase/auth'
+import { currentUser } from '@/lib/live/firebase'
+import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 import type { ChatTurn } from '@/lib/live/types'
 import {
   draftToFields,
@@ -62,7 +63,12 @@ interface Msg {
 const WELCOME =
   'שלום! אני אריק, העוזר האישי שלך. ספר לי על הדירה — עיר, רחוב, כמה חדרים ומה המחיר — ואני אכין טיוטת מודעה מוכנה לפרסום.'
 
-export default function ErikTab({ user }: { user: User }) {
+// A visitor may READ אריק's opening message freely — the gate fires only when
+// they actually talk to him or publish.
+const CHAT_REASON = 'כדי שאריק ישמור את הטיוטה של הדירה שלך'
+const PUBLISH_REASON = 'כדי לפרסם דירה ולנהל אותה'
+
+export default function ErikTab() {
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', text: WELCOME, welcome: true }])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -71,6 +77,7 @@ export default function ErikTab({ user }: { user: User }) {
   const [hasMic, setHasMic] = useState(false)
   const [toast, setToast] = useState<{ ok: boolean; text: string; id?: string } | null>(null)
 
+  const { requireAuth } = useAuthGate()
   const recRef = useRef<SpeechRecognitionLike | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const speakRepliesRef = useRef(speakReplies)
@@ -141,6 +148,27 @@ export default function ErikTab({ user }: { user: User }) {
     rec.start()
   }
 
+  // ── Registration gate — only on the actions, never on reading the thread ───
+  // The message the landlord typed is kept and sent for them right after they
+  // sign in (requireAuth resumes the pending action).
+  const sendRef = useRef(send)
+  sendRef.current = send
+
+  function guardedSend(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed || busy) return
+    requireAuth(CHAT_REASON, () => void sendRef.current(trimmed))
+  }
+
+  function guardedMic() {
+    // Stopping an active recording is not a new action.
+    if (listening) {
+      toggleMic()
+      return
+    }
+    requireAuth(CHAT_REASON, toggleMic)
+  }
+
   return (
     <div className="max-w-[720px] mx-auto">
       {/* Thread */}
@@ -151,7 +179,6 @@ export default function ErikTab({ user }: { user: User }) {
             {m.draft && (
               <DraftCard
                 draft={m.draft}
-                user={user}
                 onPublished={(id) => {
                   setToast({ ok: true, text: 'הדירה פורסמה! תופיע גם באפליקציה', id })
                   setMessages((cur) => cur.map((mm) => (mm === m ? { ...mm, draft: null } : mm)))
@@ -196,14 +223,14 @@ export default function ErikTab({ user }: { user: User }) {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send(input)}
+          onKeyDown={(e) => e.key === 'Enter' && guardedSend(input)}
           placeholder={listening ? 'מקשיבה…' : 'ספרו לאריק על הדירה…'}
           className="flex-1 bg-transparent outline-none text-navy placeholder:text-secondary-text/70 px-2 min-w-0"
           dir="rtl"
         />
         {hasMic && (
           <button
-            onClick={toggleMic}
+            onClick={guardedMic}
             title="דיבור"
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${
               listening ? 'bg-coral text-white animate-pulse' : 'text-secondary-text hover:bg-cloud'
@@ -213,7 +240,7 @@ export default function ErikTab({ user }: { user: User }) {
           </button>
         )}
         <button
-          onClick={() => send(input)}
+          onClick={() => guardedSend(input)}
           disabled={busy || !input.trim()}
           className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-40 shrink-0"
         >
@@ -279,25 +306,31 @@ function MessageBubble({ msg }: { msg: Msg }) {
 
 function DraftCard({
   draft,
-  user,
   onPublished,
   onError,
 }: {
   draft: Record<string, unknown>
-  user: User
   onPublished: (id: string) => void
   onError: (text: string) => void
 }) {
   const [fields, setFields] = useState<DraftFields>(() => draftToFields(draft))
   const [publishing, setPublishing] = useState(false)
+  const { requireAuth } = useAuthGate()
 
   const set = (k: keyof DraftFields) => (v: string) => setFields((f) => ({ ...f, [k]: v }))
 
   async function publish() {
     if (publishing) return
+    // Read the account at publish time — after a gate sign-in this is the fresh
+    // (non-anonymous) user, whose uid must own the listing.
+    const u = currentUser()
+    if (!u || u.isAnonymous) {
+      onError('צריך להתחבר כדי לפרסם דירה.')
+      return
+    }
     setPublishing(true)
     try {
-      const { id } = await publishProperty(fields, user.uid, user.displayName ?? '')
+      const { id } = await publishProperty(fields, u.uid, u.displayName ?? '')
       onPublished(id)
     } catch (e) {
       onError((e as Error).message || 'הפרסום נכשל. נסו שוב.')
@@ -339,7 +372,7 @@ function DraftCard({
         />
       </label>
       <button
-        onClick={publish}
+        onClick={() => requireAuth(PUBLISH_REASON, () => void publish())}
         disabled={publishing}
         className="mt-4 w-full bg-primary hover:bg-primary-dark transition-colors text-white font-bold rounded-full py-3 disabled:opacity-60"
       >

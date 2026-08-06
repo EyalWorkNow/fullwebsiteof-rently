@@ -69,6 +69,7 @@ import {
 } from '@/lib/live/personalize'
 import type { ChatTurn, Property } from '@/lib/live/types'
 import PropertyCard from '@/components/keyz/PropertyCard'
+import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 import {
   loadConversations,
   newConversationId,
@@ -95,6 +96,9 @@ const CHIPS = [
 ]
 
 const LIFESTYLE_NOTE_PREFIX = 'שמתי לב לכמה דברים:'
+
+// Registration is asked for only when the visitor tries to SEND a message.
+const SEND_REASON = 'כדי שאתי תזכור את השיחה ותמשיך אותה בפעם הבאה'
 
 function AtiAvatar({ size = 32 }: { size?: number }) {
   return (
@@ -547,6 +551,21 @@ export default function AtiWorkspace() {
     ],
   )
 
+  // ── Registration gate — fires ONLY on the send action ─────────────────────
+  // A registered visitor goes straight through `send` (zero extra work). An
+  // unregistered one sees the modal, and the very same message is sent for them
+  // the moment they finish signing in.
+  const { requireAuth } = useAuthGate()
+  const sendRef = useRef(send)
+  sendRef.current = send
+  const guardedSend = useCallback(
+    (raw: string) => {
+      if (!raw.trim()) return
+      requireAuth(SEND_REASON, () => sendRef.current(raw))
+    },
+    [requireAuth],
+  )
+
   // Routes a quick-reply chip: the refine prompt is handled locally (no network),
   // everything else goes through a normal turn (port of _onChipTap).
   const onChipTap = useCallback(
@@ -578,9 +597,9 @@ export default function AtiWorkspace() {
         ])
         return
       }
-      send(chip)
+      guardedSend(chip)
     },
-    [activeId, appendMessages, conversations, send],
+    [activeId, appendMessages, conversations, guardedSend],
   )
 
   const resolveListings = (ids: string[]): Property[] =>
@@ -833,7 +852,7 @@ export default function AtiWorkspace() {
               <button
                 key={chip}
                 type="button"
-                onClick={() => send(chip)}
+                onClick={() => guardedSend(chip)}
                 className="cursor-pointer rounded-full border border-border-app bg-white px-4 py-2 text-[13px] font-semibold text-navy transition hover:border-primary hover:text-primary"
               >
                 {chip}
@@ -846,7 +865,7 @@ export default function AtiWorkspace() {
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            send(input)
+            guardedSend(input)
           }}
           className="card-shadow sticky bottom-0 flex items-center gap-3 rounded-full border border-border-app bg-white p-2 ps-5"
         >

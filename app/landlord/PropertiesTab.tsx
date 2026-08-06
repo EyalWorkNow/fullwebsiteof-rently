@@ -6,7 +6,10 @@ import { Building } from 'iconsax-react'
 import type { User } from 'firebase/auth'
 import type { Property } from '@/lib/live/types'
 import { addressLabel, cityLabel, priceLabel, primaryImage } from '@/lib/live/api'
+import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 import { fetchMyProperties } from './portal-api'
+
+const PROPERTIES_REASON = 'כדי לראות את הנכסים שפרסמת ולנהל אותם'
 
 const STATUS_LABELS: Record<string, { text: string; cls: string }> = {
   active: { text: 'פעיל', cls: 'bg-success/10 text-success' },
@@ -15,13 +18,19 @@ const STATUS_LABELS: Record<string, { text: string; cls: string }> = {
   rented: { text: 'הושכר', cls: 'bg-primary-light2 text-primary' },
 }
 
-export default function PropertiesTab({ user }: { user: User }) {
+export default function PropertiesTab({ user }: { user: User | null }) {
   const [items, setItems] = useState<Property[] | null>(null)
   const [error, setError] = useState(false)
+  const { requireAuth } = useAuthGate()
+  const uid = user?.uid ?? null
 
   useEffect(() => {
+    if (!uid) {
+      setItems([])
+      return
+    }
     let alive = true
-    fetchMyProperties(user.uid)
+    fetchMyProperties(uid)
       .then((props) => alive && setItems(props))
       .catch(() => {
         if (alive) {
@@ -32,7 +41,32 @@ export default function PropertiesTab({ user }: { user: User }) {
     return () => {
       alive = false
     }
-  }, [user.uid])
+  }, [uid])
+
+  // This view genuinely needs a uid to query — so instead of a wall we show an
+  // inviting empty state whose button opens the same gate modal.
+  if (!uid) {
+    return (
+      <div className="text-center bg-cloud rounded-[28px] px-6 py-12 max-w-[500px] mx-auto">
+        <span className="inline-flex w-14 h-14 rounded-2xl bg-primary-light2 text-primary items-center justify-center">
+          <Building size={26} variant="Bold" color="currentColor" />
+        </span>
+        <div className="font-black text-navy mt-4">הנכסים שלך יופיעו כאן</div>
+        <p className="text-secondary-text text-sm mt-1.5 leading-relaxed">
+          מתחברים עם אותו חשבון כמו באפליקציה, וכל הדירות שפרסמת מופיעות כאן — מסונכרן לגמרי.
+        </p>
+        <button
+          onClick={() => requireAuth(PROPERTIES_REASON, () => {})}
+          className="mt-5 inline-flex items-center justify-center gap-2 bg-white border border-border-app hover:border-primary/40 transition-colors rounded-full px-5 py-2.5 font-bold text-navy text-sm"
+        >
+          <span className="w-5 h-5 rounded-full bg-cloud border border-border-app flex items-center justify-center text-[10px] font-black text-primary">
+            G
+          </span>
+          התחברות עם Google
+        </button>
+      </div>
+    )
+  }
 
   if (items === null) {
     return (

@@ -5,7 +5,11 @@ import { Add, ArrowLeft2, ArrowRight2, Clock, CloudChange, Danger, Home2, TickCi
 import type { User } from 'firebase/auth'
 import type { Property } from '@/lib/live/types'
 import { addressLabel } from '@/lib/live/api'
+import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 import { fetchMyProperties, loadSlots, saveSlots, type ViewingSlot } from './portal-api'
+
+// Visitors may LOOK at the calendar; creating a slot is the meaningful action.
+const SLOT_REASON = 'כדי לשמור את מועדי הביקור ולסנכרן אותם עם האפליקציה'
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
 const DURATIONS = [15, 30, 45, 60]
@@ -24,7 +28,7 @@ function startOfWeek(d: Date): Date {
   return out
 }
 
-export default function CalendarTab({ user }: { user: User }) {
+export default function CalendarTab({ user }: { user: User | null }) {
   const [slots, setSlots] = useState<ViewingSlot[]>([])
   const [cloud, setCloud] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
@@ -34,13 +38,17 @@ export default function CalendarTab({ user }: { user: User }) {
   const [properties, setProperties] = useState<Property[]>([])
 
   const todayISO = toISO(new Date())
+  const { requireAuth } = useAuthGate()
+  const uid = user?.uid ?? null
 
   useEffect(() => {
     let alive = true
     ;(async () => {
+      // A visitor without an account has no slots and no properties to query —
+      // the grid still renders, just empty.
       const [{ slots: loaded, cloud: cloudOk }, props] = await Promise.all([
-        loadSlots(),
-        fetchMyProperties(user.uid).catch(() => [] as Property[]),
+        uid ? loadSlots() : Promise.resolve({ slots: [] as ViewingSlot[], cloud: true }),
+        uid ? fetchMyProperties(uid).catch(() => [] as Property[]) : Promise.resolve([] as Property[]),
       ])
       if (!alive) return
       setSlots(loaded)
@@ -51,7 +59,7 @@ export default function CalendarTab({ user }: { user: User }) {
     return () => {
       alive = false
     }
-  }, [user.uid])
+  }, [uid])
 
   // Optimistic persist — UI updates instantly, cloud badge reflects the result.
   function persist(next: ViewingSlot[]) {
@@ -106,7 +114,12 @@ export default function CalendarTab({ user }: { user: User }) {
       {/* Sync badge */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-black text-navy">היומן שלי</h2>
-        {cloud === false ? (
+        {!uid ? (
+          <span className="flex items-center gap-1.5 text-xs font-bold text-secondary-text bg-cloud rounded-full px-3 py-1.5">
+            <Danger size={14} variant="Bold" color="currentColor" />
+            מתחברים כדי לסנכרן עם האפליקציה
+          </span>
+        ) : cloud === false ? (
           <span className="flex items-center gap-1.5 text-xs font-bold text-secondary-text bg-cloud rounded-full px-3 py-1.5">
             <Danger size={14} variant="Bold" color="currentColor" />
             נשמר מקומית בלבד
@@ -181,7 +194,7 @@ export default function CalendarTab({ user }: { user: User }) {
           />
         ) : (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => requireAuth(SLOT_REASON, () => setShowForm(true))}
             className="flex items-center gap-2 bg-primary hover:bg-primary-dark transition-colors text-white font-bold rounded-full px-5 py-2.5 text-sm"
           >
             <Add size={18} color="currentColor" />

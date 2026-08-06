@@ -7,6 +7,7 @@ import { fetchProperties, type PropertiesResult } from "@/lib/live/api";
 import { buildReply, parseQuery, rankProperties } from "@/lib/live/smart-search";
 import type { Property } from "@/lib/live/types";
 import PropertyCard from "./PropertyCard";
+import { useAuthGate } from "./auth/AuthGate";
 
 interface HeroSearchResult {
   reply: string;
@@ -52,32 +53,36 @@ const rise = {
   animate: { opacity: 1, y: 0 },
 };
 
+// Sending a search is the meaningful action — browsing the page never asks.
+const SEARCH_REASON = "כדי לשמור את החיפוש ולקבל התאמות אישיות";
+
 export default function Hero() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<HeroSearchResult | null>(null);
+  const { requireAuth } = useAuthGate();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const runSearch = (q: string) => {
+    setSearching(true);
+    setResult(null);
+    localFastSearch(q)
+      .then(setResult)
+      .finally(() => setSearching(false));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const q = query.trim();
     if (!q || searching) return;
-    setSearching(true);
-    setResult(null);
-    try {
-      setResult(await localFastSearch(q));
-    } finally {
-      setSearching(false);
-    }
+    // Registered → runs immediately. Otherwise the search runs by itself right
+    // after sign-in, so the visitor never has to retype it.
+    requireAuth(SEARCH_REASON, () => runSearch(q));
   };
 
   const runChip = (chip: string) => {
     setQuery(chip);
     if (searching) return;
-    setSearching(true);
-    setResult(null);
-    localFastSearch(chip)
-      .then(setResult)
-      .finally(() => setSearching(false));
+    requireAuth(SEARCH_REASON, () => runSearch(chip));
   };
 
   return (

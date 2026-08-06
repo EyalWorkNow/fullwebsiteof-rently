@@ -59,9 +59,9 @@ function Row({
           </button>
         </div>
       </div>
-      <div ref={track} className="no-scrollbar flex snap-x snap-mandatory gap-5 overflow-x-auto pb-3">
+      <div ref={track} className="no-scrollbar flex snap-x snap-mandatory gap-4 sm:gap-5 overflow-x-auto pb-3 pt-1 px-1">
         {items.map((p) => (
-          <div key={p.id} className="w-full md:w-[374px] shrink-0 snap-start">
+          <div key={p.id} className="w-[84vw] sm:w-[374px] shrink-0 snap-start">
             <PropertyCard property={p} onSelect={() => onSelectProperty(p)} />
           </div>
         ))}

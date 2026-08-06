@@ -22,7 +22,7 @@ const SOCIALS = [
 
 export default function SiteFooter() {
   return (
-    <footer className="bg-navy-deep text-white rounded-t-[36px] pt-14 pb-8 mt-20">
+    <footer className="bg-navy-deep text-white rounded-t-[36px] pt-14 pb-16 sm:pb-8 mt-12 sm:mt-20">
       <div className="max-w-[1200px] mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-10">
           <div>

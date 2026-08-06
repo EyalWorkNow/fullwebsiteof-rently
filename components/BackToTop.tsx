@@ -8,7 +8,7 @@ export default function BackToTop() {
 
   useEffect(() => {
     function onScroll() {
-      setVisible((window.scrollY || document.documentElement.scrollTop) > 400);
+      setVisible((window.scrollY || document.documentElement.scrollTop) > 600);
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -23,7 +23,7 @@ export default function BackToTop() {
           exit={{ opacity: 0, scale: 0.7, y: 16 }}
           transition={{ type: "spring", stiffness: 380, damping: 22 }}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-7 left-6 z-50 w-11 h-11 rounded-2xl flex items-center justify-center cursor-pointer shadow-lg"
+          className="fixed bottom-6 left-4 sm:bottom-7 sm:left-6 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center cursor-pointer shadow-lg"
           style={{
             background: "linear-gradient(135deg, #17BDB0, #0F8A80)",
             boxShadow: "0 8px 24px rgba(23,189,176,0.4)",

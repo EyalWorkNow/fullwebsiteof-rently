@@ -13,14 +13,17 @@ import {
   type User,
 } from 'firebase/auth'
 
-// Same Firebase project as the app. Public client config values (safe to embed).
+// Same Firebase project as the app, but the project's WEB app registration —
+// the site previously reused the ANDROID appId, which is the wrong client for
+// browser OAuth. Public client config values (safe to embed).
 const firebaseConfig = {
-  apiKey: 'AIzaSyCDcwTR549WF4TG-Uezjrpa8oB9y7cO2-M',
+  apiKey: 'AIzaSyDRxWwbIw0x-pv-8HAtfo3n0RSgK3mdJbM',
   authDomain: 'mydatingapp-4c043.firebaseapp.com',
   projectId: 'mydatingapp-4c043',
   storageBucket: 'mydatingapp-4c043.firebasestorage.app',
   messagingSenderId: '116035400248',
-  appId: '1:116035400248:android:fb47a8335ace11f2bdaccd',
+  appId: '1:116035400248:web:c0746d447f77ea33bdaccd',
+  measurementId: 'G-H6P0KRW0D7',
 }
 
 const app = getApps()[0] ?? initializeApp(firebaseConfig)

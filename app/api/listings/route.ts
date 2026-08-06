@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server'
 // The listing page fetches the FULL row by id, so nothing is lost.
 
 const UPSTREAM = 'https://g7b9nx11sk.execute-api.us-east-1.amazonaws.com/prod'
-const FIREBASE_KEY = 'AIzaSyCDcwTR549WF4TG-Uezjrpa8oB9y7cO2-M' // public client key
+const FIREBASE_KEY = 'AIzaSyDRxWwbIw0x-pv-8HAtfo3n0RSgK3mdJbM' // public web client key
 
 const FRESH_MS = 10 * 60_000
 const STALE_MS = 6 * 60 * 60_000

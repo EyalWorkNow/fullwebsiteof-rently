@@ -105,10 +105,15 @@ export async function fetchThread(matchId: string): Promise<ChatMsg[]> {
 }
 
 export async function sendThreadMessage(matchId: string, text: string): Promise<void> {
+  // The backend's generic write path keys every row by an explicit `id` (it
+  // never generates one) — verified directly against the live API: a POST
+  // without `id` 400s with "Missing id". senderId/createdAt are stamped
+  // server-side from the caller's token, so only a unique id is needed here.
+  const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   const res = await fetch(`${BASE}/messages`, {
     method: 'POST',
     headers: await authHeaders(),
-    body: JSON.stringify({ matchId, text }),
+    body: JSON.stringify({ id, matchId, text }),
   })
   if (!res.ok) throw new Error('שליחת ההודעה נכשלה. נסו שוב.')
 }

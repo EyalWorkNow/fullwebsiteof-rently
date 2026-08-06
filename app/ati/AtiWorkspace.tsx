@@ -1527,7 +1527,7 @@ export default function AtiWorkspace() {
         <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-3 sm:px-4 md:px-8 py-2 md:py-4 flex flex-col">
           {showHeroState ? (
             /* Welcome Hero View — top greeting + bottom chatbox on mobile */
-            <div className="flex-1 flex flex-col justify-between items-center max-w-[760px] w-full mx-auto text-center pt-8 pb-2 md:pt-10 md:pb-4 min-h-[calc(100dvh-100px)] md:min-h-0">
+            <div className="flex-1 flex flex-col justify-between items-center max-w-[760px] w-full mx-auto text-center pt-6 pb-12 md:pt-10 md:pb-4 min-h-[calc(100dvh-110px)] md:min-h-0">
               {/* Central Greeting Header */}
               <div className="flex flex-col items-center my-auto md:my-0 py-2 shrink-0">
                 <IridescentOrb />
@@ -1541,27 +1541,41 @@ export default function AtiWorkspace() {
                 <p className="mt-1.5 text-xs sm:text-sm font-semibold text-slate-500 max-w-[480px] px-2">
                   חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית
                 </p>
+
+                {/* Quick Chips suggestions */}
+                <div className="mt-4 flex flex-wrap justify-center gap-1.5 px-2">
+                  {CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => guardedSend(chip)}
+                      className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-[11.5px] sm:text-[12px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Floating Prompt Card Container (Bottom Anchored on Mobile) */}
-              <div className="w-full max-w-[680px] mt-auto shrink-0 pb-1 md:pb-0">
+              {/* Floating Prompt Card Container (Bottom Anchored on Mobile with Floating Button Clearance) */}
+              <div className="w-full max-w-[680px] mt-auto shrink-0 pt-2">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
                     guardedSend(input)
                   }}
-                  className="relative rounded-2xl md:rounded-3xl border border-white/90 bg-white/95 p-2.5 sm:p-3 md:p-4 shadow-[0_15px_40px_rgba(0,97,255,0.09)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
+                  className="relative rounded-2xl md:rounded-3xl border border-slate-200/80 bg-white/95 p-2.5 sm:p-3 md:p-4 shadow-[0_12px_36px_rgba(0,97,255,0.09)] backdrop-blur-xl transition focus-within:border-[#0061FF] focus-within:ring-2 focus-within:ring-blue-100"
                 >
-                  {/* Multiline Prompt Text Input Row */}
+                  {/* Single/Multi line Prompt Text Input Row */}
                   <div className="flex items-center gap-2 sm:gap-2.5">
-                    <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0" />
+                    <MagicStar size={20} variant="Bold" color="#0061FF" className="shrink-0" />
                     <textarea
                       ref={textareaRef}
                       value={input}
                       onChange={(e) => {
                         setInput(e.target.value)
                         e.target.style.height = 'auto'
-                        e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`
+                        e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -1570,8 +1584,8 @@ export default function AtiWorkspace() {
                         }
                       }}
                       rows={1}
-                      placeholder="שאל כל דבר או חפש דירה... (למשל: דירת 3 חדרים בתל אביב)"
-                      className="w-full resize-none bg-transparent text-[13.5px] sm:text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-relaxed min-h-[38px] max-h-[140px] overflow-y-auto py-1"
+                      placeholder="איזו דירה נחפש היום? (או שאל כל דבר)"
+                      className="w-full resize-none bg-transparent text-[14px] sm:text-[15px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-normal py-1.5 min-h-[36px] max-h-[120px]"
                     />
                     <UserSendButton
                       disabled={!input.trim()}
@@ -1580,7 +1594,7 @@ export default function AtiWorkspace() {
                   </div>
 
                   {/* Horizontal Scrollable Feature Pills */}
-                  <div className="mt-2.5 pt-2 border-t border-slate-100/90 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
                     <button
                       type="button"
                       onClick={() => guardedSend('בצע ניתוח אינטליגנציית אזור על תחבורה, בתי ספר ושקט בסביבה')}
@@ -1618,20 +1632,6 @@ export default function AtiWorkspace() {
                     </button>
                   </div>
                 </form>
-
-                {/* Quick Chips suggestions below prompt */}
-                <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
-                  {CHIPS.map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11.5px] sm:text-[12px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           ) : (

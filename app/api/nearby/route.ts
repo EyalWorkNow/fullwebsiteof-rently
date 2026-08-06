@@ -68,7 +68,10 @@ export async function POST(req: NextRequest) {
   }
 
   const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), 28_000)
+  // Fail FAST: a warm cell is instant and a genuine cold cell answers in ~2s,
+  // so a long budget only makes a bad moment feel broken. 12s covers the slow
+  // tail; anything beyond that is better spent on the UI's retry button.
+  const timer = setTimeout(() => ctrl.abort(), 12_000)
   try {
     // Public Overpass allows ~2 concurrent slots, so a busy moment answers 429
     // (or an XML error page). One short-backoff retry turns most of those into

@@ -79,7 +79,7 @@ export default function PropertyCard({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => e.key === 'Enter' && onSelect?.()}
-      className="w-[340px] shrink-0 cursor-pointer overflow-hidden rounded-[28px] border border-border-app bg-white card-shadow transition duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(7,41,70,0.10)] active:scale-[0.97]"
+      className="w-[370px] max-w-full shrink-0 cursor-pointer overflow-hidden rounded-[28px] border border-border-app bg-white card-shadow transition duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_8px_20px_rgba(7,41,70,0.10)] active:scale-[0.97]"
     >
       {/* Media block — 4px inset, inner radius 22px */}
       <div className="p-1">
@@ -117,12 +117,12 @@ export default function PropertyCard({
 
       {/* Body — three rows:
           1) price (start) · broker tag (end)
-          2) type · rooms · size
+          2) type · rooms · size · (לא מתיווך)
           3) address */}
-      <div className="px-3 pt-2 pb-3">
+      <div className="px-3.5 pt-2 pb-3.5">
         {/* Row 1 */}
         <div className="flex items-center justify-between gap-3">
-          <div className="whitespace-nowrap text-[17px] font-black text-navy">{priceLabel(property)}</div>
+          <div className="whitespace-nowrap text-[17.5px] font-black text-navy">{priceLabel(property)}</div>
           {isBroker && (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary-light2 px-2.5 py-1 text-[11px] font-extrabold text-primary">
               <Briefcase size={12} color="#2563EB" variant="Bold" />
@@ -131,7 +131,7 @@ export default function PropertyCard({
           )}
         </div>
 
-        {/* Row 2 — type · rooms · size */}
+        {/* Row 2 — type · rooms · size · (לא מתיווך) */}
         <div className="no-scrollbar mt-2 flex flex-row gap-1.5 overflow-x-auto">
           <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy">
             <Building size={14} color="#072946" />
@@ -147,6 +147,12 @@ export default function PropertyCard({
             <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] bg-[#F1F5F9] px-2.5 py-1.5 text-[11.5px] font-bold text-navy">
               <Maximize4 size={14} color="#072946" />
               {property.sizeM2} מ״ר
+            </span>
+          )}
+          {!isBroker && (
+            <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] bg-[#ECFDF5] px-2.5 py-1.5 text-[11.5px] font-extrabold text-[#059669]">
+              <Briefcase size={13} color="#059669" />
+              לא מתיווך
             </span>
           )}
           {plainTags.map((tag) => (

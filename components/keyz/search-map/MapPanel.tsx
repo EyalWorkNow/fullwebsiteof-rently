@@ -10,7 +10,20 @@
 import 'leaflet/dist/leaflet.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Map as LeafletMap, Marker, Polygon, Polyline, LatLng } from 'leaflet'
-import { CloseCircle, Designtools, Eraser, Gps, MagicStar, Send2 } from 'iconsax-react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import {
+  Briefcase,
+  Building,
+  CloseCircle,
+  Designtools,
+  Eraser,
+  Gps,
+  Heart,
+  Home2,
+  Maximize4,
+  MagicStar,
+  Send2,
+} from 'iconsax-react'
 import type { Property } from '@/lib/live/types'
 import { addressLabel, priceLabel, primaryImage } from '@/lib/live/api'
 import { buildReply, parseQuery, rankProperties } from '@/lib/live/smart-search'
@@ -56,47 +69,146 @@ function pointInPolygon(lat: number, lon: number, poly: [number, number][]): boo
   return inside
 }
 
-// Popup content built via DOM APIs (textContent) — listing fields are
-// untrusted, never feed them through innerHTML.
+// Popup content built to match PropertyCard 1:1 design with iconsax icons
 function popupEl(p: Property): HTMLElement {
   const root = document.createElement('div')
   root.dir = 'rtl'
-  root.style.cssText = 'font-family:inherit;text-align:right;width:196px'
+  root.style.cssText =
+    'font-family:"SF Pro Rounded","SF Hebrew Rounded",sans-serif;text-align:right;width:280px;background:#ffffff;border-radius:28px;overflow:hidden;border:1px solid #E2ECF1;box-shadow:0 8px 24px rgba(7,41,70,0.12);'
 
+  const isBroker = p.agencyListing === true
   const src = primaryImage(p)
+  const priceText = priceLabel(p)
+  const addrText = addressLabel(p)
+  const cityText = p.city ? `· ${p.city}` : ''
+
+  // Iconsax SVGs rendered via renderToStaticMarkup
+  const heartSvg = renderToStaticMarkup(<Heart size={14} color="#072946" />)
+  const shareSvg = renderToStaticMarkup(<Send2 size={14} color="#072946" />)
+  const buildingSvg = renderToStaticMarkup(<Building size={14} color="#072946" />)
+  const homeSvg = renderToStaticMarkup(<Home2 size={14} color="#072946" />)
+  const maximizeSvg = renderToStaticMarkup(<Maximize4 size={14} color="#072946" />)
+  const briefcaseSvg = renderToStaticMarkup(<Briefcase size={13} color="#059669" />)
+  const brokerBriefcaseSvg = renderToStaticMarkup(<Briefcase size={12} color="#2563EB" variant="Bold" />)
+
+  // Media block (4px inset, 22px inner radius)
+  const mediaContainer = document.createElement('div')
+  mediaContainer.style.cssText = 'padding:4px;'
+
+  const mediaInner = document.createElement('div')
+  mediaInner.style.cssText =
+    'position:relative;width:100%;height:130px;border-radius:22px;overflow:hidden;background:#EFF6FF;'
+
   if (src) {
     const img = document.createElement('img')
     img.src = src
     img.alt = ''
     img.loading = 'lazy'
-    img.style.cssText =
-      'display:block;width:100%;height:104px;object-fit:cover;border-radius:12px 12px 0 0;background:#F5F7FA'
-    root.appendChild(img)
+    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;'
+    mediaInner.appendChild(img)
   } else {
     const ph = document.createElement('div')
-    ph.textContent = '🏢'
+    ph.innerHTML = renderToStaticMarkup(<Building size={40} color="#2563EB" />)
     ph.style.cssText =
-      'display:flex;align-items:center;justify-content:center;width:100%;height:104px;font-size:34px;border-radius:12px 12px 0 0;background:#F5F7FA'
-    root.appendChild(ph)
+      'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#EFF6FF;'
+    mediaInner.appendChild(ph)
   }
 
+  // Floating heart & share action buttons overlay (bottom-left)
+  const actions = document.createElement('div')
+  actions.style.cssText =
+    'position:absolute;bottom:8px;left:8px;display:flex;gap:6px;z-index:2;'
+  actions.innerHTML = `
+    <div style="width:28px;height:28px;border-radius:50%;background:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.15);">
+      ${heartSvg}
+    </div>
+    <div style="width:28px;height:28px;border-radius:50%;background:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.15);">
+      ${shareSvg}
+    </div>
+  `
+  mediaInner.appendChild(actions)
+  mediaContainer.appendChild(mediaInner)
+  root.appendChild(mediaContainer)
+
+  // Body content
   const body = document.createElement('div')
-  body.style.cssText = 'padding:10px 12px 12px'
-  const addr = document.createElement('div')
-  addr.textContent = addressLabel(p)
-  addr.style.cssText = 'font-weight:800;color:#072946;font-size:13.5px'
-  const cityLine = document.createElement('div')
-  cityLine.textContent = p.city ?? ''
-  cityLine.style.cssText = 'color:#5B7A99;font-size:11.5px;font-weight:700;margin-top:2px'
+  body.style.cssText = 'padding:10px 14px 14px;'
+
+  // Row 1: Price + Broker/Direct tag
+  const row1 = document.createElement('div')
+  row1.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;'
+
   const price = document.createElement('div')
-  price.textContent = priceLabel(p)
-  price.style.cssText = 'color:#2563EB;font-size:13px;font-weight:800;margin-top:4px'
+  price.textContent = priceText
+  price.style.cssText = 'font-weight:900;color:#072946;font-size:16.5px;white-space:nowrap;'
+  row1.appendChild(price)
+
+  if (isBroker) {
+    const brokerTag = document.createElement('span')
+    brokerTag.innerHTML = `${brokerBriefcaseSvg} <span>מתווך</span>`
+    brokerTag.style.cssText =
+      'display:inline-flex;align-items:center;gap:4px;background:#EFF6FF;color:#2563EB;font-size:11px;font-weight:800;border-radius:9999px;padding:3px 8px;'
+    row1.appendChild(brokerTag)
+  }
+
+  body.appendChild(row1)
+
+  // Row 2: Specs Pills (type, rooms, size, לא מתיווך)
+  const row2 = document.createElement('div')
+  row2.className = 'no-scrollbar'
+  row2.style.cssText =
+    'display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px;'
+
+  let pillsHtml = `
+    <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:#F1F5F9;color:#072946;font-size:11px;font-weight:700;border-radius:8px;padding:4px 8px;">
+      ${buildingSvg} ${p.propertyType || 'דירה'}
+    </span>
+  `
+  if (p.rooms != null) {
+    pillsHtml += `
+      <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:#F1F5F9;color:#072946;font-size:11px;font-weight:700;border-radius:8px;padding:4px 8px;">
+        ${homeSvg} ${p.rooms} חדרים
+      </span>
+    `
+  }
+  if (p.sizeM2 != null) {
+    pillsHtml += `
+      <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:#F1F5F9;color:#072946;font-size:11px;font-weight:700;border-radius:8px;padding:4px 8px;">
+        ${maximizeSvg} ${p.sizeM2} מ״ר
+      </span>
+    `
+  }
+  if (!isBroker) {
+    pillsHtml += `
+      <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:#ECFDF5;color:#059669;font-size:11px;font-weight:800;border-radius:8px;padding:4px 8px;">
+        ${briefcaseSvg} לא מתיווך
+      </span>
+    `
+  }
+  row2.innerHTML = pillsHtml
+  body.appendChild(row2)
+
+  // Row 3: Address + City
+  const row3 = document.createElement('div')
+  row3.style.cssText =
+    'margin-top:8px;font-weight:900;color:#072946;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+  row3.textContent = addrText
+  if (cityText) {
+    const citySpan = document.createElement('span')
+    citySpan.textContent = ` ${cityText}`
+    citySpan.style.cssText = 'color:#5B7A99;font-size:11.5px;font-weight:600;margin-right:4px;'
+    row3.appendChild(citySpan)
+  }
+  body.appendChild(row3)
+
+  // Link button
   const link = document.createElement('a')
   link.href = `/listing/${encodeURIComponent(p.id)}`
   link.textContent = 'לצפייה בדירה'
   link.style.cssText =
-    'display:block;margin-top:8px;text-align:center;background:#2563EB;color:#fff;font-weight:800;font-size:12.5px;border-radius:9999px;padding:7px 12px;text-decoration:none'
-  body.append(addr, cityLine, price, link)
+    'display:block;margin-top:10px;text-align:center;background:#0061FF;color:#ffffff;font-weight:800;font-size:13px;border-radius:9999px;padding:8px 12px;text-decoration:none;box-shadow:0 3px 8px rgba(0,97,255,0.3);'
+  body.appendChild(link)
+
   root.appendChild(body)
   return root
 }

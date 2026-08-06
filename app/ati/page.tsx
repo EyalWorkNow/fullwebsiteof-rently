@@ -7,13 +7,12 @@ export const metadata: Metadata = {
 }
 
 export default function AtiPage() {
-  // pt-24 clears the fixed 64px header (+ breathing room); the workspace fills
-  // the remaining viewport so the input bar always sits at the bottom.
   return (
-    <main className="pt-24">
-      <div className="h-[calc(100vh-96px)] min-h-[480px]">
+    <main className="pt-16 bg-[#F8FAFC] min-h-screen flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden">
         <AtiWorkspace />
       </div>
     </main>
   )
 }
+

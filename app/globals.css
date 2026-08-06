@@ -134,3 +134,20 @@ body {
 /* Hide horizontal scrollbars on carousels */
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Leaflet map popup card overrides */
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 28px !important;
+  box-shadow: 0 12px 35px rgba(7, 41, 70, 0.18) !important;
+  overflow: hidden !important;
+  border: none !important;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+  width: 280px !important;
+  line-height: inherit !important;
+}
+.leaflet-popup-tip-container {
+  margin-top: -1px;
+}

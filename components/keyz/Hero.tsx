@@ -1,13 +1,370 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { CloseCircle, MagicStar, SearchNormal1 } from "iconsax-react";
+import styled from "styled-components";
 import { fetchProperties, type PropertiesResult } from "@/lib/live/api";
 import { buildReply, parseQuery, rankProperties } from "@/lib/live/smart-search";
 import type { Property } from "@/lib/live/types";
 import PropertyCard from "./PropertyCard";
 import { useAuthGate } from "./auth/AuthGate";
+
+// ── Hero Liquid Animated Search Button (Rently Blue Palette) ─────────────────
+function HeroAiSearchButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  return (
+    <div className="relative inline-flex items-center justify-center shrink-0" style={{ opacity: disabled ? 0.6 : 1 }}>
+      {mounted ? (
+        <StyledUiverseWrapper>
+          <button className="uiverse" type="submit" disabled={disabled}>
+            <div className="wrapper">
+              <span>{children}</span>
+              <div className="circle circle-12" />
+              <div className="circle circle-11" />
+              <div className="circle circle-10" />
+              <div className="circle circle-9" />
+              <div className="circle circle-8" />
+              <div className="circle circle-7" />
+              <div className="circle circle-6" />
+              <div className="circle circle-5" />
+              <div className="circle circle-4" />
+              <div className="circle circle-3" />
+              <div className="circle circle-2" />
+              <div className="circle circle-1" />
+            </div>
+          </button>
+        </StyledUiverseWrapper>
+      ) : (
+        <button
+          className="rounded-[24px] bg-[#0061FF] px-5 py-2 text-[15px] font-bold text-white shadow-md"
+          type="submit"
+          disabled={disabled}
+        >
+          <span>{children}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+const StyledUiverseWrapper = styled.div`
+  .uiverse {
+    --duration: 7s;
+    --easing: linear;
+    --c-color-1: rgba(56, 182, 255, 0.75);
+    --c-color-2: #0061FF;
+    --c-color-3: #00D2FF;
+    --c-color-4: rgba(0, 97, 255, 0.85);
+    --c-shadow: rgba(0, 97, 255, 0.4);
+    --c-shadow-inset-top: rgba(186, 230, 253, 0.9);
+    --c-shadow-inset-bottom: rgba(0, 97, 255, 0.8);
+    --c-radial-inner: #0061FF;
+    --c-radial-outer: #38B6FF;
+    --c-color: #ffffff;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    outline: none;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    display: table;
+    border-radius: 24px;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+    font-family: "SF Hebrew Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    color: var(--c-color);
+    background: radial-gradient(
+      circle,
+      var(--c-radial-inner),
+      var(--c-radial-outer) 80%
+    );
+    box-shadow: 0 0 14px var(--c-shadow);
+  }
+
+  .uiverse:before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 24px;
+    box-shadow:
+      inset 0 3px 12px var(--c-shadow-inset-top),
+      inset 0 -3px 4px var(--c-shadow-inset-bottom);
+  }
+
+  .uiverse .wrapper {
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    overflow: hidden;
+    border-radius: 24px;
+    min-width: 112px;
+    padding: 10px 22px;
+  }
+
+  .uiverse .wrapper span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+
+    svg {
+      filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85));
+    }
+  }
+
+  .uiverse:hover {
+    --duration: 1400ms;
+  }
+
+  .uiverse .wrapper .circle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    filter: blur(var(--blur, 8px));
+    background: var(--background, transparent);
+    transform: translate(var(--x, 0), var(--y, 0)) translateZ(0);
+    animation: var(--animation, none) var(--duration) var(--easing) infinite;
+  }
+
+  .uiverse .wrapper .circle.circle-1,
+  .uiverse .wrapper .circle.circle-9,
+  .uiverse .wrapper .circle.circle-10 {
+    --background: var(--c-color-4);
+  }
+
+  .uiverse .wrapper .circle.circle-3,
+  .uiverse .wrapper .circle.circle-4 {
+    --background: var(--c-color-2);
+    --blur: 14px;
+  }
+
+  .uiverse .wrapper .circle.circle-5,
+  .uiverse .wrapper .circle.circle-6 {
+    --background: var(--c-color-3);
+    --blur: 16px;
+  }
+
+  .uiverse .wrapper .circle.circle-2,
+  .uiverse .wrapper .circle.circle-7,
+  .uiverse .wrapper .circle.circle-8,
+  .uiverse .wrapper .circle.circle-11,
+  .uiverse .wrapper .circle.circle-12 {
+    --background: var(--c-color-1);
+    --blur: 12px;
+  }
+
+  .uiverse .wrapper .circle.circle-1 {
+    --x: 0;
+    --y: -40px;
+    --animation: circle-1;
+  }
+
+  .uiverse .wrapper .circle.circle-2 {
+    --x: 92px;
+    --y: 8px;
+    --animation: circle-2;
+  }
+
+  .uiverse .wrapper .circle.circle-3 {
+    --x: -12px;
+    --y: -12px;
+    --animation: circle-3;
+  }
+
+  .uiverse .wrapper .circle.circle-4 {
+    --x: 80px;
+    --y: -12px;
+    --animation: circle-4;
+  }
+
+  .uiverse .wrapper .circle.circle-5 {
+    --x: 12px;
+    --y: -4px;
+    --animation: circle-5;
+  }
+
+  .uiverse .wrapper .circle.circle-6 {
+    --x: 56px;
+    --y: 16px;
+    --animation: circle-6;
+  }
+
+  .uiverse .wrapper .circle.circle-7 {
+    --x: 8px;
+    --y: 28px;
+    --animation: circle-7;
+  }
+
+  .uiverse .wrapper .circle.circle-8 {
+    --x: 28px;
+    --y: -4px;
+    --animation: circle-8;
+  }
+
+  .uiverse .wrapper .circle.circle-9 {
+    --x: 20px;
+    --y: -12px;
+    --animation: circle-9;
+  }
+
+  .uiverse .wrapper .circle.circle-10 {
+    --x: 64px;
+    --y: 16px;
+    --animation: circle-10;
+  }
+
+  .uiverse .wrapper .circle.circle-11 {
+    --x: 4px;
+    --y: 4px;
+    --animation: circle-11;
+  }
+
+  .uiverse .wrapper .circle.circle-12 {
+    --blur: 14px;
+    --x: 52px;
+    --y: 4px;
+    --animation: circle-12;
+  }
+
+  @keyframes circle-1 {
+    33% {
+      transform: translate(0px, 16px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(12px, 64px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-2 {
+    33% {
+      transform: translate(80px, -10px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(72px, -48px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-3 {
+    33% {
+      transform: translate(20px, 12px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(12px, 4px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-4 {
+    33% {
+      transform: translate(76px, -12px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(112px, -8px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-5 {
+    33% {
+      transform: translate(84px, 28px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(40px, -32px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-6 {
+    33% {
+      transform: translate(28px, -16px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(76px, -56px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-7 {
+    33% {
+      transform: translate(8px, 28px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(20px, -60px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-8 {
+    33% {
+      transform: translate(32px, -4px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(56px, -20px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-9 {
+    33% {
+      transform: translate(20px, -12px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(80px, -8px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-10 {
+    33% {
+      transform: translate(68px, 20px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(100px, 28px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-11 {
+    33% {
+      transform: translate(4px, 4px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(68px, 20px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-12 {
+    33% {
+      transform: translate(56px, 0px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(60px, -32px) translateZ(0);
+    }
+  }
+`;
 
 interface HeroSearchResult {
   reply: string;
@@ -41,11 +398,18 @@ async function localFastSearch(query: string): Promise<HeroSearchResult> {
   };
 }
 
+const ROTATING_PLACEHOLDERS = [
+  "למשל: דירה למשפחה דתית לאומית עם 2 ילדים בנתניה עד 4,300 ₪ לחודש לא רחוק מהים",
+  "למשל: דירת שותפים ל-3 בתל אביב עד 7,000 ₪ לחודש ושמותר חיות מחמד",
+  "למשל: 4 חדרים שקטה ברמת גן ליד פארק ובית ספר יסודי עד 6,800 ₪",
+  "למשל: דירת גן בגבעתיים לזוג צעיר עד 5,800 ₪ ליד תחבורה ציבורית",
+];
+
 const CHIPS = [
-  "דירת 3 חדרים עם מרפסת בתל אביב",
-  "עד 6,500 ₪ ליד רכבת קלה",
-  "דירה שקטה ליד פארק",
-  "4 חדרים מרוהטת בגבעתיים",
+  "דירת שותפים ל-3 בתל אביב עד 7,000 ₪ ומותר חיות מחמד",
+  "דירה למשפחה דתית בנתניה עד 4,300 ₪ ליד הים",
+  "4 חדרים שקטה ברמת גן ליד פארק ובי\"ס",
+  "דירת גן בגבעתיים לזוג צעיר עד 5,800 ₪",
 ];
 
 const rise = {
@@ -60,7 +424,38 @@ export default function Hero() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<HeroSearchResult | null>(null);
+  const [typedPlaceholder, setTypedPlaceholder] = useState("");
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { requireAuth } = useAuthGate();
+
+  // Typewriter effect: types character-by-character, pauses, then backspaces
+  useEffect(() => {
+    const currentText = ROTATING_PLACEHOLDERS[placeholderIdx];
+
+    let speed = isDeleting ? 22 : 45;
+
+    if (!isDeleting && typedPlaceholder === currentText) {
+      speed = 2200; // Pause at end of sentence
+    } else if (isDeleting && typedPlaceholder === "") {
+      setIsDeleting(false);
+      setPlaceholderIdx((prev) => (prev + 1) % ROTATING_PLACEHOLDERS.length);
+      speed = 400; // Pause before starting next sentence
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (!isDeleting && typedPlaceholder !== currentText) {
+        setTypedPlaceholder(currentText.slice(0, typedPlaceholder.length + 1));
+      } else if (isDeleting && typedPlaceholder !== "") {
+        setTypedPlaceholder(currentText.slice(0, typedPlaceholder.length - 1));
+      } else if (!isDeleting && typedPlaceholder === currentText) {
+        setIsDeleting(true);
+      }
+    }, speed);
+
+    return () => clearTimeout(timer);
+  }, [typedPlaceholder, isDeleting, placeholderIdx]);
 
   const runSearch = (q: string) => {
     setSearching(true);
@@ -72,10 +467,8 @@ export default function Hero() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const q = query.trim();
+    const q = query.trim() || ROTATING_PLACEHOLDERS[placeholderIdx].replace("למשל: ", "");
     if (!q || searching) return;
-    // Registered → runs immediately. Otherwise the search runs by itself right
-    // after sign-in, so the visitor never has to retype it.
     requireAuth(SEARCH_REASON, () => runSearch(q));
   };
 
@@ -99,10 +492,16 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center">
         <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }}>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border-app bg-white px-4 py-1.5 text-[13px] font-bold text-primary badge-shadow">
-            <MagicStar size={16} variant="Bold" color="currentColor" />
-            חיפוש דירות מבוסס AI
-          </span>
+          <motion.a
+            href="/publish"
+            whileHover={{ scale: 1.06, y: -2 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            className="inline-flex items-center gap-2.5 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-50 px-6 py-2.5 text-[14px] font-black text-[#0061FF] shadow-sm hover:border-[#0061FF] hover:shadow-lg"
+          >
+            <MagicStar size={18} variant="Bold" color="#0061FF" className="shrink-0" />
+            <span>משכירים או מוכרים? פרסמו דירה ב-2 דקות בחינם!</span>
+          </motion.a>
         </motion.div>
 
         <motion.h1
@@ -124,7 +523,7 @@ export default function Hero() {
         <motion.div {...rise} transition={{ duration: 0.5, delay: 0.24 }}>
           <form
             onSubmit={handleSubmit}
-            className="card-shadow mx-auto mt-8 flex max-w-[680px] items-center gap-3 rounded-full border border-border-app bg-white p-2 ps-5"
+            className="card-shadow mx-auto mt-8 flex max-w-[820px] items-center gap-3 rounded-full border border-border-app bg-white p-2.5 ps-6"
           >
             <MagicStar
               size={22}
@@ -136,17 +535,17 @@ export default function Hero() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="למשל: דירת 3 חדרים עם מרפסת בתל אביב עד 8,000 ₪"
-              className="min-w-0 flex-1 bg-transparent text-[16px] text-navy outline-none placeholder:text-[#9EB5C8]"
+              placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
+              className="min-w-0 flex-1 bg-transparent text-[15px] md:text-[16px] font-medium text-navy outline-none placeholder:text-[#9EB5C8] transition-all duration-300"
             />
-            <button
-              type="submit"
-              disabled={searching}
-              className="flex shrink-0 items-center gap-2 rounded-full bg-primary px-6 py-3 text-[15px] font-bold text-white transition hover:bg-primary-dark disabled:opacity-60"
-            >
-              <SearchNormal1 size={18} color="currentColor" />
-              {searching ? "אתי מחפשת…" : "חיפוש AI"}
-            </button>
+            <HeroAiSearchButton disabled={searching}>
+              <span>{searching ? "מחפשת…" : "חיפוש"}</span>
+              <SearchNormal1
+                size={22}
+                color="currentColor"
+                className="shrink-0 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)] ms-1"
+              />
+            </HeroAiSearchButton>
           </form>
 
           <div className="mt-5 flex flex-wrap justify-center gap-2.5">
@@ -155,7 +554,7 @@ export default function Hero() {
                 key={chip}
                 type="button"
                 onClick={() => runChip(chip)}
-                className="cursor-pointer rounded-full border border-border-app bg-white px-4 py-2 text-[13px] font-semibold text-navy transition hover:border-primary hover:text-primary"
+                className="cursor-pointer rounded-full border border-border-app bg-white px-4 py-2 text-[13px] font-bold text-navy transition hover:border-primary hover:text-primary shadow-sm hover:shadow-md"
               >
                 {chip}
               </button>
@@ -163,7 +562,7 @@ export default function Hero() {
           </div>
 
           {searching && (
-            <div className="mx-auto mt-8 flex max-w-[680px] items-center gap-3 rounded-3xl border border-border-app bg-white p-5 text-start card-shadow">
+            <div className="mx-auto mt-8 flex max-w-[820px] items-center gap-3 rounded-3xl border border-border-app bg-white p-5 text-start card-shadow">
               <MagicStar size={20} variant="Bold" color="currentColor" className="shrink-0 animate-pulse text-primary" />
               <span className="text-[14px] font-semibold text-secondary-text">
                 אתי סורקת את הדירות הפעילות…
@@ -173,7 +572,7 @@ export default function Hero() {
 
           {result && !searching && (
             <div className="mt-8 text-start">
-              <div className="mx-auto max-w-[680px] rounded-3xl border border-border-app bg-white p-5 card-shadow">
+              <div className="mx-auto max-w-[820px] rounded-3xl border border-border-app bg-white p-5 card-shadow">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-light2">

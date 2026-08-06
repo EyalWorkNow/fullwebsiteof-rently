@@ -1,29 +1,16 @@
 // אתי page — conversation persistence (localStorage) + Hebrew relative dates.
-// Schema (key 'ati-conversations'):
-//   [{ id, title, createdAt, messages: [{ role: 'user'|'ati', text, listingIds?, deep? }] }]
+// Account-scoped schema (key 'ati-conversations-[userId]'):
 
 export interface AtiMessage {
-  /** Stable id so the background personalization pass can swap a bubble in place. */
   id?: string
   role: 'user' | 'ati'
   text: string
-  /** Property ids to render as an inline card carousel (resolved at render time). */
   listingIds?: string[]
-  /** true = the backend "מעמיקה" follow-up (vs. the instant local engine). */
   deep?: boolean
-  /**
-   * Interview question bank key (personalization mode). Mirrors the app's
-   * `_interviewAsked` set — its presence in the transcript is what stops אתי
-   * ever repeating a question, and caps the interview at 3.
-   */
   interviewKey?: string
-  /** The interview question's short "why we ask" line (rendered muted). */
   why?: string
-  /** Quick-answer chips rendered under the bubble (tap = send). */
   chips?: string[]
-  /** propertyId → the verification gate's label ("כ-12 ק״מ מ…" / "מעט מעל התקציב"). */
   notes?: Record<string, string>
-  /** propertyId → the backend explainer's per-result reason (personalization). */
   explanations?: Record<string, string>
 }
 
@@ -35,16 +22,23 @@ export interface AtiConversation {
   id: string
   title: string
   createdAt: number
+  userId?: string
   messages: AtiMessage[]
 }
 
-const KEY = 'ati-conversations'
+const DEFAULT_KEY = 'ati-conversations'
 const MAX_CONVERSATIONS = 50
 
-export function loadConversations(): AtiConversation[] {
+function getKey(userId?: string | null): string {
+  if (!userId) return `${DEFAULT_KEY}-guest`
+  return `${DEFAULT_KEY}-${userId}`
+}
+
+export function loadConversations(userId?: string | null): AtiConversation[] {
   if (typeof window === 'undefined') return []
+  const storageKey = getKey(userId)
   try {
-    const raw = window.localStorage.getItem(KEY)
+    const raw = window.localStorage.getItem(storageKey)
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -71,10 +65,11 @@ export function loadConversations(): AtiConversation[] {
   }
 }
 
-export function saveConversations(list: AtiConversation[]): void {
+export function saveConversations(list: AtiConversation[], userId?: string | null): void {
   if (typeof window === 'undefined') return
+  const storageKey = getKey(userId)
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX_CONVERSATIONS)))
+    window.localStorage.setItem(storageKey, JSON.stringify(list.slice(0, MAX_CONVERSATIONS)))
   } catch {
     // Storage full / private mode — the session keeps working in-memory.
   }

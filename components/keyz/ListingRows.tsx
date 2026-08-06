@@ -5,13 +5,27 @@ import { ArrowLeft2, ArrowRight2 } from 'iconsax-react'
 import { fetchProperties } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
 import PropertyCard from './PropertyCard'
+import PropertyPreviewModal from './PropertyPreviewModal'
 
-function Row({ title, items, live }: { title: string; items: Property[]; live: boolean }) {
+function Row({
+  title,
+  items,
+  live,
+  onSelectProperty,
+}: {
+  title: string
+  items: Property[]
+  live: boolean
+  onSelectProperty: (p: Property) => void
+}) {
   const track = useRef<HTMLDivElement>(null)
 
-  // RTL: content advances toward negative scrollLeft, so "forward" is -720.
-  const scroll = (forward: boolean) =>
-    track.current?.scrollBy({ left: forward ? -720 : 720, behavior: 'smooth' })
+  // RTL: scroll by exactly 1 single card width (374px card + 20px gap = 394px)
+  const scroll = (forward: boolean) => {
+    if (!track.current) return
+    const cardStep = 394
+    track.current.scrollBy({ left: forward ? -cardStep : cardStep, behavior: 'smooth' })
+  }
 
   if (!items.length) return null
 
@@ -31,7 +45,7 @@ function Row({ title, items, live }: { title: string; items: Property[]; live: b
             type="button"
             aria-label="הקודם"
             onClick={() => scroll(false)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-app bg-white badge-shadow"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-app bg-white badge-shadow transition hover:bg-slate-50 active:scale-95"
           >
             <ArrowRight2 size={18} color="#072946" />
           </button>
@@ -39,18 +53,16 @@ function Row({ title, items, live }: { title: string; items: Property[]; live: b
             type="button"
             aria-label="הבא"
             onClick={() => scroll(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-app bg-white badge-shadow"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-app bg-white badge-shadow transition hover:bg-slate-50 active:scale-95"
           >
             <ArrowLeft2 size={18} color="#072946" />
           </button>
         </div>
       </div>
-      <div ref={track} className="no-scrollbar flex snap-x gap-4 overflow-x-auto pb-2">
+      <div ref={track} className="no-scrollbar flex snap-x snap-mandatory gap-5 overflow-x-auto pb-3">
         {items.map((p) => (
-          <div key={p.id} className="snap-start">
-            <a href={`/listing/${p.id}`} className="block">
-              <PropertyCard property={p} />
-            </a>
+          <div key={p.id} className="w-full md:w-[374px] shrink-0 snap-start">
+            <PropertyCard property={p} onSelect={() => onSelectProperty(p)} />
           </div>
         ))}
       </div>
@@ -60,9 +72,9 @@ function Row({ title, items, live }: { title: string; items: Property[]; live: b
 
 function SkeletonRow() {
   return (
-    <div className="mb-10 flex gap-4 overflow-hidden">
+    <div className="mb-10 flex gap-5 overflow-hidden">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-[340px] w-[340px] shrink-0 animate-pulse rounded-[28px] bg-cloud" />
+        <div key={i} className="h-[340px] w-[374px] shrink-0 animate-pulse rounded-[28px] bg-cloud" />
       ))}
     </div>
   )
@@ -72,6 +84,7 @@ export default function ListingRows() {
   const [items, setItems] = useState<Property[]>([])
   const [live, setLive] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [previewProperty, setPreviewProperty] = useState<Property | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -89,7 +102,6 @@ export default function ListingRows() {
   const row1 = items.slice(0, 12)
   const row1Ids = new Set(row1.map((p) => p.id))
   const rentals = items.filter((p) => p.transactionType !== 'sale')
-  // Prefer rentals not already shown in row 1, then top up if the pool is thin.
   const row2 = [
     ...rentals.filter((p) => !row1Ids.has(p.id)),
     ...rentals.filter((p) => row1Ids.has(p.id)),
@@ -105,11 +117,19 @@ export default function ListingRows() {
         </>
       ) : (
         <>
-          <Row title="חדשות עכשיו ברנטלי" items={row1} live={live} />
-          <Row title="דירות להשכרה" items={row2} live={live} />
-          <Row title="דירות למכירה" items={row3} live={live} />
+          <Row title="חדשות עכשיו ברנטלי" items={row1} live={live} onSelectProperty={setPreviewProperty} />
+          <Row title="דירות להשכרה" items={row2} live={live} onSelectProperty={setPreviewProperty} />
+          <Row title="דירות למכירה" items={row3} live={live} onSelectProperty={setPreviewProperty} />
         </>
       )}
+
+      {/* Floating Property Preview Modal */}
+      <PropertyPreviewModal
+        property={previewProperty}
+        allProperties={items}
+        onClose={() => setPreviewProperty(null)}
+        onSelectProperty={(p) => setPreviewProperty(p)}
+      />
     </section>
   )
 }

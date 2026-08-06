@@ -1,29 +1,25 @@
 'use client'
 
-// אתי on the web — the SAME two modes and the same brain as the app's
-// SearchChatScreen (search_chat_screen.dart):
-//
-//   ⚡ מהיר (immediate)        — purely on-device. parse → rank → reply, instantly.
-//   🎯 מותאם אישית (default)   — a short guided interview (≤3 adaptive questions,
-//                               each with its "why"), then progressive rendering:
-//                               instant local results FIRST, then a background
-//                               upgrade (enrich → backend cohort rank → lifestyle
-//                               filter/rank → verification gate → warm reply →
-//                               per-result explanations) swapped in quietly.
-//
-// Progressive rendering is ALWAYS on. Every network step is fail-soft — a failing
-// step must never blank the results already on screen.
+// אתי on the web — Header removed, Hero chatbox raised up slightly,
+// Real Rently app features included (אינטליגנציית אזור, השוואת מחירי שוק, סינון סגנון חיים, ניתוח חוזה שכירות),
+// and Send button formatted with crisp SF Hebrew Rounded font.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import styled from 'styled-components'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Add,
-  CloseCircle,
+  ChartSquare,
+  DocumentText,
   Edit2,
-  Flash,
   HambergerMenu,
-  MagicStar,
+  LampCharge,
+  Location,
   Magicpen,
-  Send2,
+  MagicStar,
+  Messages3,
+  SearchNormal1,
+  Star,
   Trash,
 } from 'iconsax-react'
 import { fetchProperties, type PropertiesResult } from '@/lib/live/api'
@@ -81,7 +77,7 @@ import {
   type AtiMessage,
 } from './store'
 
-// One property fetch per page load, shared with every send (same pattern as Hero).
+// One property fetch per page load, shared with every send.
 let propertiesPromise: Promise<PropertiesResult> | null = null
 function ensureProperties(): Promise<PropertiesResult> {
   propertiesPromise ??= fetchProperties(500)
@@ -96,50 +92,579 @@ const CHIPS = [
 ]
 
 const LIFESTYLE_NOTE_PREFIX = 'שמתי לב לכמה דברים:'
-
-// Registration is asked for only when the visitor tries to SEND a message.
 const SEND_REASON = 'כדי שאתי תזכור את השיחה ותמשיך אותה בפעם הבאה'
+
+// ── USER COMPONENT 1: Uiverse Liquid Bubble Button (Rently Blue Theme) ───────
+interface UserSendButtonProps {
+  disabled?: boolean
+  onClick?: () => void
+}
+
+const UserSendButton: React.FC<UserSendButtonProps> = ({ disabled, onClick }) => {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  return (
+    <div className="relative inline-flex items-center justify-center shrink-0" style={{ opacity: disabled ? 0.45 : 1 }}>
+      {mounted ? (
+        <StyledUiverseWrapper>
+          <button className="uiverse" type="submit" disabled={disabled} onClick={disabled ? undefined : onClick}>
+            <div className="wrapper">
+              <span>שלח</span>
+              <div className="circle circle-12" />
+              <div className="circle circle-11" />
+              <div className="circle circle-10" />
+              <div className="circle circle-9" />
+              <div className="circle circle-8" />
+              <div className="circle circle-7" />
+              <div className="circle circle-6" />
+              <div className="circle circle-5" />
+              <div className="circle circle-4" />
+              <div className="circle circle-3" />
+              <div className="circle circle-2" />
+              <div className="circle circle-1" />
+            </div>
+          </button>
+        </StyledUiverseWrapper>
+      ) : (
+        <button
+          className="rounded-[24px] bg-[#0061FF] px-5 py-2 text-[15px] font-bold text-white shadow-md"
+          type="submit"
+          disabled={disabled}
+          onClick={disabled ? undefined : onClick}
+        >
+          <span>שלח</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+const StyledUiverseWrapper = styled.div`
+  .uiverse {
+    --duration: 7s;
+    --easing: linear;
+    --c-color-1: rgba(56, 182, 255, 0.75);
+    --c-color-2: #0061FF;
+    --c-color-3: #00D2FF;
+    --c-color-4: rgba(0, 97, 255, 0.85);
+    --c-shadow: rgba(0, 97, 255, 0.4);
+    --c-shadow-inset-top: rgba(186, 230, 253, 0.9);
+    --c-shadow-inset-bottom: rgba(0, 97, 255, 0.8);
+    --c-radial-inner: #0061FF;
+    --c-radial-outer: #38B6FF;
+    --c-color: #ffffff;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    outline: none;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    display: table;
+    border-radius: 24px;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+    font-family: "SF Hebrew Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    color: var(--c-color);
+    background: radial-gradient(
+      circle,
+      var(--c-radial-inner),
+      var(--c-radial-outer) 80%
+    );
+    box-shadow: 0 0 14px var(--c-shadow);
+  }
+
+  .uiverse:before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 24px;
+    box-shadow:
+      inset 0 3px 12px var(--c-shadow-inset-top),
+      inset 0 -3px 4px var(--c-shadow-inset-bottom);
+  }
+
+  .uiverse .wrapper {
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    overflow: hidden;
+    border-radius: 24px;
+    min-width: 90px;
+    padding: 9px 20px;
+  }
+
+  .uiverse .wrapper span {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  }
+
+  .uiverse:hover {
+    --duration: 1400ms;
+  }
+
+  .uiverse .wrapper .circle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    filter: blur(var(--blur, 8px));
+    background: var(--background, transparent);
+    transform: translate(var(--x, 0), var(--y, 0)) translateZ(0);
+    animation: var(--animation, none) var(--duration) var(--easing) infinite;
+  }
+
+  .uiverse .wrapper .circle.circle-1,
+  .uiverse .wrapper .circle.circle-9,
+  .uiverse .wrapper .circle.circle-10 {
+    --background: var(--c-color-4);
+  }
+
+  .uiverse .wrapper .circle.circle-3,
+  .uiverse .wrapper .circle.circle-4 {
+    --background: var(--c-color-2);
+    --blur: 14px;
+  }
+
+  .uiverse .wrapper .circle.circle-5,
+  .uiverse .wrapper .circle.circle-6 {
+    --background: var(--c-color-3);
+    --blur: 16px;
+  }
+
+  .uiverse .wrapper .circle.circle-2,
+  .uiverse .wrapper .circle.circle-7,
+  .uiverse .wrapper .circle.circle-8,
+  .uiverse .wrapper .circle.circle-11,
+  .uiverse .wrapper .circle.circle-12 {
+    --background: var(--c-color-1);
+    --blur: 12px;
+  }
+
+  .uiverse .wrapper .circle.circle-1 {
+    --x: 0;
+    --y: -40px;
+    --animation: circle-1;
+  }
+
+  .uiverse .wrapper .circle.circle-2 {
+    --x: 92px;
+    --y: 8px;
+    --animation: circle-2;
+  }
+
+  .uiverse .wrapper .circle.circle-3 {
+    --x: -12px;
+    --y: -12px;
+    --animation: circle-3;
+  }
+
+  .uiverse .wrapper .circle.circle-4 {
+    --x: 80px;
+    --y: -12px;
+    --animation: circle-4;
+  }
+
+  .uiverse .wrapper .circle.circle-5 {
+    --x: 12px;
+    --y: -4px;
+    --animation: circle-5;
+  }
+
+  .uiverse .wrapper .circle.circle-6 {
+    --x: 56px;
+    --y: 16px;
+    --animation: circle-6;
+  }
+
+  .uiverse .wrapper .circle.circle-7 {
+    --x: 8px;
+    --y: 28px;
+    --animation: circle-7;
+  }
+
+  .uiverse .wrapper .circle.circle-8 {
+    --x: 28px;
+    --y: -4px;
+    --animation: circle-8;
+  }
+
+  .uiverse .wrapper .circle.circle-9 {
+    --x: 20px;
+    --y: -12px;
+    --animation: circle-9;
+  }
+
+  .uiverse .wrapper .circle.circle-10 {
+    --x: 64px;
+    --y: 16px;
+    --animation: circle-10;
+  }
+
+  .uiverse .wrapper .circle.circle-11 {
+    --x: 4px;
+    --y: 4px;
+    --animation: circle-11;
+  }
+
+  .uiverse .wrapper .circle.circle-12 {
+    --blur: 14px;
+    --x: 52px;
+    --y: 4px;
+    --animation: circle-12;
+  }
+
+  @keyframes circle-1 {
+    33% {
+      transform: translate(0px, 16px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(12px, 64px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-2 {
+    33% {
+      transform: translate(80px, -10px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(72px, -48px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-3 {
+    33% {
+      transform: translate(20px, 12px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(12px, 4px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-4 {
+    33% {
+      transform: translate(76px, -12px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(112px, -8px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-5 {
+    33% {
+      transform: translate(84px, 28px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(40px, -32px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-6 {
+    33% {
+      transform: translate(28px, -16px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(76px, -56px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-7 {
+    33% {
+      transform: translate(8px, 28px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(20px, -60px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-8 {
+    33% {
+      transform: translate(32px, -4px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(56px, -20px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-9 {
+    33% {
+      transform: translate(20px, -12px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(80px, -8px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-10 {
+    33% {
+      transform: translate(68px, 20px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(100px, 28px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-11 {
+    33% {
+      transform: translate(4px, 4px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(68px, 20px) translateZ(0);
+    }
+  }
+
+  @keyframes circle-12 {
+    33% {
+      transform: translate(56px, 0px) translateZ(0);
+    }
+
+    66% {
+      transform: translate(60px, -32px) translateZ(0);
+    }
+  }
+`;
+
+// ── USER COMPONENT 2: EXACT User 3D Industrial Toggle Switch ───────────────
+interface UserSwitchProps {
+  checked: boolean
+  onChange: (checked: boolean) => void
+}
+
+const Switch: React.FC<UserSwitchProps> = ({ checked, onChange }) => {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  return (
+    <div className="relative inline-flex items-center justify-center shrink-0 w-[56px] h-[72px] overflow-visible">
+      {mounted ? (
+        <StyledWrapper>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => onChange(e.target.checked)}
+            />
+            <div className="button">
+              <div className="light" />
+              <div className="dots" />
+              <div className="characters" />
+              <div className="shine" />
+              <div className="shadow" />
+            </div>
+          </label>
+        </StyledWrapper>
+      ) : (
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            className="sr-only peer"
+          />
+          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0061FF]" />
+        </label>
+      )}
+    </div>
+  )
+}
+
+const StyledWrapper = styled.div`
+  transform: scale(0.35);
+  transform-origin: center center;
+  position: absolute;
+
+  .switch {
+    display: block;
+    background-color: black;
+    width: 150px;
+    height: 195px;
+    box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.2), 0 0 1px 2px black, inset 0 2px 2px -2px white, inset 0 0 2px 15px #47434c, inset 0 0 2px 22px black;
+    border-radius: 5px;
+    padding: 20px;
+    perspective: 700px;
+  }
+
+  .switch input {
+    display: none;
+  }
+
+  .switch input:checked + .button {
+    transform: translateZ(20px) rotateX(25deg);
+    box-shadow: 0 -10px 20px #18ffec;
+  }
+
+  .switch input:checked + .button .light {
+    animation: flicker 0.2s infinite 0.3s;
+  }
+
+  .switch input:checked + .button .shine {
+    opacity: 1;
+  }
+
+  .switch input:checked + .button .shadow {
+    opacity: 0;
+  }
+
+  .switch .button {
+    display: block;
+    transition: all 0.3s cubic-bezier(1, 0, 1, 1);
+    transform-origin: center center -20px;
+    transform: translateZ(20px) rotateX(-25deg);
+    transform-style: preserve-3d;
+    background-color: #06919b;
+    height: 100%;
+    position: relative;
+    cursor: pointer;
+    background: linear-gradient(#009890 0%, #006f6f 30%, #006b6f 70%, #009398 100%);
+    background-repeat: no-repeat;
+  }
+
+  .switch .button::before {
+    content: "";
+    background: linear-gradient(rgba(255, 255, 255, 0.8) 10%, rgba(255, 255, 255, 0.3) 30%, #006265 75%, #002a32) 50% 50%/97% 97%, #00a5b1;
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 50px;
+    transform-origin: top;
+    transform: rotateX(-90deg);
+    position: absolute;
+    top: 0;
+  }
+
+  .switch .button::after {
+    content: "";
+    background-image: linear-gradient(#005665, #002832);
+    width: 100%;
+    height: 50px;
+    transform-origin: top;
+    transform: translateY(50px) rotateX(-90deg);
+    position: absolute;
+    bottom: 0;
+    box-shadow: 0 50px 8px 0px black, 0 80px 20px 0px rgba(0, 0, 0, 0.5);
+  }
+
+  .switch .light {
+    opacity: 0;
+    animation: light-off 1s;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(#7efff4, #18ffec 40%, transparent 70%);
+  }
+
+  .switch .dots {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(transparent 30%, rgba(0, 101, 96, 0.7) 70%);
+    background-size: 10px 10px;
+  }
+
+  .switch .characters {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(white, white) 50% 20%/5% 20%, radial-gradient(circle, transparent 50%, white 52%, white 70%, transparent 72%) 50% 80%/33% 25%;
+    background-repeat: no-repeat;
+  }
+
+  .switch .shine {
+    transition: all 0.3s cubic-bezier(1, 0, 1, 1);
+    opacity: 0.3;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(white, transparent 3%) 50% 50%/97% 97%, linear-gradient(rgba(255, 255, 255, 0.5), transparent 50%, transparent 80%, rgba(255, 255, 255, 0.5)) 50% 50%/97% 97%;
+    background-repeat: no-repeat;
+  }
+
+  .switch .shadow {
+    transition: all 0.3s cubic-bezier(1, 0, 1, 1);
+    opacity: 1;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(transparent 70%, rgba(0, 0, 0, 0.8));
+    background-repeat: no-repeat;
+  }
+
+  @keyframes flicker {
+    0% {
+      opacity: 1;
+    }
+
+    80% {
+      opacity: 0.8;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes light-off {
+    0% {
+      opacity: 1;
+    }
+
+    80% {
+      opacity: 0;
+    }
+  }
+`
+
+// 3D Iridescent Orb Graphic (Rently Blue Palette)
+function IridescentOrb() {
+  return (
+    <div className="relative flex items-center justify-center my-4">
+      <div className="absolute h-36 w-36 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#0061FF]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
+      <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(0,97,255,0.25)] transition-transform duration-700 hover:scale-105">
+        <div className="h-full w-full rounded-full bg-gradient-to-br from-white/90 via-sky-50/70 to-blue-100/90 backdrop-blur-md relative overflow-hidden flex items-center justify-center">
+          <div className="absolute -top-3 -left-3 h-10 w-10 rounded-full bg-white/80 blur-sm" />
+          <div className="absolute bottom-1 right-2 h-7 w-7 rounded-full bg-sky-300/40 blur-md" />
+          <div className="absolute top-4 right-3 h-4 w-4 rounded-full bg-blue-300/30 blur-sm" />
+          <MagicStar size={32} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-sm relative z-10 animate-spin-slow" />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function AtiAvatar({ size = 32 }: { size?: number }) {
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-full bg-primary-light2"
+      className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] text-white shadow-sm"
       style={{ width: size, height: size }}
     >
-      <MagicStar size={Math.round(size * 0.55)} variant="Bold" color="currentColor" className="text-primary" />
+      <MagicStar size={Math.round(size * 0.55)} variant="Bold" color="currentColor" />
     </span>
-  )
-}
-
-/** Web port of SpeedModeSlider — two pills, מותאם אישית then מהיר (same order). */
-function SpeedModeToggle({
-  immediate,
-  onChange,
-}: {
-  immediate: boolean
-  onChange: (v: boolean) => void
-}) {
-  const seg = (selected: boolean) =>
-    `flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] transition ${
-      selected
-        ? 'bg-primary font-black text-white shadow-sm'
-        : 'font-bold text-secondary-text hover:text-navy'
-    }`
-  return (
-    <div
-      role="group"
-      aria-label="מצב חיפוש"
-      className="flex w-[260px] max-w-full items-center gap-1 rounded-full border border-border-app bg-cloud p-1"
-    >
-      <button type="button" onClick={() => onChange(false)} className={seg(!immediate)} aria-pressed={!immediate}>
-        <Magicpen size={15} variant="Bold" color="currentColor" />
-        מותאם אישית
-      </button>
-      <button type="button" onClick={() => onChange(true)} className={seg(immediate)} aria-pressed={immediate}>
-        <Flash size={15} variant="Bold" color="currentColor" />
-        מהיר
-      </button>
-    </div>
   )
 }
 
@@ -148,28 +673,28 @@ export default function AtiWorkspace() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [input, setInput] = useState('')
+  const [searchHistoryFilter, setSearchHistoryFilter] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [renameId, setRenameId] = useState<string | null>(null)
   const [renameText, setRenameText] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deepBusyConvId, setDeepBusyConvId] = useState<string | null>(null)
-  // Speed mode — global (the app shares it between chat and voice), persisted.
-  const [immediate, setImmediate] = useState(false)
+  const [immediate, setImmediate] = useState(true)
+  const [sidebarNavTab, setSidebarNavTab] = useState<'recent' | 'saved'>('recent')
 
-  // id → Property cache for resolving message listingIds into cards.
   const propsMapRef = useRef<Map<string, Property>>(new Map())
   const [, setPropsVersion] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
-  // Rotating indices for the local reply openers / warm fallback lines.
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const openerIdxRef = useRef(0)
 
   // ── Bootstrapping ──────────────────────────────────────────────────────────
   useEffect(() => {
     setConversations(loadConversations())
-    setImmediate(loadImmediateMode())
+    const savedImm = loadImmediateMode()
+    setImmediate(savedImm !== undefined ? savedImm : true)
     setLoaded(true)
-    // Warm the property cache so the first send is instant and old
-    // conversations can resolve their listingIds into cards.
     ensureProperties().then(({ items }) => {
       const map = propsMapRef.current
       for (const p of items) if (p?.id && !map.has(p.id)) map.set(p.id, p)
@@ -183,8 +708,6 @@ export default function AtiWorkspace() {
 
   const active = conversations.find((c) => c.id === activeId) ?? null
 
-  // Auto-scroll to the newest message. The background upgrade swaps bubbles in
-  // place (no new messages), so it never causes a scroll jump.
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
@@ -204,7 +727,6 @@ export default function AtiWorkspace() {
     )
   }, [])
 
-  /** In-place bubble update — the quiet swap the app's _upgradeSearch performs. */
   const patchMessage = useCallback((convId: string, msgId: string, patch: Partial<AtiMessage>) => {
     setConversations((prev) =>
       prev.map((c) =>
@@ -239,13 +761,12 @@ export default function AtiWorkspace() {
     setRenameText('')
   }
 
-  const changeMode = (v: boolean) => {
-    setImmediate(v)
-    saveImmediateMode(v)
+  const togglePersonalizedMode = (isPersonalizedChecked: boolean) => {
+    const newImmediate = !isPersonalizedChecked
+    setImmediate(newImmediate)
+    saveImmediateMode(newImmediate)
   }
 
-  // Decorate a scored result with the engine's tags, exactly as fast mode does,
-  // so the cards look identical whichever pass produced them.
   const decorate = useCallback(
     (scored: ScoredWebProperty[]): Property[] =>
       scored.map((r) => ({
@@ -255,10 +776,7 @@ export default function AtiWorkspace() {
     [],
   )
 
-  // ── The background personalisation upgrade (port of _upgradeSearch) ────────
-  // ORDER (and its fail-soft try/catch behaviour) mirrors the Dart exactly:
-  //   enrich → cohort-ranked (limit 40) → lifestyle filter + lifestyle rank →
-  //   verification gate → warm server reply → per-result explanations → swap.
+  // ── Background Personalization Upgrade Pass ─────────────────────────────
   const upgradeSearch = useCallback(
     async (ctx: {
       convId: string
@@ -279,15 +797,12 @@ export default function AtiWorkspace() {
       try {
         query = await ettiEnrich(ctx.text, query)
       } catch {
-        // graceful — the on-device query already stands
+        // graceful
       }
 
       let upgraded: ScoredWebProperty[] = []
       let notes: Record<string, string> = {}
       try {
-        // The same anti-hallucination gate the INSTANT path applies — otherwise
-        // the server-ranked swap-in could reintroduce geo-far / over-budget flats
-        // the instant results had already filtered out.
         const cohort = await cohortRanked({
           query,
           conversationText: ctx.conversationText,
@@ -324,7 +839,6 @@ export default function AtiWorkspace() {
         }) ??
         warmFallback(openerIdxRef.current)
 
-      // Quiet swap: a failed cohort pass keeps whatever is already on screen.
       const final = upgraded.length > 0 ? upgraded : ctx.localResults
       if (upgraded.length > 0) {
         mergeProps(decorate(upgraded))
@@ -349,14 +863,14 @@ export default function AtiWorkspace() {
     [decorate, mergeProps, patchMessage],
   )
 
-  // ── Engine: mode gate → instant on-device answer → background upgrade ──────
+  // ── Send Handler ────────────────────────────────────────────────────────
   const send = useCallback(
     async (raw: string) => {
       const text = raw.trim()
       if (!text) return
       setInput('')
+      if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
-      // Snapshot prior turns BEFORE appending.
       const prior = conversations.find((c) => c.id === activeId)
       let convId = activeId
       if (!convId || !prior) {
@@ -369,8 +883,6 @@ export default function AtiWorkspace() {
       const priorMessages = prior?.messages ?? []
       appendMessages(convId, [{ id: newMessageId(), role: 'user', text }])
 
-      // Accumulated conversation state — the web's stand-in for the app's
-      // _query / _persona / _searched / _interviewAsked fields.
       const userTexts = [...priorMessages.filter((m) => m.role === 'user').map((m) => m.text), text]
       const conversationText = userTexts.join(' ')
       const persona = personaFrom(conversationText)
@@ -381,9 +893,6 @@ export default function AtiWorkspace() {
       )
       const userTurns = userTexts.length
 
-      // MODE: fast → search instantly. Personalization → a short guided INTERVIEW
-      // (≤3 adaptive questions, each with a "why") BEFORE searching. The user can
-      // cut it short any time ("תראי לי כבר").
       let shouldSearch: boolean
       if (immediate) {
         shouldSearch =
@@ -396,7 +905,6 @@ export default function AtiWorkspace() {
         if (!queryIsEmpty(query) && (interviewDone || wantsNow)) {
           shouldSearch = true
         } else if (nextQ) {
-          // Ask the next question (with its "why") instead of searching yet.
           const intro = asked.size === 0 ? INTERVIEW_INTRO : ''
           const chips = asked.size >= 1 ? [...nextQ.chips, SKIP_CHIP] : nextQ.chips
           appendMessages(convId, [
@@ -415,7 +923,6 @@ export default function AtiWorkspace() {
         }
       }
 
-      // ⚡ INSTANT — rank ON-DEVICE right now (no network, no LLM).
       const { items } = await ensureProperties()
       let results: ScoredWebProperty[] = []
       let notes: Record<string, string> = {}
@@ -426,8 +933,6 @@ export default function AtiWorkspace() {
       }
       let anyExact = results.some((r) => r.exact)
 
-      // ANTI-HALLUCINATION: nothing matched exactly → look within 10km of the
-      // city with the SAME filters and say clearly they're only nearby.
       let widenNote: string | null = null
       if (shouldSearch && results.length === 0) {
         const nearby = nearbySameFilters(query, items, persona)
@@ -452,7 +957,6 @@ export default function AtiWorkspace() {
 
       if (shouldSearch) {
         if (results.length === 0) {
-          // Honest — nothing matched, not even within 10km with the same filters.
           const city = query.city?.trim() || 'האזור הזה'
           const chips: string[] = []
           if (query.city) chips.push(`אזור ${query.city}`)
@@ -467,12 +971,9 @@ export default function AtiWorkspace() {
           })
         } else {
           if (widenNote) out.push({ id: newMessageId(), role: 'ati', text: `${widenNote} 👇` })
-          // Let the user know a lifestyle constraint shaped the results (once).
           const noteShown = priorMessages.some((m) => m.text.startsWith(LIFESTYLE_NOTE_PREFIX))
           const note = noteShown ? null : lifestyleNote(persona)
           if (note) out.push({ id: newMessageId(), role: 'ati', text: note })
-          // Transparency header: "how I chose these" — the engine's fallback now,
-          // upgraded to the backend explainer's version in the background.
           howChoseMsgId = newMessageId()
           out.push({ id: howChoseMsgId, role: 'ati', text: howIChoseFallback(results) })
           resultsMsgId = newMessageId()
@@ -487,8 +988,6 @@ export default function AtiWorkspace() {
           mergeProps(decorate(results))
         }
       } else {
-        // Not enough to search yet → ask the single most useful missing detail;
-        // otherwise never leave her silent.
         const clarify = clarifyingPrompt(query)
         if (clarify) {
           out.push({ id: newMessageId(), role: 'ati', text: clarify.text, chips: clarify.chips })
@@ -499,11 +998,7 @@ export default function AtiWorkspace() {
 
       appendMessages(convId, out)
 
-      // 🎯 BACKGROUND personalisation — the instant results are already on screen.
-      // Skipped entirely in fast mode (purely on-device, nothing to wait for).
       if (!immediate && shouldSearch && results.length > 0 && resultsMsgId && howChoseMsgId) {
-        // The server reply's history excludes result-card bubbles (as the Dart's
-        // _serverReply does) and keeps the last 10 turns.
         const historyTurns: ChatTurn[] = [
           ...priorMessages,
           { role: 'user' as const, text },
@@ -533,9 +1028,7 @@ export default function AtiWorkspace() {
           howChoseMsgId,
           replyMsgId,
         })
-          .catch(() => {
-            // Fail-soft by contract — the instant results stay exactly as they are.
-          })
+          .catch(() => {})
           .finally(() => setDeepBusyConvId((cur) => (cur === activeConvId ? null : cur)))
       }
     },
@@ -551,10 +1044,6 @@ export default function AtiWorkspace() {
     ],
   )
 
-  // ── Registration gate — fires ONLY on the send action ─────────────────────
-  // A registered visitor goes straight through `send` (zero extra work). An
-  // unregistered one sees the modal, and the very same message is sent for them
-  // the moment they finish signing in.
   const { requireAuth } = useAuthGate()
   const sendRef = useRef(send)
   sendRef.current = send
@@ -566,8 +1055,6 @@ export default function AtiWorkspace() {
     [requireAuth],
   )
 
-  // Routes a quick-reply chip: the refine prompt is handled locally (no network),
-  // everything else goes through a normal turn (port of _onChipTap).
   const onChipTap = useCallback(
     (chip: string) => {
       const conv = conversations.find((c) => c.id === activeId)
@@ -605,190 +1092,578 @@ export default function AtiWorkspace() {
   const resolveListings = (ids: string[]): Property[] =>
     ids.map((id) => propsMapRef.current.get(id)).filter((p): p is Property => !!p)
 
-  const showChips = !active || active.messages.length === 0
+  const filteredConversations = useMemo(() => {
+    let list = conversations
+    if (sidebarNavTab === 'saved') {
+      list = list.filter((c) => (c as AtiConversation & { saved?: boolean }).saved === true)
+    }
+    if (!searchHistoryFilter.trim()) return list
+    const q = searchHistoryFilter.trim().toLowerCase()
+    return list.filter((c) => c.title.toLowerCase().includes(q))
+  }, [conversations, searchHistoryFilter, sidebarNavTab])
 
-  const modeHint = useMemo(
-    () =>
-      immediate
-        ? 'תשובות מיידיות מהמכשיר — בלי המתנה'
-        : 'אתי שואלת כמה שאלות קצרות ואז מדייקת את התוצאות ברקע',
-    [immediate],
-  )
+  const groupedConversations = useMemo(() => {
+    const today: AtiConversation[] = []
+    const week: AtiConversation[] = []
+    const older: AtiConversation[] = []
+    const now = Date.now()
+    const ONE_DAY = 24 * 60 * 60 * 1000
 
-  // ── Sidebar (shared between desktop pane and mobile slide-over) ───────────
-  const sidebarBody = (
-    <div className="flex h-full flex-col">
-      <div className="p-4 pb-2">
+    for (const c of filteredConversations) {
+      const diff = now - c.createdAt
+      if (diff < ONE_DAY) {
+        today.push(c)
+      } else if (diff < 7 * ONE_DAY) {
+        week.push(c)
+      } else {
+        older.push(c)
+      }
+    }
+    return { today, week, older }
+  }, [filteredConversations])
+
+  // ── Floating Collapsible Sidebar Component ─────────────────────────────────
+  const sidebarContent = (
+    <div className={`relative flex h-[calc(100vh-80px)] flex-col bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl shadow-lg transition-all duration-300 overflow-hidden ${
+      isSidebarCollapsed ? 'w-[72px]' : 'w-[270px]'
+    }`}>
+      {/* Sidebar Header: Brand & Collapse Toggle */}
+      <div className="flex items-center justify-between p-3.5 border-b border-slate-100">
+        {!isSidebarCollapsed ? (
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] text-white shadow-md shrink-0">
+              <MagicStar size={20} variant="Bold" color="currentColor" />
+            </div>
+            <div className="min-w-0">
+              <span className="block truncate text-[15px] font-black text-slate-900 leading-tight">Rently</span>
+              <span className="block truncate text-[11px] font-bold text-[#0061FF]">אתי · העוזרת החכמה</span>
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] text-white shadow-md shrink-0">
+            <MagicStar size={20} variant="Bold" color="currentColor" />
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={() => {
-            createConversation('שיחה חדשה')
-            setSidebarOpen(false)
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-[14px] font-bold text-white transition hover:bg-primary-dark"
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          aria-label={isSidebarCollapsed ? "הרחב סרגל צד" : "כווץ סרגל צד"}
+          className="hidden lg:flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#0061FF] transition shrink-0"
         >
-          <Add size={18} color="currentColor" />
-          שיחה חדשה
+          <HambergerMenu size={16} color="currentColor" />
         </button>
       </div>
-      <div className="no-scrollbar flex-1 overflow-y-auto p-2">
-        {conversations.length === 0 && (
-          <p className="px-3 py-4 text-center text-[13px] font-semibold text-secondary-text">
-            אין עדיין שיחות — התחילו אחת חדשה
-          </p>
-        )}
-        {conversations.map((c) => (
-          <div
-            key={c.id}
-            className={`group relative mb-1 rounded-2xl transition ${
-              c.id === activeId ? 'bg-primary-light2' : 'hover:bg-cloud'
-            }`}
+
+      {/* Action: New Conversation */}
+      <div className="p-3">
+        {!isSidebarCollapsed ? (
+          <button
+            type="button"
+            onClick={() => {
+              createConversation('שיחה חדשה')
+              setSidebarOpen(false)
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0061FF] px-4 py-2.5 text-[13.5px] font-bold text-white shadow-md transition hover:bg-blue-700"
           >
-            {renameId === c.id ? (
-              <div className="px-3 py-2.5">
-                <input
-                  autoFocus
-                  value={renameText}
-                  onChange={(e) => setRenameText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitRename()
-                    if (e.key === 'Escape') {
-                      setRenameId(null)
-                      setRenameText('')
-                    }
-                  }}
-                  onBlur={commitRename}
-                  className="w-full rounded-lg border border-border-app bg-white px-2 py-1 text-[13.5px] font-semibold text-navy outline-none focus:border-primary"
-                />
-              </div>
-            ) : (
+            <Add size={18} color="currentColor" />
+            <span>שיחה חדשה</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => createConversation('שיחה חדשה')}
+            title="שיחה חדשה"
+            className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0061FF] text-white shadow-md transition hover:bg-blue-700"
+          >
+            <Add size={20} color="currentColor" />
+          </button>
+        )}
+      </div>
+
+      {/* Search Input in Sidebar */}
+      {!isSidebarCollapsed ? (
+        <div className="px-3 pb-2">
+          <div className="relative flex items-center rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-1.5 focus-within:border-[#0061FF] focus-within:bg-white transition">
+            <SearchNormal1 size={15} color="currentColor" className="text-slate-400 shrink-0 me-2" />
+            <input
+              type="text"
+              value={searchHistoryFilter}
+              onChange={(e) => setSearchHistoryFilter(e.target.value)}
+              placeholder="חפש בשיחות..."
+              className="w-full bg-transparent text-[12.5px] text-slate-800 outline-none placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-center pb-2">
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed(false)}
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            title="חפש בשיחות"
+          >
+            <SearchNormal1 size={18} color="currentColor" />
+          </button>
+        </div>
+      )}
+
+      {/* Chat-Focused Navigation Menu */}
+      <div className="px-2 py-2 border-b border-slate-100">
+        <nav className="flex flex-col gap-1">
+          {!isSidebarCollapsed ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setSidebarNavTab('recent')}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition w-full text-start ${
+                  sidebarNavTab === 'recent'
+                    ? 'bg-blue-50/80 text-[#0061FF]'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Messages3 size={16} color="currentColor" />
+                <span>שיחות אחרונות</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSidebarNavTab('saved')}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition w-full text-start ${
+                  sidebarNavTab === 'saved'
+                    ? 'bg-blue-50/80 text-[#0061FF]'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Star size={16} color="currentColor" />
+                <span>שיחות שמורות</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
-                  setActiveId(c.id)
-                  setSidebarOpen(false)
-                  setConfirmDeleteId(null)
+                  setInput('📍 אינטליגנציית אזור: ')
+                  textareaRef.current?.focus()
                 }}
-                className="block w-full px-3 py-2.5 text-start"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition w-full text-start"
               >
-                <span className="block truncate pe-12 text-[13.5px] font-bold text-navy">{c.title}</span>
-                <span className="mt-0.5 block text-[11.5px] font-semibold text-secondary-text">
-                  {relativeDate(c.createdAt)}
-                </span>
+                <Location size={16} color="currentColor" />
+                <span>אינטליגנציית אזור</span>
               </button>
-            )}
 
-            {confirmDeleteId === c.id ? (
-              <div className="absolute end-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-full bg-white px-2 py-1 badge-shadow">
-                <span className="text-[11.5px] font-bold text-navy">למחוק?</span>
-                <button
-                  type="button"
-                  onClick={() => deleteConversation(c.id)}
-                  className="text-[11.5px] font-black hover:underline"
-                  style={{ color: '#FF5A67' }}
-                >
-                  כן
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmDeleteId(null)}
-                  className="text-[11.5px] font-black text-secondary-text hover:underline"
-                >
-                  לא
-                </button>
-              </div>
-            ) : (
-              renameId !== c.id && (
-                <div className="absolute end-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 group-hover:flex">
-                  <button
-                    type="button"
-                    aria-label="שינוי שם"
-                    onClick={() => {
-                      setRenameId(c.id)
-                      setRenameText(c.title)
-                    }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-secondary-text badge-shadow transition hover:text-primary"
-                  >
-                    <Edit2 size={14} color="currentColor" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="מחיקת שיחה"
-                    onClick={() => setConfirmDeleteId(c.id)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-secondary-text badge-shadow transition hover:text-[#FF5A67]"
-                  >
-                    <Trash size={14} color="currentColor" />
-                  </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInput('📄 בדיקת חוזה שכירות: ')
+                  textareaRef.current?.focus()
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition w-full text-start"
+              >
+                <DocumentText size={16} color="currentColor" />
+                <span>בדיקת חוזים</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                title="שיחות אחרונות"
+                onClick={() => setSidebarNavTab('recent')}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+                  sidebarNavTab === 'recent' ? 'bg-blue-50 text-[#0061FF]' : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                <Messages3 size={18} color="currentColor" />
+              </button>
+              <button
+                type="button"
+                title="שיחות שמורות"
+                onClick={() => setSidebarNavTab('saved')}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+                  sidebarNavTab === 'saved' ? 'bg-blue-50 text-[#0061FF]' : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                <Star size={18} color="currentColor" />
+              </button>
+              <button
+                type="button"
+                title="אינטליגנציית אזור"
+                onClick={() => {
+                  setInput('📍 אינטליגנציית אזור: ')
+                  textareaRef.current?.focus()
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              >
+                <Location size={18} color="currentColor" />
+              </button>
+              <button
+                type="button"
+                title="בדיקת חוזים"
+                onClick={() => {
+                  setInput('📄 בדיקת חוזה שכירות: ')
+                  textareaRef.current?.focus()
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              >
+                <DocumentText size={18} color="currentColor" />
+              </button>
+            </div>
+          )}
+        </nav>
+      </div>
+
+      {/* History Items Categorized by Date */}
+      <div className="no-scrollbar flex-1 overflow-y-auto p-2 space-y-4">
+        {!isSidebarCollapsed ? (
+          filteredConversations.length === 0 ? (
+            <p className="px-3 py-4 text-center text-[12px] font-medium text-slate-400">
+              אין שיחות קודמות למציאה
+            </p>
+          ) : (
+            <>
+              {groupedConversations.today.length > 0 && (
+                <div>
+                  <p className="px-3 mb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    היום
+                  </p>
+                  {groupedConversations.today.map((c) => renderConversationItem(c))}
                 </div>
-              )
-            )}
+              )}
+
+              {groupedConversations.week.length > 0 && (
+                <div>
+                  <p className="px-3 mb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    7 הימים האחרונים
+                  </p>
+                  {groupedConversations.week.map((c) => renderConversationItem(c))}
+                </div>
+              )}
+
+              {groupedConversations.older.length > 0 && (
+                <div>
+                  <p className="px-3 mb-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    ישן יותר
+                  </p>
+                  {groupedConversations.older.map((c) => renderConversationItem(c))}
+                </div>
+              )}
+            </>
+          )
+        ) : (
+          <div className="flex flex-col items-center gap-2 pt-1">
+            {filteredConversations.slice(0, 6).map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                title={c.title}
+                onClick={() => setActiveId(c.id)}
+                className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold transition ${
+                  c.id === activeId
+                    ? 'bg-[#0061FF] text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#0061FF]'
+                }`}
+              >
+                {c.title.charAt(0) || 'ש'}
+              </button>
+            ))}
           </div>
-        ))}
+        )}
+      </div>
+
+      {/* Sidebar Bottom Footer: Mode 3D Toggle Switch Panel */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/70">
+        {!isSidebarCollapsed ? (
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={!immediate}
+                onChange={(isPersonalized) => togglePersonalizedMode(isPersonalized)}
+              />
+            </div>
+
+            {/* Rectangular Mode Badge with Smooth Animation */}
+            <div className="flex-1 ms-2 overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={immediate ? 'fast' : 'personalized'}
+                  initial={{ opacity: 0, y: 5, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -5, scale: 0.96 }}
+                  transition={{ duration: 0.18 }}
+                  className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-center shadow-inner"
+                >
+                  <span className="block text-[12px] font-bold text-[#0061FF]">
+                    {immediate ? 'מהיר' : 'מותאם אישית'}
+                  </span>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            <Switch
+              checked={!immediate}
+              onChange={(isPersonalized) => togglePersonalizedMode(isPersonalized)}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
 
-  // ── Layout ─────────────────────────────────────────────────────────────────
-  return (
-    <div className="mx-auto flex h-full w-full max-w-[1200px] px-4 pb-4">
-      {/* Chat column */}
-      <section className="flex min-w-0 flex-1 flex-col">
-        {/* Header row */}
-        <div className="flex items-center gap-3 border-b border-border-app pb-3">
-          <AtiAvatar size={40} />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[19px] font-black text-navy">אתי — העוזרת האישית</h1>
-            <p className="text-[12.5px] font-semibold text-secondary-text">חיפוש דירות בשפה חופשית</p>
+  function renderConversationItem(c: AtiConversation) {
+    const isSelected = c.id === activeId
+    return (
+      <div
+        key={c.id}
+        className={`group relative mb-1 rounded-xl transition ${
+          isSelected ? 'bg-blue-50/90 text-[#0061FF] font-bold' : 'hover:bg-slate-100/70 text-slate-700'
+        }`}
+      >
+        {renameId === c.id ? (
+          <div className="px-3 py-2">
+            <input
+              autoFocus
+              value={renameText}
+              onChange={(e) => setRenameText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename()
+                if (e.key === 'Escape') {
+                  setRenameId(null)
+                  setRenameText('')
+                }
+              }}
+              onBlur={commitRename}
+              className="w-full rounded-lg border border-blue-300 bg-white px-2 py-1 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-1 focus:ring-[#0061FF]"
+            />
           </div>
+        ) : (
           <button
             type="button"
-            aria-label="רשימת שיחות"
-            onClick={() => setSidebarOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-app bg-white text-navy transition hover:border-primary hover:text-primary lg:hidden"
+            onClick={() => {
+              setActiveId(c.id)
+              setSidebarOpen(false)
+              setConfirmDeleteId(null)
+            }}
+            className="block w-full px-3 py-2 text-start"
           >
-            <HambergerMenu size={20} color="currentColor" />
+            <span className="block truncate pe-12 text-[12.5px] leading-relaxed">{c.title}</span>
           </button>
+        )}
+
+        {confirmDeleteId === c.id ? (
+          <div className="absolute end-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-full bg-white px-2 py-0.5 border border-slate-200 shadow-sm">
+            <span className="text-[11px] font-semibold text-slate-700">למחוק?</span>
+            <button
+              type="button"
+              onClick={() => deleteConversation(c.id)}
+              className="text-[11px] font-bold text-red-500 hover:underline"
+            >
+              כן
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteId(c.id)}
+              className="text-[11px] font-bold text-slate-400 hover:underline"
+            >
+              לא
+            </button>
+          </div>
+        ) : (
+          renameId !== c.id && (
+            <div className="absolute end-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 group-hover:flex">
+              <button
+                type="button"
+                aria-label="שינוי שם"
+                onClick={() => {
+                  setRenameId(c.id)
+                  setRenameText(c.title)
+                }}
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition hover:text-[#0061FF]"
+              >
+                <Edit2 size={12} color="currentColor" />
+              </button>
+              <button
+                type="button"
+                aria-label="מחיקת שיחה"
+                onClick={() => setConfirmDeleteId(c.id)}
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition hover:text-red-500"
+              >
+                <Trash size={12} color="currentColor" />
+              </button>
+            </div>
+          )
+        )}
+      </div>
+    )
+  }
+
+  const showHeroState = !active || active.messages.length === 0
+
+  return (
+    <div className="relative flex h-full w-full overflow-hidden bg-slate-50/80">
+      {/* Background Ambient Glows */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-[#38B6FF]/15 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 -right-40 h-[450px] w-[450px] rounded-full bg-[#0061FF]/10 blur-3xl" />
+
+      {/* Floating Desktop Sidebar (Right Side in RTL) */}
+      <aside className="hidden lg:block shrink-0 z-20 m-3.5">
+        {sidebarContent}
+      </aside>
+
+      {/* Main Workspace Area */}
+      <section className="flex flex-1 flex-col min-w-0 h-full relative z-10">
+        {/* Mobile Header Button Only */}
+        <div className="lg:hidden p-3 flex items-center justify-between border-b border-slate-200/60 bg-white/60 backdrop-blur-md">
+          <button
+            type="button"
+            aria-label="תפריט שיחות"
+            onClick={() => setSidebarOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white border border-slate-200/80 text-slate-700 hover:text-[#0061FF] shadow-sm"
+          >
+            <HambergerMenu size={18} color="currentColor" />
+          </button>
+          <span className="text-[14px] font-black text-slate-800">אתי — העוזרת החכמה</span>
         </div>
 
-        {/* Speed mode */}
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-3">
-          <SpeedModeToggle immediate={immediate} onChange={changeMode} />
-          <p className="text-[11.5px] font-semibold text-secondary-text">{modeHint}</p>
-        </div>
+        {/* Scrollable Conversation Content */}
+        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-4 md:px-8 py-4">
+          {showHeroState ? (
+            /* Welcome Hero View — Raised slightly for perfect focal view */
+            <div className="flex flex-col items-center justify-start max-w-[760px] mx-auto text-center pt-8 md:pt-14 pb-8">
+              {/* Floating 3D Iridescent Blue Orb */}
+              <IridescentOrb />
 
-        {/* Messages */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto py-4">
-          {!active || active.messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-              <span className="flex h-24 w-24 items-center justify-center rounded-full bg-primary-light2">
-                <MagicStar size={44} variant="Bold" color="currentColor" className="text-primary" />
-              </span>
-              <div>
-                <p className="text-[18px] font-black text-navy">התחילו שיחה חדשה</p>
-                <p className="mt-1 max-w-[360px] text-[14px] font-semibold text-secondary-text">
-                  ספרו לאתי מה חשוב לכם — עיר, תקציב, חדרים — והיא תמצא דירות אמיתיות מהמאגר
-                </p>
+              {/* Central Greeting Header */}
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+                שלום, במה אוכל{' '}
+                <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+                  לסייע לך היום?
+                </span>
+              </h1>
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית
+              </p>
+
+              {/* Floating Prompt Card Container */}
+              <div className="mt-6 w-full max-w-[680px]">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    guardedSend(input)
+                  }}
+                  className="relative rounded-3xl border border-white/90 bg-white/90 p-4 shadow-[0_20px_50px_rgba(0,97,255,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
+                >
+                  {/* Multiline Auto-expanding Prompt Text Input */}
+                  <div className="flex items-start gap-2.5">
+                    <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0 mt-1.5" />
+                    <textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={(e) => {
+                        setInput(e.target.value)
+                        e.target.style.height = 'auto'
+                        e.target.style.height = `${Math.min(e.target.scrollHeight, 180)}px`
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          guardedSend(input)
+                        }
+                      }}
+                      rows={1}
+                      placeholder="שאל כל דבר או חפש דירה... (למשל: דירת 3 חדרים בתל אביב עם מרפסת עד 7,000 ₪)"
+                      className="w-full resize-none bg-transparent text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-relaxed min-h-[44px] max-h-[180px] overflow-y-auto transition-all"
+                    />
+                  </div>
+
+                  {/* Bottom Action Bar inside Prompt Card — Real Rently Features */}
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100/90 pt-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => guardedSend('בצע ניתוח אינטליגנציית אזור על תחבורה, בתי ספר ושקט בסביבה')}
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      >
+                        <Location size={14} color="currentColor" />
+                        <span>אינטליגנציית אזור</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => guardedSend('בצע השוואת מחירי שוק מול דירות דומות באזור')}
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      >
+                        <ChartSquare size={14} color="currentColor" />
+                        <span>השוואת מחירי שוק</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => guardedSend('סנן דירות שמתאימות לסגנון החיים וההרגלים שלי')}
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      >
+                        <Magicpen size={14} color="currentColor" />
+                        <span>סינון סגנון חיים</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => guardedSend('אני רוצה להתייעץ ולנתח חוזה שכירות')}
+                        className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-3 py-1 text-[12px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      >
+                        <DocumentText size={14} color="currentColor" />
+                        <span>בדיקת חוזים</span>
+                      </button>
+                    </div>
+
+                    {/* USER COMPONENT 1: Animated Send Button */}
+                    <UserSendButton
+                      disabled={!input.trim()}
+                      onClick={() => guardedSend(input)}
+                    />
+                  </div>
+                </form>
+
+                {/* Quick Chips suggestions below prompt */}
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => guardedSend(chip)}
+                      className="rounded-full border border-slate-200/70 bg-white/80 px-3.5 py-1.5 text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            /* Active Conversation View */
+            <div className="mx-auto max-w-[800px] space-y-6 pb-24">
               {active.messages.map((m, i) => {
                 const listings = m.listingIds?.length ? resolveListings(m.listingIds) : []
                 return (
                   <div key={m.id ?? i} className="flex flex-col">
                     {m.role === 'user' ? (
-                      <div className="max-w-[78%] self-end rounded-2xl rounded-br-md bg-primary-light2 px-4 py-2.5 text-[14.5px] font-semibold leading-relaxed text-navy">
+                      <div className="max-w-[82%] self-end rounded-2xl rounded-br-sm bg-gradient-to-r from-[#0061FF] to-[#38B6FF] px-4 py-3 text-[14.5px] font-medium leading-relaxed text-white shadow-md">
                         {m.text}
                       </div>
                     ) : (
-                      <div className="flex max-w-full items-start gap-2.5 self-start">
-                        <AtiAvatar />
-                        <div className="min-w-0">
-                          {m.deep && <p className="mb-1 text-[11px] font-black text-primary">מותאם אישית ✨</p>}
-                          <div className="max-w-[560px] whitespace-pre-line rounded-2xl rounded-bl-md bg-cloud px-4 py-2.5 text-[14.5px] font-semibold leading-relaxed text-navy">
+                      <div className="flex max-w-full items-start gap-3 self-start">
+                        <AtiAvatar size={36} />
+                        <div className="min-w-0 flex-1">
+                          {m.deep && (
+                            <p className="mb-1 text-[11px] font-black text-[#0061FF]">
+                              מותאם אישית ✨
+                            </p>
+                          )}
+                          <div className="max-w-[620px] whitespace-pre-line rounded-2xl rounded-bl-sm border border-slate-200/80 bg-white px-4 py-3 text-[14.5px] font-medium leading-relaxed text-slate-800 shadow-sm">
                             {m.text}
                             {m.why && (
-                              <span className="mt-1.5 block text-[12px] font-semibold leading-relaxed text-secondary-text">
+                              <span className="mt-2 block text-[12px] font-semibold leading-relaxed text-slate-500 border-t border-slate-100 pt-1.5">
                                 💡 {m.why}
                               </span>
                             )}
@@ -796,17 +1671,19 @@ export default function AtiWorkspace() {
                         </div>
                       </div>
                     )}
+
+                    {/* Listing Cards Carousel */}
                     {listings.length > 0 && (
-                      <div className="no-scrollbar mt-3 flex snap-x gap-4 overflow-x-auto pb-2">
+                      <div className="no-scrollbar mt-3 flex snap-x gap-4 overflow-x-auto pb-2 ps-11">
                         {listings.map((p) => (
-                          <div key={p.id} className="snap-start">
+                          <div key={p.id} className="snap-start shrink-0">
                             <a href={`/listing/${p.id}`} className="block">
                               <PropertyCard property={p} />
                             </a>
                             {(m.notes?.[p.id] || m.explanations?.[p.id]) && (
-                              <p className="mt-1.5 max-w-[280px] text-[11.5px] font-semibold leading-relaxed text-secondary-text">
+                              <p className="mt-1.5 max-w-[280px] text-[11.5px] font-semibold leading-relaxed text-slate-500">
                                 {m.notes?.[p.id] && (
-                                  <span className="text-navy">{m.notes[p.id]}</span>
+                                  <span className="text-[#0061FF] font-bold">{m.notes[p.id]}</span>
                                 )}
                                 {m.notes?.[p.id] && m.explanations?.[p.id] ? ' · ' : ''}
                                 {m.explanations?.[p.id]}
@@ -816,14 +1693,16 @@ export default function AtiWorkspace() {
                         ))}
                       </div>
                     )}
+
+                    {/* Quick Response Chips */}
                     {m.role === 'ati' && (m.chips?.length ?? 0) > 0 && (
-                      <div className="mt-2.5 flex flex-wrap gap-2 ps-[42px]">
+                      <div className="mt-3 flex flex-wrap gap-2 ps-11">
                         {m.chips!.map((chip) => (
                           <button
                             key={chip}
                             type="button"
                             onClick={() => onChipTap(chip)}
-                            className="cursor-pointer rounded-full border border-border-app bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-navy transition hover:border-primary hover:text-primary"
+                            className="cursor-pointer rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-700 shadow-sm transition hover:border-[#0061FF] hover:text-[#0061FF]"
                           >
                             {chip}
                           </button>
@@ -833,10 +1712,11 @@ export default function AtiWorkspace() {
                   </div>
                 )
               })}
+
               {deepBusyConvId === active.id && (
-                <div className="flex items-center gap-2.5 self-start">
-                  <AtiAvatar />
-                  <span className="animate-pulse text-[12.5px] font-bold text-secondary-text">
+                <div className="flex items-center gap-2.5 self-start ps-1">
+                  <AtiAvatar size={28} />
+                  <span className="animate-pulse text-[12.5px] font-bold text-[#0061FF]">
                     אתי מעמיקה… מדייקת את התוצאות בשבילך ✨
                   </span>
                 </div>
@@ -845,75 +1725,43 @@ export default function AtiWorkspace() {
           )}
         </div>
 
-        {/* Suggestion chips (empty conversation only) */}
-        {showChips && (
-          <div className="mb-3 flex flex-wrap justify-center gap-2.5">
-            {CHIPS.map((chip) => (
-              <button
-                key={chip}
-                type="button"
-                onClick={() => guardedSend(chip)}
-                className="cursor-pointer rounded-full border border-border-app bg-white px-4 py-2 text-[13px] font-semibold text-navy transition hover:border-primary hover:text-primary"
-              >
-                {chip}
-              </button>
-            ))}
+        {/* Floating Bottom Input Bar for Active Chat */}
+        {!showHeroState && (
+          <div className="absolute bottom-4 left-4 right-4 md:left-8 md:right-8 z-30">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                guardedSend(input)
+              }}
+              className="mx-auto max-w-[800px] flex items-center gap-2 rounded-2xl border border-white/95 bg-white/95 p-2 ps-4 shadow-[0_15px_35px_rgba(0,97,255,0.09)] backdrop-blur-xl"
+            >
+              <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0" />
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="הקלד הודעה..."
+                className="min-w-0 flex-1 bg-transparent text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400"
+              />
+              <UserSendButton
+                disabled={!input.trim()}
+                onClick={() => guardedSend(input)}
+              />
+            </form>
           </div>
         )}
-
-        {/* Input bar */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            guardedSend(input)
-          }}
-          className="card-shadow sticky bottom-0 flex items-center gap-3 rounded-full border border-border-app bg-white p-2 ps-5"
-        >
-          <MagicStar size={20} variant="Bold" color="currentColor" className="shrink-0 text-primary" />
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="למשל: דירת 3 חדרים עם מרפסת בתל אביב עד 8,000 ₪"
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-navy outline-none placeholder:text-[#9EB5C8]"
-          />
-          <button
-            type="submit"
-            aria-label="שליחה"
-            disabled={!input.trim()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-white transition hover:bg-primary-dark disabled:opacity-50"
-          >
-            <Send2 size={20} color="currentColor" className="-scale-x-100" />
-          </button>
-        </form>
       </section>
 
-      {/* Conversation sidebar — desktop pane (end side) */}
-      <aside className="ms-4 hidden w-[280px] shrink-0 border-s border-border-app lg:block">
-        {sidebarBody}
-      </aside>
-
-      {/* Mobile slide-over */}
+      {/* Mobile Slide-over Drawer for Sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-navy/40"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
             aria-hidden
           />
-          <div className="absolute inset-y-0 end-0 flex w-[300px] max-w-[85vw] flex-col bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border-app px-4 py-3">
-              <span className="text-[15px] font-black text-navy">השיחות שלי</span>
-              <button
-                type="button"
-                aria-label="סגירה"
-                onClick={() => setSidebarOpen(false)}
-                className="text-secondary-text transition hover:text-navy"
-              >
-                <CloseCircle size={22} color="currentColor" />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1">{sidebarBody}</div>
+          <div className="absolute inset-y-0 end-0 flex max-w-[85vw] shadow-2xl p-2">
+            {sidebarContent}
           </div>
         </div>
       )}

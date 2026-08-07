@@ -1,7 +1,11 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
+  ArrowDown2,
+  ArrowLeft2,
+  ArrowRight2,
+  ArrowUp2,
   Bag,
   Briefcase,
   Building3,
@@ -196,7 +200,7 @@ export function groupIcon(key: string): Icon {
   return CATEGORY_META[key]?.icon ?? Gallery
 }
 
-/** Legend chips — icon badge + label + count; toggling hides that specific category layer on map & radar */
+/** Legend chips — 3 columns x 2 rows (6 per page) paginated grid with expand controls */
 export function GroupLegend({
   groups,
   hidden,
@@ -206,36 +210,102 @@ export function GroupLegend({
   hidden: ReadonlySet<string>
   onToggle: (key: string) => void
 }) {
-  return (
-    <div dir="rtl" className="mt-3.5 flex flex-wrap justify-center gap-2">
-      {groups.map((g) => {
-        const off = hidden.has(g.key)
-        const IconCmp = groupIcon(g.key)
-        const meta = CATEGORY_META[g.key]
-        const color = meta?.color ?? g.color
-        const label = meta?.label ?? g.label
+  const [page, setPage] = useState(0)
+  const [showAll, setShowAll] = useState(false)
 
-        return (
-          <button
-            key={g.key}
-            type="button"
-            onClick={() => onToggle(g.key)}
-            aria-pressed={!off}
-            className={`flex items-center gap-2 rounded-full border border-border-app bg-white px-3 py-1.5 text-[12px] font-extrabold text-navy transition hover:bg-slate-50 card-shadow ${
-              off ? 'opacity-35 grayscale' : ''
-            }`}
-          >
-            <span
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white shadow-xs"
-              style={{ backgroundColor: color }}
+  const PAGE_SIZE = 6
+  const totalPages = Math.ceil(groups.length / PAGE_SIZE)
+  const displayedGroups = showAll
+    ? groups
+    : groups.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  return (
+    <div dir="rtl" className="mt-4">
+      {/* Controls Bar */}
+      {groups.length > PAGE_SIZE && (
+        <div className="mb-2.5 flex items-center justify-between px-1">
+          <span className="text-[12px] font-extrabold text-navy">
+            שכבות סינון במפה ({showAll ? `${groups.length} קטגוריות` : `6 מתוך ${groups.length}`})
+          </span>
+
+          <div className="flex items-center gap-2">
+            {!showAll && totalPages > 1 && (
+              <div className="flex items-center gap-1 rounded-xl border border-border-app bg-white p-1 card-shadow">
+                <button
+                  type="button"
+                  disabled={page <= 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  className="flex h-6 w-6 items-center justify-center rounded-lg hover:bg-cloud disabled:opacity-30 text-navy font-bold transition cursor-pointer"
+                  aria-label="הקודם"
+                >
+                  <ArrowRight2 size={14} color="currentColor" />
+                </button>
+                <span className="px-1.5 text-[11px] font-extrabold text-navy">
+                  {page + 1} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  className="flex h-6 w-6 items-center justify-center rounded-lg hover:bg-cloud disabled:opacity-30 text-navy font-bold transition cursor-pointer"
+                  aria-label="הבא"
+                >
+                  <ArrowLeft2 size={14} color="currentColor" />
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowAll((prev) => !prev)}
+              className="flex items-center gap-1 rounded-xl border border-border-app bg-white px-2.5 py-1 text-[11.5px] font-extrabold text-primary hover:bg-primary-light2 transition card-shadow cursor-pointer"
             >
-              <IconCmp size={11} color="#ffffff" variant="Bold" />
-            </span>
-            <span>{label}</span>
-            <span className="font-extrabold text-secondary-text">{g.count}</span>
-          </button>
-        )
-      })}
+              <span>{showAll ? 'הצג 6 בלבד' : `הצג הכל (${groups.length})`}</span>
+              {showAll ? (
+                <ArrowUp2 size={13} color="currentColor" />
+              ) : (
+                <ArrowDown2 size={13} color="currentColor" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Grid: 3 columns x 2 rows (6 per page) */}
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        {displayedGroups.map((g) => {
+          const off = hidden.has(g.key)
+          const IconCmp = groupIcon(g.key)
+          const meta = CATEGORY_META[g.key]
+          const color = meta?.color ?? g.color
+          const label = meta?.label ?? g.label
+
+          return (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() => onToggle(g.key)}
+              aria-pressed={!off}
+              className={`flex items-center justify-between rounded-2xl border border-border-app bg-white px-3.5 py-2 text-[12px] font-extrabold text-navy transition hover:bg-slate-50 card-shadow cursor-pointer ${
+                off ? 'opacity-35 grayscale' : ''
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white shadow-xs"
+                  style={{ backgroundColor: color }}
+                >
+                  <IconCmp size={11} color="#ffffff" variant="Bold" />
+                </span>
+                <span className="truncate">{label}</span>
+              </div>
+              <span className="rounded-full bg-cloud px-2 py-0.5 text-[11px] font-extrabold text-secondary-text">
+                {g.count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

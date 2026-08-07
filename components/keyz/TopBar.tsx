@@ -130,9 +130,6 @@ export default function TopBar() {
                 <span className="max-w-[130px] truncate">
                   {isRegistered ? user?.displayName || user?.email?.split("@")[0] || "אזור אישי" : "אזור אישי"}
                 </span>
-                {isRegistered && (
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                )}
               </button>
 
               {/* Logged In User Dropdown (Closed by default, auto-closes on outside click) */}

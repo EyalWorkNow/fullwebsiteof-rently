@@ -2,7 +2,7 @@
 
 // Web port of the app's AssistantPropertyCard — see
 // docs/research/components/property-card.spec.md (source of truth).
-import { useState } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import {
   Briefcase,
   Building,
@@ -20,6 +20,7 @@ import {
 import type { Icon } from 'iconsax-react'
 import { addressLabel, cityLabel, priceLabel, primaryImage } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
+import { ensureLoaded, isSavedCached, onSavedChange, toggleSaved as toggleSavedRemote } from '@/lib/live/saved'
 
 // Geo-tag emoji prefixes → iconsax icon (emoji is stripped from the label).
 const GEO_ICONS: [string, Icon][] = [
@@ -46,7 +47,14 @@ export default function PropertyCard({
   property: Property
   onSelect?: () => void
 }) {
-  const [saved, setSaved] = useState(false)
+  const saved = useSyncExternalStore(
+    onSavedChange,
+    () => isSavedCached(property.id),
+    () => false,
+  )
+  useEffect(() => {
+    void ensureLoaded()
+  }, [])
 
   const img = primaryImage(property)
   // Broker tag shows ONLY for a listing the data actually marks as agency-listed
@@ -70,7 +78,7 @@ export default function PropertyCard({
 
   const toggleSaved = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setSaved((s) => !s)
+    toggleSavedRemote(property.id, !saved)
   }
 
   return (

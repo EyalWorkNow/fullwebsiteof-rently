@@ -1,28 +1,13 @@
 'use client'
 
-// Real interactive map for מה יש בסביבה — plain Leaflet (no react-leaflet).
-//
-// OSM tiles centered on the property, POI circle-markers colored by the SAME
-// shared 7-group palette as the radar (nearby-groups.tsx), RTL popups with
-// name / kind / distance / walking minutes. Group visibility is controlled by
-// the parent (NearbyPlaces) via `hidden`, so the legend chips drive the map
-// and the radar identically.
-//
-// Leaflet itself is loaded with a dynamic import inside useEffect (never runs
-// during SSR/prerender); only its CSS and types are imported statically —
-// external-package stylesheets are importable from any component in the App
-// Router (node_modules/next/dist/docs/01-app/01-getting-started/11-css.md).
-
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import type { Map as LeafletMap, LayerGroup } from 'leaflet'
 import { distLabel, walkLabel } from '@/lib/live/nearby'
-import { groupColor, type NearbyPoi } from './nearby-groups'
+import { groupColor, GROUP_SVG_PATHS, type NearbyPoi } from './nearby-groups'
 
 type LeafletModule = typeof import('leaflet')
 
-// Popup content built via DOM APIs (textContent) — OSM names are untrusted,
-// never feed them through innerHTML.
 function popupEl(d: NearbyPoi): HTMLElement {
   const root = document.createElement('div')
   root.dir = 'rtl'
@@ -39,6 +24,17 @@ function popupEl(d: NearbyPoi): HTMLElement {
   dist.style.cssText = 'color:#2563EB;font-size:12px;font-weight:800;margin-top:2px'
   root.append(name, kind, dist)
   return root
+}
+
+function markerHtml(group: string, color: string): string {
+  const svgPath = GROUP_SVG_PATHS[group] || GROUP_SVG_PATHS.other
+  return `
+    <div class="kz-poi-pin" style="background-color:${color};">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        ${svgPath}
+      </svg>
+    </div>
+  `
 }
 
 export default function NearbyMap({
@@ -60,7 +56,7 @@ export default function NearbyMap({
   hiddenRef.current = hidden
   const [ready, setReady] = useState(false)
 
-  // --- init / teardown (strict-mode safe: disposed guard + mapRef check) ---
+  // --- init / teardown ---
   useEffect(() => {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return
     let disposed = false
@@ -71,14 +67,15 @@ export default function NearbyMap({
       const map = L.map(containerRef.current, {
         center: [lat, lon],
         zoom: 15,
-        scrollWheelZoom: false, // don't hijack page scroll
+        scrollWheelZoom: false,
         attributionControl: true,
       })
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
       }).addTo(map)
-      // Property marker: pulsing brand dot (same look as the radar center).
+
+      // Property marker: pulsing brand dot
       L.marker([lat, lon], {
         icon: L.divIcon({
           className: 'kz-map-center-wrap',
@@ -89,10 +86,12 @@ export default function NearbyMap({
         keyboard: false,
         interactive: false,
       }).addTo(map)
+
       mapRef.current = map
       leafletRef.current = L
       setReady(true)
     })()
+
     return () => {
       disposed = true
       setReady(false)
@@ -112,15 +111,21 @@ export default function NearbyMap({
 
     const layers = new Map<string, LayerGroup>()
     const bounds = L.latLngBounds([[lat, lon]])
+
     for (const d of dots) {
       if (!Number.isFinite(d.lat) || !Number.isFinite(d.lon)) continue
-      const marker = L.circleMarker([d.lat, d.lon], {
-        radius: 7,
-        fillColor: groupColor(d.group),
-        fillOpacity: 0.9,
-        color: '#fff',
-        weight: 2,
+      const color = groupColor(d.group)
+      const html = markerHtml(d.group, color)
+
+      const marker = L.marker([d.lat, d.lon], {
+        icon: L.divIcon({
+          className: 'kz-poi-marker-wrap',
+          html,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        }),
       }).bindPopup(popupEl(d), { closeButton: false })
+
       let g = layers.get(d.group)
       if (!g) {
         g = L.layerGroup()
@@ -129,10 +134,12 @@ export default function NearbyMap({
       g.addLayer(marker)
       bounds.extend([d.lat, d.lon])
     }
+
     groupLayersRef.current = layers
     for (const [key, g] of layers) {
       if (!hiddenRef.current.has(key)) g.addTo(map)
     }
+
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 })
     }
@@ -173,13 +180,24 @@ export default function NearbyMap({
         @media (prefers-reduced-motion: reduce) {
           .kz-map-center-pulse { animation: none; opacity: 0; }
         }
+        .kz-poi-marker-wrap { background: none; border: none; }
+        .kz-poi-pin {
+          width: 24px; height: 24px; border-radius: 9999px;
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 8px rgba(7, 41, 70, 0.28);
+          display: flex; align-items: center; justify-content: center;
+          transition: transform 0.15s ease-out;
+          cursor: pointer;
+        }
+        .kz-poi-pin:hover {
+          transform: scale(1.22);
+          z-index: 1000;
+        }
         .kz-nearby-map .leaflet-popup-content { margin: 10px 14px; }
         .kz-nearby-map .leaflet-popup-content-wrapper { border-radius: 14px; }
       `}</style>
       <div
         ref={containerRef}
-        // relative z-0 creates a stacking context so Leaflet's high-z panes
-        // never float above the site's sticky chrome while scrolling.
         className="kz-nearby-map relative z-0 h-[420px] w-full"
         role="application"
         aria-label="מפה אינטראקטיבית של מקומות בסביבת הנכס"

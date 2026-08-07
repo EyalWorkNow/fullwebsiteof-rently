@@ -64,7 +64,7 @@ import NearbyMap from './NearbyMap'
 import NearbyRadar from './NearbyRadar'
 import {
   GroupLegend,
-  NEARBY_GROUPS,
+  groupColor,
   type NearbyGroupWithCount,
   type NearbyPoi,
 } from './nearby-groups'
@@ -379,7 +379,7 @@ export default function NearbyPlaces({
           lat: p.lat,
           lon: p.lon,
           bearing: b,
-          group: s.group,
+          group: s.key,
           kindLabel: s.label,
         })
         pushed = true
@@ -388,9 +388,18 @@ export default function NearbyPlaces({
     }
     const counts = new Map<string, number>()
     for (const d of dots) counts.set(d.group, (counts.get(d.group) ?? 0) + 1)
-    const groups: NearbyGroupWithCount[] = NEARBY_GROUPS.flatMap((g) => {
-      const count = counts.get(g.key) ?? 0
-      return count > 0 ? [{ ...g, count }] : []
+
+    const groups: NearbyGroupWithCount[] = sections.flatMap((s) => {
+      const count = counts.get(s.key) ?? 0
+      if (count <= 0) return []
+      return [
+        {
+          key: s.key,
+          label: s.label.replace(' קרובים', '').replace(' קרובות', ''),
+          color: groupColor(s.key),
+          count,
+        },
+      ]
     })
     return { poiDots: dots, poiGroups: groups }
   }, [sections, lat, lon])

@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import type { Map as LeafletMap, LayerGroup } from 'leaflet'
 import { distLabel, walkLabel } from '@/lib/live/nearby'
-import { groupColor, GROUP_SVG_PATHS, type NearbyPoi } from './nearby-groups'
+import { groupColor, groupSvgPath, type NearbyPoi } from './nearby-groups'
 
 type LeafletModule = typeof import('leaflet')
 
@@ -27,7 +27,7 @@ function popupEl(d: NearbyPoi): HTMLElement {
 }
 
 function markerHtml(group: string, color: string): string {
-  const svgPath = GROUP_SVG_PATHS[group] || GROUP_SVG_PATHS.other
+  const svgPath = groupSvgPath(group)
   return `
     <div class="kz-poi-pin" style="background-color:${color};">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">

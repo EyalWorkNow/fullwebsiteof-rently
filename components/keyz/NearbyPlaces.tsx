@@ -41,6 +41,10 @@ import {
   Tree,
   Weight,
   Drop,
+  ArrowLeft2,
+  ArrowRight2,
+  ArrowDown2,
+  ArrowUp2,
   type Icon,
 } from 'iconsax-react'
 import {
@@ -268,6 +272,8 @@ export default function NearbyPlaces({
   // Group visibility is lifted here so the legend chips drive BOTH views and
   // stay in sync when switching between the map and the radar.
   const [hiddenGroups, setHiddenGroups] = useState<ReadonlySet<string>>(new Set())
+  const [categoryPage, setCategoryPage] = useState(0)
+  const [showAllCategories, setShowAllCategories] = useState(false)
   // Flips once the bundled govdata JSON (incl. the precise rail_stations
   // list) has loaded, so the key-distances pills can upgrade from the
   // curated STATIONS fallback to the richer bundled station list.
@@ -519,40 +525,106 @@ export default function NearbyPlaces({
         </>
       )}
 
-      {/* 3 — category tiles */}
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {sections.map((s) => {
-          const IconCmp = s.icon
-          const isOpen = openKind === s.key
-          const nearest = s.places[0]
-          return (
-            <button
-              key={s.key}
-              type="button"
-              aria-expanded={isOpen}
-              onClick={() => {
-                setOpenKind(isOpen ? null : s.key)
-                setShowMore(false)
-              }}
-              className={`rounded-2xl border p-3 text-right transition card-shadow ${
-                isOpen
-                  ? 'border-primary bg-primary-light2'
-                  : 'border-border-app bg-white hover:border-primary/40'
-              }`}
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light2">
-                <IconCmp size={20} color="#2563EB" />
-              </span>
-              <span className="mt-2 block truncate text-[13px] font-extrabold text-navy">
-                {s.label}
-              </span>
-              <span className="mt-0.5 block truncate text-[11.5px] font-bold text-secondary-text">
-                {s.places.length} מקומות{nearest ? ` · הקרוב ${distLabel(nearest.km)}` : ''}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+      {/* 3 — category tiles (2 rows x 4 columns grid, max 8 per page) */}
+      {(() => {
+        const PAGE_SIZE = 8
+        const totalCategoryPages = Math.ceil(sections.length / PAGE_SIZE)
+        const displayedSections = showAllCategories
+          ? sections
+          : sections.slice(categoryPage * PAGE_SIZE, (categoryPage + 1) * PAGE_SIZE)
+
+        return (
+          <>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-b border-border-app pb-2.5">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[15px] font-black text-navy">קטגוריות בסביבה</h3>
+                <span className="rounded-full bg-cloud px-2.5 py-0.5 text-[11.5px] font-bold text-secondary-text">
+                  {showAllCategories
+                    ? `${sections.length} קטגוריות`
+                    : `8 מתוך ${sections.length}`}
+                </span>
+              </div>
+
+              {sections.length > PAGE_SIZE && (
+                <div className="flex items-center gap-2.5">
+                  {!showAllCategories && totalCategoryPages > 1 && (
+                    <div className="flex items-center gap-1 rounded-xl border border-border-app bg-white p-1 card-shadow">
+                      <button
+                        type="button"
+                        disabled={categoryPage <= 0}
+                        onClick={() => setCategoryPage((p) => Math.max(0, p - 1))}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-cloud disabled:opacity-30 text-navy font-bold transition cursor-pointer"
+                        aria-label="הקודם"
+                      >
+                        <ArrowRight2 size={16} color="currentColor" />
+                      </button>
+                      <span className="px-2 text-[11.5px] font-extrabold text-navy">
+                        {categoryPage + 1} / {totalCategoryPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={categoryPage >= totalCategoryPages - 1}
+                        onClick={() => setCategoryPage((p) => Math.min(totalCategoryPages - 1, p + 1))}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-cloud disabled:opacity-30 text-navy font-bold transition cursor-pointer"
+                        aria-label="הבא"
+                      >
+                        <ArrowLeft2 size={16} color="currentColor" />
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCategories((prev) => !prev)}
+                    className="flex items-center gap-1 rounded-xl border border-border-app bg-white px-3 py-1.5 text-[12px] font-extrabold text-primary hover:bg-primary-light2 transition card-shadow cursor-pointer"
+                  >
+                    <span>{showAllCategories ? 'הצג 8 בלבד' : `הצג הכל (${sections.length})`}</span>
+                    {showAllCategories ? (
+                      <ArrowUp2 size={14} color="currentColor" />
+                    ) : (
+                      <ArrowDown2 size={14} color="currentColor" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3.5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {displayedSections.map((s) => {
+                const IconCmp = s.icon
+                const isOpen = openKind === s.key
+                const nearest = s.places[0]
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => {
+                      setOpenKind(isOpen ? null : s.key)
+                      setShowMore(false)
+                    }}
+                    className={`rounded-2xl border p-3 text-right transition card-shadow cursor-pointer ${
+                      isOpen
+                        ? 'border-primary bg-primary-light2'
+                        : 'border-border-app bg-white hover:border-primary/40'
+                    }`}
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-light2">
+                      <IconCmp size={20} color="#2563EB" />
+                    </span>
+                    <span className="mt-2 block truncate text-[13px] font-extrabold text-navy">
+                      {s.label}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11.5px] font-bold text-secondary-text">
+                      {s.places.length} מקומות{nearest ? ` · הקרוב ${distLabel(nearest.km)}` : ''}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )
+      })()}
 
       {/* single progressive-disclosure panel below the grid */}
       <div

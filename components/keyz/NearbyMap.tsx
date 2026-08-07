@@ -37,6 +37,21 @@ function markerHtml(group: string, color: string): string {
   `
 }
 
+// Ultra-prominent, accessible Property Location Pin marker HTML
+const PROPERTY_PIN_HTML = `
+  <div class="kz-property-pin-wrapper">
+    <div class="kz-property-pulse-1"></div>
+    <div class="kz-property-pulse-2"></div>
+    <div class="kz-property-badge">📍 הדירה</div>
+    <div class="kz-property-pin-body">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+      </svg>
+    </div>
+    <div class="kz-property-pin-arrow"></div>
+  </div>
+`
+
 export default function NearbyMap({
   lat,
   lon,
@@ -75,13 +90,14 @@ export default function NearbyMap({
         maxZoom: 19,
       }).addTo(map)
 
-      // Property marker: pulsing brand dot
+      // Prominent Property Pin marker (always stays on top with zIndexOffset: 10000)
       L.marker([lat, lon], {
+        zIndexOffset: 10000,
         icon: L.divIcon({
-          className: 'kz-map-center-wrap',
-          html: '<div class="kz-map-center"><span class="kz-map-center-pulse"></span></div>',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10],
+          className: 'kz-property-marker-layer',
+          html: PROPERTY_PIN_HTML,
+          iconSize: [60, 60],
+          iconAnchor: [30, 56],
         }),
         keyboard: false,
         interactive: false,
@@ -141,7 +157,7 @@ export default function NearbyMap({
     }
 
     if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 })
+      map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 })
     }
   }, [ready, dots, lat, lon])
 
@@ -159,49 +175,107 @@ export default function NearbyMap({
   }, [ready, hidden])
 
   return (
-    <div className="overflow-hidden rounded-[28px] border border-border-app bg-white card-shadow">
-      <style>{`
-        .kz-map-center-wrap { background: none; border: none; }
-        .kz-map-center {
-          position: relative; width: 20px; height: 20px; border-radius: 9999px;
-          background: #2563EB; border: 3px solid #fff;
-          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
-        }
-        .kz-map-center-pulse {
-          position: absolute; inset: -4px; border-radius: 9999px;
-          background: rgba(37, 99, 235, 0.35);
-          animation: kz-map-pulse 2.4s ease-out infinite;
-        }
-        @keyframes kz-map-pulse {
-          0% { transform: scale(1); opacity: .6; }
-          70% { transform: scale(2.4); opacity: 0; }
-          100% { transform: scale(2.4); opacity: 0; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .kz-map-center-pulse { animation: none; opacity: 0; }
-        }
-        .kz-poi-marker-wrap { background: none; border: none; }
-        .kz-poi-pin {
-          width: 24px; height: 24px; border-radius: 9999px;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 8px rgba(7, 41, 70, 0.28);
-          display: flex; align-items: center; justify-content: center;
-          transition: transform 0.15s ease-out;
-          cursor: pointer;
-        }
-        .kz-poi-pin:hover {
-          transform: scale(1.22);
-          z-index: 1000;
-        }
-        .kz-nearby-map .leaflet-popup-content { margin: 10px 14px; }
-        .kz-nearby-map .leaflet-popup-content-wrapper { border-radius: 14px; }
-      `}</style>
-      <div
-        ref={containerRef}
-        className="kz-nearby-map relative z-0 h-[420px] w-full"
-        role="application"
-        aria-label="מפה אינטראקטיבית של מקומות בסביבת הנכס"
-      />
+    /* Outer container: 4px vertical gradient stroke border (white to light gray) + drop shadow */
+    <div className="relative p-[4px] rounded-[32px] bg-gradient-to-b from-white via-slate-100 to-slate-200/90 shadow-[0_16px_45px_rgba(7,41,70,0.16)]">
+      <div className="overflow-hidden rounded-[28px] bg-white relative z-0">
+        <style>{`
+          .kz-property-marker-layer {
+            background: none !important;
+            border: none !important;
+            z-index: 10000 !important;
+          }
+          .kz-property-pin-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+          }
+          .kz-property-badge {
+            background: #072946;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(7, 41, 70, 0.35);
+            border: 1.5px solid #ffffff;
+            white-space: nowrap;
+            margin-bottom: 3px;
+            letter-spacing: 0.3px;
+          }
+          .kz-property-pin-body {
+            width: 38px;
+            height: 38px;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #0061FF 0%, #38B6FF 100%);
+            border: 3px solid #ffffff;
+            box-shadow: 0 8px 24px rgba(0, 97, 255, 0.48);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+          }
+          .kz-property-pin-arrow {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #ffffff;
+            margin-top: -2px;
+            z-index: 1;
+          }
+          .kz-property-pulse-1 {
+            position: absolute;
+            bottom: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background: rgba(0, 97, 255, 0.45);
+            animation: kz-prop-pulse 2s ease-out infinite;
+            z-index: 0;
+          }
+          .kz-property-pulse-2 {
+            position: absolute;
+            bottom: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            background: rgba(56, 182, 255, 0.45);
+            animation: kz-prop-pulse 2s ease-out 0.8s infinite;
+            z-index: 0;
+          }
+          @keyframes kz-prop-pulse {
+            0% { transform: scale(1); opacity: 0.85; }
+            100% { transform: scale(3.5); opacity: 0; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .kz-property-pulse-1, .kz-property-pulse-2 { animation: none; opacity: 0; }
+          }
+          .kz-poi-marker-wrap { background: none; border: none; }
+          .kz-poi-pin {
+            width: 24px; height: 24px; border-radius: 9999px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(7, 41, 70, 0.28);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.15s ease-out;
+            cursor: pointer;
+          }
+          .kz-poi-pin:hover {
+            transform: scale(1.22);
+            z-index: 1000;
+          }
+          .kz-nearby-map .leaflet-popup-content { margin: 10px 14px; }
+          .kz-nearby-map .leaflet-popup-content-wrapper { border-radius: 14px; }
+        `}</style>
+        <div
+          ref={containerRef}
+          className="kz-nearby-map relative z-0 h-[420px] w-full"
+          role="application"
+          aria-label="מפה אינטראקטיבית של מקומות בסביבת הנכס"
+        />
+      </div>
     </div>
   )
 }

@@ -118,9 +118,11 @@ export async function sendThreadMessage(matchId: string, text: string): Promise<
   if (!res.ok) throw new Error('שליחת ההודעה נכשלה. נסו שוב.')
 }
 
-// ── Dismissed leads — the app's own "reject" is local-only (a left-swipe never
-// calls the server), so a rejection here is kept the same way: hidden on this
-// device/account, never deleted server-side (the like itself is real history).
+// ── Dismissed leads — kept local for an instant optimistic hide (no round
+// trip needed to make the card disappear), PLUS synced server-side via
+// POST /match/reject so the rejection is honored on every device and the
+// app, not just this browser. The app's own left-swipe used to be local-only
+// too (never called the server) — fixed the same way on that side.
 const DISMISS_KEY = 'rently-dismissed-leads'
 
 function dismissedSet(): Set<string> {
@@ -139,8 +141,20 @@ export function isDismissed(propertyId: string, tenantId: string): boolean {
 }
 
 export function dismissLead(propertyId: string, tenantId: string): void {
-  if (typeof window === 'undefined') return
-  const set = dismissedSet()
-  set.add(matchIdFor(propertyId, tenantId))
-  window.localStorage.setItem(DISMISS_KEY, JSON.stringify([...set]))
+  if (typeof window !== 'undefined') {
+    const set = dismissedSet()
+    set.add(matchIdFor(propertyId, tenantId))
+    window.localStorage.setItem(DISMISS_KEY, JSON.stringify([...set]))
+  }
+  void (async () => {
+    try {
+      await fetch(`${BASE}/match/reject`, {
+        method: 'POST',
+        headers: await authHeaders(),
+        body: JSON.stringify({ propertyId, tenantId }),
+      })
+    } catch {
+      /* fail-soft — the local hide already happened */
+    }
+  })()
 }

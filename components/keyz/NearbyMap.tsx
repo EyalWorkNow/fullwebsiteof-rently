@@ -8,9 +8,11 @@ import { groupColor, groupSvgPath, type NearbyPoi } from './nearby-groups'
 
 type LeafletModule = typeof import('leaflet')
 
-function googleMapsUrl(d: NearbyPoi): string {
-  const query = encodeURIComponent(d.name ? `${d.name} ${d.kindLabel}` : d.kindLabel)
-  return `https://www.google.com/maps/search/?api=1&query=${query}`
+function googleHref(name: string, lat: number, lon: number): string {
+  if (lat && lon) {
+    return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(name)}`
 }
 
 function popupEl(d: NearbyPoi): HTMLElement {
@@ -21,86 +23,83 @@ function popupEl(d: NearbyPoi): HTMLElement {
 
   const root = document.createElement('div')
   root.dir = 'rtl'
-  root.className = 'kz-popup-card'
   root.style.cssText = `
-    background: ${color};
+    background-color: ${color};
     color: #ffffff;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-radius: 20px;
     text-align: center;
-    min-width: 175px;
+    min-width: 170px;
     max-width: 230px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.30);
-    font-family: inherit;
+    box-shadow: 0 12px 32px rgba(7, 41, 70, 0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
   `
 
-  // Top Category SVG Icon Badge
+  // Top category icon badge
   const iconBadge = document.createElement('div')
   iconBadge.style.cssText = `
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.22);
-    margin: 0 auto 8px auto;
+    background-color: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 2px;
   `
   iconBadge.innerHTML = `
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
       ${svgPath}
     </svg>
   `
 
-  // Place Name / Title
+  // Title / Name
   const name = document.createElement('div')
   name.textContent = d.name || d.kindLabel
-  name.style.cssText = 'font-weight:900;color:#ffffff;font-size:14px;line-height:1.25;'
+  name.style.cssText = 'font-weight: 900; color: #ffffff; font-size: 13.5px; line-height: 1.3; text-align: center;'
 
-  // Kind Subtitle
+  // Category kind (if name exists and is different from kindLabel)
   const kind = document.createElement('div')
-  kind.textContent = d.kindLabel
-  kind.style.cssText = 'color:rgba(255, 255, 255, 0.88);font-size:11.5px;font-weight:700;margin-top:3px;'
+  if (d.name && d.name !== d.kindLabel) {
+    kind.textContent = d.kindLabel
+    kind.style.cssText = 'color: rgba(255, 255, 255, 0.88); font-size: 11px; font-weight: 700; text-align: center;'
+  }
 
-  // Distance & Walk Info with Location Pin Icon
+  // Distance & walking label
   const dist = document.createElement('div')
-  dist.style.cssText = 'color:#ffffff;font-size:12px;font-weight:800;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:4px;'
-  dist.innerHTML = `
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-      <circle cx="12" cy="9" r="2.5"/>
-    </svg>
-    <span>${distText}</span>
-  `
+  dist.style.cssText = 'color: #ffffff; font-size: 11.5px; font-weight: 800; display: flex; items-center; justify-content: center; gap: 4px; margin-top: 1px;'
+  dist.innerHTML = `<span>🚶</span><span>${distText}</span>`
 
-  // Open in Google Button
-  const btn = document.createElement('a')
-  btn.href = googleMapsUrl(d)
-  btn.target = '_blank'
-  btn.rel = 'noopener noreferrer'
-  btn.style.cssText = `
-    margin-top: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    background: #ffffff;
-    color: #072946;
+  // Google Maps link button
+  const gLink = document.createElement('a')
+  gLink.href = googleHref(d.name || d.kindLabel, d.lat, d.lon)
+  gLink.target = '_blank'
+  gLink.rel = 'noopener noreferrer'
+  gLink.style.cssText = `
+    margin-top: 6px;
+    background-color: #ffffff;
+    color: ${color};
     font-weight: 900;
     font-size: 11.5px;
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 12px;
     text-decoration: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.16);
+    transition: transform 0.15s;
   `
-  btn.innerHTML = `
-    <span>פתח ב-Google</span>
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
-    </svg>
-  `
+  gLink.innerHTML = `<span>פתיחה בגוגל</span> <span style="font-size: 10px;">↗</span>`
 
-  root.append(iconBadge, name, kind, dist, btn)
+  root.append(iconBadge, name)
+  if (d.name && d.name !== d.kindLabel) root.append(kind)
+  root.append(dist, gLink)
+
   return root
 }
 
@@ -360,19 +359,9 @@ export default function NearbyMap({
             transform: scale(1.22);
             z-index: 1000;
           }
-          .kz-nearby-map .leaflet-popup-content-wrapper {
-            background: transparent !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            border-radius: 20px !important;
-          }
-          .kz-nearby-map .leaflet-popup-content {
-            margin: 0 !important;
-            line-height: inherit !important;
-          }
-          .kz-nearby-map .leaflet-popup-tip-container {
-            display: none !important;
-          }
+          .kz-nearby-map .leaflet-popup-content { margin: 0 !important; width: auto !important; }
+          .kz-nearby-map .leaflet-popup-content-wrapper { padding: 0 !important; background: transparent !important; border-radius: 20px !important; box-shadow: none !important; border: none !important; }
+          .kz-nearby-map .leaflet-popup-tip-container { display: none !important; }
         `}</style>
         <div
           ref={containerRef}

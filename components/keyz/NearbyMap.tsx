@@ -268,8 +268,8 @@ export default function NearbyMap({
   }, [ready, hidden])
 
   return (
-    /* Outer container: 8px vertical gradient stroke border (white to light gray) + prominent drop shadow */
-    <div className="relative p-[8px] rounded-[36px] bg-gradient-to-b from-white via-slate-200 to-slate-300 shadow-[0_20px_50px_rgba(7,41,70,0.18)]">
+    /* Outer container: 4px vertical gradient stroke border (white to light gray) + prominent drop shadow */
+    <div className="relative p-[4px] rounded-[32px] bg-gradient-to-b from-white via-slate-200 to-slate-300 shadow-[0_16px_45px_rgba(7,41,70,0.16)]">
       <div className="overflow-hidden rounded-[28px] bg-white relative z-0 h-[420px] w-full">
         <style>{`
           .kz-property-marker-layer {

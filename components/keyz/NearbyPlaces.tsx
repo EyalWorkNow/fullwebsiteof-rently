@@ -302,6 +302,17 @@ export default function NearbyPlaces({
             merged[kind] = places.map((p) => ({ ...p, kind }))
           }
         }
+
+        // Default active layers: ONLY supermarkets, parks, health, transit
+        const DEFAULT_ACTIVE_KEYS = new Set(['supermarkets', 'parks', 'health', 'transit'])
+        const initialHidden = new Set<string>()
+        for (const k of KINDS) {
+          if (!DEFAULT_ACTIVE_KEYS.has(k.key)) {
+            initialHidden.add(k.key)
+          }
+        }
+        setHiddenGroups(initialHidden)
+
         setByKind(merged)
         setStatus('ready')
       })

@@ -20,6 +20,7 @@ import {
   Health,
   Heart,
   Hospital,
+  InfoCircle,
   Moon,
   Pet,
   Reserve,
@@ -200,7 +201,7 @@ export function groupIcon(key: string): Icon {
   return CATEGORY_META[key]?.icon ?? Gallery
 }
 
-/** Legend chips — 3 columns x 2 rows (6 per page) paginated grid with expand controls */
+/** Legend chips — 3 columns x 2 rows (6 per page) paginated grid with expand controls & info tooltip */
 export function GroupLegend({
   groups,
   hidden,
@@ -212,6 +213,7 @@ export function GroupLegend({
 }) {
   const [page, setPage] = useState(0)
   const [showAll, setShowAll] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(false)
 
   const PAGE_SIZE = 6
   const totalPages = Math.ceil(groups.length / PAGE_SIZE)
@@ -222,12 +224,37 @@ export function GroupLegend({
   return (
     <div dir="rtl" className="mt-4">
       {/* Controls Bar */}
-      {groups.length > PAGE_SIZE && (
-        <div className="mb-2.5 flex items-center justify-between px-1">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 px-1">
+        <div className="relative flex items-center gap-1.5">
           <span className="text-[12px] font-extrabold text-navy">
             שכבות סינון במפה ({showAll ? `${groups.length} קטגוריות` : `6 מתוך ${groups.length}`})
           </span>
+          <button
+            type="button"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            onClick={() => setShowTooltip((prev) => !prev)}
+            className="text-slate-400 hover:text-primary transition cursor-pointer"
+            aria-label="מידע על שכבות הסינון"
+          >
+            <InfoCircle size={16} color="currentColor" />
+          </button>
 
+          {/* Floating Tooltip Bubble */}
+          {showTooltip && (
+            <div className="absolute top-full right-0 mt-2 z-40 w-64 rounded-2xl border border-border-app bg-white p-3 shadow-2xl text-right text-[11.5px] font-bold text-navy dir-rtl">
+              <div className="font-black text-primary mb-1">💡 שכבות סינון במפה</div>
+              <div className="text-secondary-text leading-relaxed font-bold">
+                לחצו על הקטגוריות כדי להציג או להסתיר מקומות במפה לפי מה שחשוב לכם בסביבה.
+              </div>
+              <div className="mt-1 text-[10.5px] font-extrabold text-navy">
+                כברירת מחדל מוצגים סופרים, פארקים, בריאות ותחבורה.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {groups.length > PAGE_SIZE && (
           <div className="flex items-center gap-2">
             {!showAll && totalPages > 1 && (
               <div className="flex items-center gap-1 rounded-xl border border-border-app bg-white p-1 card-shadow">
@@ -268,8 +295,8 @@ export function GroupLegend({
               )}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Grid: 3 columns x 2 rows (6 per page) */}
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">

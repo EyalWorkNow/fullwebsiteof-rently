@@ -67,7 +67,13 @@ export default function PropertyCard({
     .filter((t): t is [Icon, string] => t !== null)
   const plainTags = tags.filter((t) => geoIconFor(t) === null).slice(0, 3)
 
+  // Some callers (app/real-estate/Browse.tsx) wrap the whole card in a plain
+  // <a href="/listing/…">, not a React onClick — stopPropagation alone never
+  // stopped that: it only blocks bubbling through React's own synthetic event
+  // system, not a native anchor's default navigation. preventDefault is the
+  // one that actually matters here.
   const share = (e: React.MouseEvent) => {
+    e.preventDefault()
     e.stopPropagation()
     if (typeof navigator !== 'undefined' && navigator.share) {
       navigator
@@ -77,6 +83,7 @@ export default function PropertyCard({
   }
 
   const toggleSaved = (e: React.MouseEvent) => {
+    e.preventDefault()
     e.stopPropagation()
     toggleSavedRemote(property.id, !saved)
   }

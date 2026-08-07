@@ -106,6 +106,11 @@ export default function NearbyMap({
       mapRef.current = map
       leafletRef.current = L
       setReady(true)
+
+      // Ensure tile sizes invalidate correctly after mounting inside wrapper
+      setTimeout(() => {
+        map.invalidateSize()
+      }, 100)
     })()
 
     return () => {
@@ -116,6 +121,16 @@ export default function NearbyMap({
       mapRef.current = null
     }
   }, [lat, lon])
+
+  // --- Invalidate map size when ready state updates ---
+  useEffect(() => {
+    if (ready && mapRef.current) {
+      const timer = setTimeout(() => {
+        mapRef.current?.invalidateSize()
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [ready])
 
   // --- (re)build POI layer groups when the data changes ---
   useEffect(() => {
@@ -157,7 +172,8 @@ export default function NearbyMap({
     }
 
     if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 })
+      map.fitBounds(bounds, { padding: [36, 36], maxZoom: 16 })
+      map.invalidateSize()
     }
   }, [ready, dots, lat, lon])
 
@@ -175,9 +191,9 @@ export default function NearbyMap({
   }, [ready, hidden])
 
   return (
-    /* Outer container: 4px vertical gradient stroke border (white to light gray) + drop shadow */
-    <div className="relative p-[4px] rounded-[32px] bg-gradient-to-b from-white via-slate-100 to-slate-200/90 shadow-[0_16px_45px_rgba(7,41,70,0.16)]">
-      <div className="overflow-hidden rounded-[28px] bg-white relative z-0">
+    /* Outer container: 8px vertical gradient stroke border (white to light gray) + prominent drop shadow */
+    <div className="relative p-[8px] rounded-[36px] bg-gradient-to-b from-white via-slate-200 to-slate-300 shadow-[0_20px_50px_rgba(7,41,70,0.18)]">
+      <div className="overflow-hidden rounded-[28px] bg-white relative z-0 h-[420px] w-full">
         <style>{`
           .kz-property-marker-layer {
             background: none !important;
@@ -271,7 +287,7 @@ export default function NearbyMap({
         `}</style>
         <div
           ref={containerRef}
-          className="kz-nearby-map relative z-0 h-[420px] w-full"
+          className="kz-nearby-map relative z-0 h-full w-full min-h-[420px]"
           role="application"
           aria-label="מפה אינטראקטיבית של מקומות בסביבת הנכס"
         />

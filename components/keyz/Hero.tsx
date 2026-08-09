@@ -518,26 +518,34 @@ export default function Hero() {
             <button
               type="button"
               onClick={() => setActiveMode("fast")}
-              className={`flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-black transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-black transition-all duration-200 cursor-pointer ${
                 activeMode === "fast"
-                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/20 scale-[1.02]"
+                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/25 scale-[1.02]"
                   : "text-slate-600 hover:text-[#0061FF] hover:bg-blue-50/60"
               }`}
             >
-              <Flash size={16} variant="Bold" />
+              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors ${
+                activeMode === "fast" ? "bg-white/25 text-white" : "bg-blue-100/90 text-[#0061FF]"
+              }`}>
+                <Flash size={13} variant="Bold" color="currentColor" />
+              </div>
               <span>אתי מהירה</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveMode("deep")}
-              className={`flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-black transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-black transition-all duration-200 cursor-pointer ${
                 activeMode === "deep"
-                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/20 scale-[1.02]"
+                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/25 scale-[1.02]"
                   : "text-slate-600 hover:text-[#0061FF] hover:bg-blue-50/60"
               }`}
             >
-              <MagicStar size={16} variant="Bold" />
+              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors ${
+                activeMode === "deep" ? "bg-white/25 text-white" : "bg-blue-100/90 text-[#0061FF]"
+              }`}>
+                <MagicStar size={13} variant="Bold" color="currentColor" />
+              </div>
               <span>אתי מעמיקה</span>
             </button>
           </div>

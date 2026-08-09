@@ -1530,30 +1530,30 @@ export default function AtiWorkspace() {
       {/* Subtle tech grid background pattern */}
       <div className="pointer-events-none absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#0061ff0a_1px,transparent_1px),linear-gradient(to_bottom,#0061ff0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
 
-      {/* Floating Desktop Sidebar (Explicitly Anchored on the RIGHT Side) */}
-      <aside className="hidden xl:block absolute top-3.5 right-3.5 bottom-3.5 z-30 w-72">
+      {/* 1. Sidebar Column (Right Side in RTL, Flex Flow) */}
+      <aside className="hidden lg:block shrink-0 z-20 p-3.5 w-72 md:w-80 h-full">
         {sidebarContent}
       </aside>
 
-      {/* Main Workspace Area (Spans 100% width, 100% centered) */}
-      <section className="flex flex-1 flex-col items-center justify-center min-w-0 h-full relative z-10 w-full">
+      {/* 2. Chat Area Column (Fills remaining width, 100% centered inside its own bounds) */}
+      <section className="flex flex-1 flex-col items-center justify-between min-w-0 h-full relative z-10 w-full px-3 sm:px-6 md:px-8 py-3 md:py-4">
         {/* Floating Mobile Conversation History Pill Button */}
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="xl:hidden absolute top-3 right-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
+          className="lg:hidden absolute top-3 right-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
         >
           <Messages3 size={16} color="#0061FF" variant="Bold" />
           <span>שיחות קודמות</span>
         </button>
 
-        {/* Scrollable Conversation Content */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto px-3 sm:px-6 md:px-8 py-3 md:py-6 flex flex-col items-center justify-center">
+        {/* Scrollable Conversation Content — Centered inside Chat Area Column */}
+        <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto flex flex-col items-center justify-between max-w-[840px] mx-auto">
           {showHeroState ? (
-            /* Welcome Hero View — 100% centered hero + large chatbox */
-            <div className="flex-1 flex flex-col justify-between items-center max-w-[840px] w-full mx-auto self-center text-center pt-4 pb-6 md:pt-6 md:pb-6 min-h-[calc(100dvh-120px)] md:min-h-0">
+            /* Welcome Hero View — 100% centered inside Chat Area Column */
+            <div className="flex-1 flex flex-col justify-between items-center w-full mx-auto text-center pt-2 pb-4 md:pt-4 md:pb-4 min-h-[calc(100dvh-120px)] md:min-h-0">
               {/* Central Greeting Header */}
-              <div className="flex flex-col items-center justify-center text-center my-auto md:my-0 py-2 shrink-0 w-full mx-auto self-center">
+              <div className="flex flex-col items-center justify-center text-center my-auto md:my-0 py-2 shrink-0 w-full mx-auto">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] opacity-30 blur-xl animate-pulse" />
                   <IridescentOrb />
@@ -1585,7 +1585,7 @@ export default function AtiWorkspace() {
               </div>
 
               {/* Large & Prominent Chatbox Input Section */}
-              <div className="w-full max-w-[840px] mx-auto self-center mt-auto shrink-0 pt-3">
+              <div className="w-full max-w-[840px] mx-auto mt-auto shrink-0 pt-3">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()

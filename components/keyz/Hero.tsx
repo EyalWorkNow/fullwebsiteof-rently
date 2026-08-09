@@ -502,21 +502,8 @@ export default function Hero() {
       />
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">
-        {/* 1. Prominent Hero CTA Spotlight Badge */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex justify-center mb-3">
-          <motion.a
-            href="/publish"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.96 }}
-            className="inline-flex items-center gap-2.5 rounded-full border-2 border-blue-300/80 bg-gradient-to-r from-[#0061FF] via-[#0061FF] to-[#38B6FF] px-6 py-2.5 text-[13.5px] sm:text-[14px] font-black text-white shadow-[0_10px_30px_rgba(0,97,255,0.35)] transition-all hover:shadow-[0_16px_40px_rgba(0,97,255,0.45)] cursor-pointer"
-          >
-            <MagicStar size={18} variant="Bold" color="#FFFFFF" className="shrink-0" />
-            <span>משכירים או מוכרים? פרסמו דירה בחינם ב-2 דקות! ✨</span>
-          </motion.a>
-        </motion.div>
-
-        {/* 2. Enlarged 3D Iridescent Orb / Coin */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.04 }} className="flex items-center justify-center my-4">
+        {/* 1. Enlarged 3D Iridescent Orb / Coin */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex items-center justify-center my-3">
           <div className="relative flex items-center justify-center">
             {/* Multi-layered Glowing Aura */}
             <div className="absolute h-48 w-48 rounded-full bg-gradient-to-r from-[#38B6FF]/35 via-[#0061FF]/30 to-[#38B6FF]/35 blur-3xl animate-pulse" />
@@ -531,8 +518,8 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* 3. Ultra-Sleek Segmented Model Switcher */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.08 }} className="flex justify-center mt-3">
+        {/* 2. Ultra-Sleek Segmented Model Switcher Toggle */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.04 }} className="flex justify-center">
           <div className="inline-flex items-center gap-1.5 rounded-full border-2 border-blue-200/90 bg-white/95 p-1.5 shadow-md backdrop-blur-xl">
             <button
               type="button"
@@ -560,6 +547,18 @@ export default function Hero() {
               <span>אתי Deep Intel</span>
             </button>
           </div>
+        </motion.div>
+
+        {/* 3. Hero CTA Spotlight Badge (Under Toggle, No Sparkles) */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.08 }} className="flex justify-center mt-3.5">
+          <motion.a
+            href="/publish"
+            whileHover={{ scale: 1.04, y: -1 }}
+            whileTap={{ scale: 0.97 }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/90 bg-gradient-to-r from-blue-50 via-white to-blue-50 px-5 py-2 text-[13px] sm:text-[13.5px] font-black text-[#0061FF] shadow-xs transition-all hover:border-[#0061FF] hover:bg-blue-100/60 hover:shadow-md cursor-pointer"
+          >
+            <span>משכירים או מוכרים? פרסמו דירה בחינם ב-2 דקות ←</span>
+          </motion.a>
         </motion.div>
 
         {/* Headline */}

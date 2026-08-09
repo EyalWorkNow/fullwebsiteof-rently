@@ -501,56 +501,64 @@ export default function Hero() {
       />
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">
-        {/* 3D Iridescent Orb Graphic */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex items-center justify-center my-2">
+        {/* 1. Prominent Hero CTA Spotlight Badge */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex justify-center mb-3">
+          <motion.a
+            href="/publish"
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.96 }}
+            className="inline-flex items-center gap-2.5 rounded-full border-2 border-blue-300/80 bg-gradient-to-r from-[#0061FF] via-[#0061FF] to-[#38B6FF] px-6 py-2.5 text-[13.5px] sm:text-[14px] font-black text-white shadow-[0_10px_30px_rgba(0,97,255,0.35)] transition-all hover:shadow-[0_16px_40px_rgba(0,97,255,0.45)] cursor-pointer"
+          >
+            <MagicStar size={18} variant="Bold" color="#FFFFFF" className="shrink-0" />
+            <span>משכירים או מוכרים? פרסמו דירה בחינם ב-2 דקות! ✨</span>
+          </motion.a>
+        </motion.div>
+
+        {/* 2. Enlarged 3D Iridescent Orb / Coin */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.04 }} className="flex items-center justify-center my-4">
           <div className="relative flex items-center justify-center">
-            <div className="absolute h-32 w-32 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#0061FF]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
-            <div className="relative h-16 w-16 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(0,97,255,0.25)] transition-transform duration-700 hover:scale-105">
-              <div className="h-full w-full rounded-full bg-gradient-to-br from-white/90 via-sky-50/70 to-blue-100/90 backdrop-blur-md relative overflow-hidden flex items-center justify-center">
-                <div className="absolute -top-3 -left-3 h-8 w-8 rounded-full bg-white/80 blur-sm" />
-                <div className="absolute bottom-1 right-2 h-6 w-6 rounded-full bg-sky-300/40 blur-md" />
-                <MagicStar size={26} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-sm relative z-10 animate-spin-slow" />
+            {/* Multi-layered Glowing Aura */}
+            <div className="absolute h-48 w-48 rounded-full bg-gradient-to-r from-[#38B6FF]/35 via-[#0061FF]/30 to-[#38B6FF]/35 blur-3xl animate-pulse" />
+            <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-sky-300 via-blue-200 to-sky-400 p-1 shadow-[0_15px_45px_rgba(0,97,255,0.35)] transition-transform duration-700 hover:scale-108">
+              <div className="h-full w-full rounded-full bg-gradient-to-br from-white via-sky-50 to-blue-100 backdrop-blur-md relative overflow-hidden flex items-center justify-center border-2 border-white/80">
+                <div className="absolute -top-4 -left-4 h-14 w-14 rounded-full bg-white/90 blur-sm" />
+                <div className="absolute bottom-2 right-3 h-9 w-9 rounded-full bg-sky-400/30 blur-md" />
+                <div className="absolute top-6 right-4 h-5 w-5 rounded-full bg-blue-400/25 blur-sm" />
+                <MagicStar size={42} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-md relative z-10 animate-spin-slow" />
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Top Badges: Model Switcher & Live Engine Status */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.04 }} className="flex flex-wrap items-center justify-center gap-2.5 mt-2">
-          <div className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-white/90 p-1 shadow-sm backdrop-blur-md">
+        {/* 3. Ultra-Sleek Segmented Model Switcher */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.08 }} className="flex justify-center mt-3">
+          <div className="inline-flex items-center gap-1.5 rounded-full border-2 border-blue-200/90 bg-white/95 p-1.5 shadow-md backdrop-blur-xl">
             <button
               type="button"
               onClick={() => setActiveMode("fast")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold transition cursor-pointer ${
+              className={`flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-black transition-all duration-200 cursor-pointer ${
                 activeMode === "fast"
-                  ? "bg-[#0061FF] text-white shadow-xs"
-                  : "text-slate-600 hover:text-[#0061FF]"
+                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/20 scale-[1.02]"
+                  : "text-slate-600 hover:text-[#0061FF] hover:bg-blue-50/60"
               }`}
             >
-              <Flash size={14} variant="Bold" />
+              <Flash size={16} variant="Bold" />
               <span>אתי Fast</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveMode("deep")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold transition cursor-pointer ${
+              className={`flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-black transition-all duration-200 cursor-pointer ${
                 activeMode === "deep"
-                  ? "bg-[#0061FF] text-white shadow-xs"
-                  : "text-slate-600 hover:text-[#0061FF]"
+                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/20 scale-[1.02]"
+                  : "text-slate-600 hover:text-[#0061FF] hover:bg-blue-50/60"
               }`}
             >
-              <MagicStar size={14} variant="Bold" />
+              <MagicStar size={16} variant="Bold" />
               <span>אתי Deep Intel</span>
             </button>
           </div>
-
-          <a
-            href="/publish"
-            className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/90 bg-blue-50/90 px-3.5 py-1.5 text-[12px] font-extrabold text-[#0061FF] shadow-xs transition hover:bg-blue-100/80 cursor-pointer"
-          >
-            <span>פרסמו דירה בחינם ב-2 דקות ←</span>
-          </a>
         </motion.div>
 
         {/* Headline */}

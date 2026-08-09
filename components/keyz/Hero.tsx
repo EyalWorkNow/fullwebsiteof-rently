@@ -563,11 +563,13 @@ export default function Hero() {
           transition={{ duration: 0.5, delay: 0.08 }}
           className="mt-4 text-3xl sm:text-5xl md:text-6xl font-black leading-tight text-navy tracking-tight"
         >
-          כיף שבאת, איזו{' '}
+          איזה כיף שחזרת!
+          <br />
+          מה אנחנו{' '}
           <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
-            דירה
+            מחפשים
           </span>{' '}
-          נחפש היום?
+          היום?
         </motion.h1>
 
         {/* Subtitle */}

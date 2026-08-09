@@ -1548,12 +1548,12 @@ export default function AtiWorkspace() {
         </button>
 
         {/* Scrollable Conversation Content */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto px-3 sm:px-6 md:px-8 py-3 md:py-6 flex flex-col items-center">
+        <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto px-3 sm:px-6 md:px-8 py-3 md:py-6 flex flex-col items-center justify-center">
           {showHeroState ? (
             /* Welcome Hero View — 100% centered hero + large chatbox */
-            <div className="flex-1 flex flex-col justify-between items-center max-w-[840px] w-full mx-auto text-center pt-4 pb-6 md:pt-6 md:pb-6 min-h-[calc(100dvh-100px)] md:min-h-0">
+            <div className="flex-1 flex flex-col justify-between items-center max-w-[840px] w-full mx-auto self-center text-center pt-4 pb-6 md:pt-6 md:pb-6 min-h-[calc(100dvh-120px)] md:min-h-0">
               {/* Central Greeting Header */}
-              <div className="flex flex-col items-center my-auto md:my-0 py-2 shrink-0">
+              <div className="flex flex-col items-center justify-center text-center my-auto md:my-0 py-2 shrink-0 w-full mx-auto self-center">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] opacity-30 blur-xl animate-pulse" />
                   <IridescentOrb />
@@ -1570,13 +1570,13 @@ export default function AtiWorkspace() {
                 </p>
 
                 {/* Quick Chips suggestions */}
-                <div className="mt-5 flex flex-wrap justify-center gap-2 px-2">
+                <div className="mt-5 flex flex-wrap justify-center gap-2 px-2 w-full max-w-[680px] mx-auto self-center">
                   {CHIPS.map((chip) => (
                     <button
                       key={chip}
                       type="button"
                       onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-slate-200/90 bg-white/90 px-3.5 py-1.5 text-[12px] sm:text-[13px] font-extrabold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:border-blue-400 hover:bg-white hover:text-[#0061FF] hover:shadow-md cursor-pointer"
+                      className="rounded-full border border-slate-200/90 bg-white/90 px-4 py-1.5 text-[12px] sm:text-[13px] font-extrabold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:border-blue-400 hover:bg-white hover:text-[#0061FF] hover:shadow-md cursor-pointer"
                     >
                       {chip}
                     </button>
@@ -1585,7 +1585,7 @@ export default function AtiWorkspace() {
               </div>
 
               {/* Large & Prominent Chatbox Input Section */}
-              <div className="w-full max-w-[840px] mt-auto shrink-0 pt-3">
+              <div className="w-full max-w-[840px] mx-auto self-center mt-auto shrink-0 pt-3">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()

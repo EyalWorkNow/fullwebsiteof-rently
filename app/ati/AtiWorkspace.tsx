@@ -1064,6 +1064,7 @@ export default function AtiWorkspace() {
   // again just reopens the identical modal with no clue why. This hint is the
   // only thing that changes — it explains once, it doesn't touch the gate.
   const [showAuthHint, setShowAuthHint] = useState(false)
+  const [selectedAiMode, setSelectedAiMode] = useState<'fast' | 'deep'>('fast')
   const guardedSend = useCallback(
     (raw: string) => {
       if (!raw.trim()) return
@@ -1564,14 +1565,30 @@ export default function AtiWorkspace() {
                 </div>
 
                 <div className="inline-flex items-center gap-1 rounded-full border border-slate-200/90 bg-slate-100/90 p-1 shadow-inner text-[12px] font-bold">
-                  <span className="rounded-full bg-white px-3 py-1 text-[#0061FF] font-black shadow-xs flex items-center gap-1">
-                    <LampCharge size={13} color="#0061FF" variant="Bold" />
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAiMode('fast')}
+                    className={`rounded-full px-3.5 py-1 font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                      selectedAiMode === 'fast'
+                        ? 'bg-white text-[#0061FF] shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <LampCharge size={13} color={selectedAiMode === 'fast' ? '#0061FF' : 'currentColor'} variant="Bold" />
                     <span>אתי Fast</span>
-                  </span>
-                  <span className="rounded-full px-3 py-1 text-slate-500 hover:text-slate-800 transition cursor-pointer flex items-center gap-1">
-                    <MagicStar size={13} variant="Bold" color="currentColor" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAiMode('deep')}
+                    className={`rounded-full px-3.5 py-1 font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                      selectedAiMode === 'deep'
+                        ? 'bg-[#0061FF] text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <MagicStar size={13} variant="Bold" color={selectedAiMode === 'deep' ? '#FFFFFF' : 'currentColor'} />
                     <span>Deep Intel</span>
-                  </span>
+                  </button>
                 </div>
               </div>
 
@@ -1588,8 +1605,10 @@ export default function AtiWorkspace() {
                     לסייע לך היום?
                   </span>
                 </h1>
-                <p className="mt-1.5 text-xs sm:text-sm md:text-base font-semibold text-slate-500 max-w-[540px] px-2 leading-relaxed">
-                  חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית
+                <p className="mt-1.5 text-xs sm:text-sm md:text-base font-semibold text-slate-500 max-w-[560px] px-2 leading-relaxed">
+                  {selectedAiMode === 'fast'
+                    ? 'חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית'
+                    : 'מצב ניתוח עמוק פעיל: חישוב תשואות, סורק חוזים משפטי והשוואת עסקאות נדל״ן מול הלמ״ר'}
                 </p>
               </div>
 

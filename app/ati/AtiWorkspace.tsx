@@ -21,6 +21,8 @@ import {
   SearchNormal1,
   Star,
   Trash,
+  Paperclip,
+  Microphone2,
 } from 'iconsax-react'
 import { fetchProperties, type PropertiesResult } from '@/lib/live/api'
 import {
@@ -1691,25 +1693,25 @@ export default function AtiWorkspace() {
             </div>
           ) : (
             /* Active Conversation View */
-            <div className="w-full max-w-[840px] space-y-6 pb-28">
+            <div className="w-full max-w-[800px] mx-auto space-y-5 pb-32">
               {active.messages.map((m, i) => {
                 const listings = m.listingIds?.length ? resolveListings(m.listingIds) : []
                 return (
-                  <div key={m.id ?? i} className="flex flex-col">
+                  <div key={m.id ?? i} className="flex flex-col w-full">
                     {m.role === 'user' ? (
-                      <div className="max-w-[82%] self-end rounded-2xl rounded-br-sm bg-gradient-to-r from-[#0061FF] to-[#38B6FF] px-4 py-3 text-[14.5px] font-medium leading-relaxed text-white shadow-md">
+                      <div className="max-w-[82%] sm:max-w-[75%] self-start rounded-2xl rounded-tr-sm bg-gradient-to-r from-[#0061FF] to-[#38B6FF] px-4 py-3 text-[14.5px] font-medium leading-relaxed text-white shadow-md my-1">
                         {m.text}
                       </div>
                     ) : (
-                      <div className="flex max-w-full items-start gap-3 self-start">
-                        <AtiAvatar size={36} />
+                      <div className="flex w-full items-start gap-3 my-1">
+                        <AtiAvatar size={34} />
                         <div className="min-w-0 flex-1">
                           {m.deep && (
                             <p className="mb-1 text-[11px] font-black text-[#0061FF]">
                               מותאם אישית ✨
                             </p>
                           )}
-                          <div className="max-w-[640px] whitespace-pre-line rounded-2xl rounded-bl-sm border border-slate-200/80 bg-white px-4 py-3 text-[14.5px] font-medium leading-relaxed text-slate-800 shadow-sm">
+                          <div className="max-w-[700px] whitespace-pre-line rounded-2xl rounded-tl-sm border border-slate-200/90 bg-white/95 backdrop-blur-md px-4.5 py-3 text-[14.5px] font-medium leading-relaxed text-slate-800 shadow-xs">
                             {m.text}
                             {m.why && (
                               <span className="mt-2 block text-[12px] font-semibold leading-relaxed text-slate-500 border-t border-slate-100 pt-1.5">
@@ -1723,7 +1725,7 @@ export default function AtiWorkspace() {
 
                     {/* Listing Cards Carousel */}
                     {listings.length > 0 && (
-                      <div className="mt-3 ps-0 sm:ps-11">
+                      <div className="mt-3 w-full">
                         <ListingCarousel
                           listings={listings}
                           notes={m.notes}
@@ -1734,7 +1736,7 @@ export default function AtiWorkspace() {
 
                     {/* Quick Response Chips */}
                     {m.role === 'ati' && (m.chips?.length ?? 0) > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2 ps-11">
+                      <div className="mt-3 flex flex-wrap gap-2 pe-10">
                         {m.chips!.map((chip) => (
                           <button
                             key={chip}
@@ -1766,7 +1768,7 @@ export default function AtiWorkspace() {
         {/* Floating Bottom Input Bar for Active Chat */}
         {!showHeroState && (
           <div className="absolute bottom-4 left-4 right-4 md:left-8 md:right-8 z-30 flex justify-center">
-            <div className="w-full max-w-[840px]">
+            <div className="w-full max-w-[800px]">
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
@@ -1782,6 +1784,30 @@ export default function AtiWorkspace() {
                   placeholder="הקלד הודעה..."
                   className="min-w-0 flex-1 bg-transparent text-[15px] md:text-[16px] font-medium text-slate-900 outline-none placeholder:text-slate-400"
                 />
+
+                {/* Action Icons: 1. File Attachment / Contract, 2. Voice Recording */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => guardedSend('אני רוצה להעלות ולנתח חוזה שכירות ב-PDF')}
+                    className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
+                    title="צירוף קובץ או חוזה שכירות"
+                    aria-label="צירוף קובץ או חוזה שכירות"
+                  >
+                    <Paperclip size={19} variant="Bold" color="currentColor" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => guardedSend('הקלטה קולית: אתי, מצאי לי דירת 3 חדרים')}
+                    className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
+                    title="הקלטה קולית לאתי"
+                    aria-label="הקלטה קולית לאתי"
+                  >
+                    <Microphone2 size={19} variant="Bold" color="currentColor" />
+                  </button>
+                </div>
+
                 <UserSendButton
                   disabled={!input.trim()}
                   onClick={() => guardedSend(input)}

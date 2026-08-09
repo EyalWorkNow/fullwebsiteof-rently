@@ -17,6 +17,7 @@ import { fetchProperties, type PropertiesResult } from "@/lib/live/api";
 import { buildReply, parseQuery, rankProperties } from "@/lib/live/smart-search";
 import type { Property } from "@/lib/live/types";
 import PropertyCard from "./PropertyCard";
+import ListingCarousel from "./ListingCarousel";
 import { useAuthGate } from "./auth/AuthGate";
 
 // ── Hero Liquid Animated Search Button (Rently Blue Palette) ─────────────────
@@ -754,13 +755,7 @@ export default function Hero() {
               </div>
 
               {result.listings.length > 0 && (
-                <div className="no-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto pb-2">
-                  {result.listings.map((p) => (
-                    <a key={p.id} href={`/listing/${p.id}`} className="block snap-start">
-                      <PropertyCard property={p} />
-                    </a>
-                  ))}
-                </div>
+                <ListingCarousel listings={result.listings} className="mt-4" />
               )}
 
               <p className="mt-3 text-center text-[13px] font-bold">

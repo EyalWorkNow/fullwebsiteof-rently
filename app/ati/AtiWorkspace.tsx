@@ -65,6 +65,7 @@ import {
 } from '@/lib/live/personalize'
 import type { ChatTurn, Property } from '@/lib/live/types'
 import PropertyCard from '@/components/keyz/PropertyCard'
+import ListingCarousel from '@/components/keyz/ListingCarousel'
 import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 import {
   loadConversations,
@@ -1702,23 +1703,12 @@ export default function AtiWorkspace() {
 
                     {/* Listing Cards Carousel */}
                     {listings.length > 0 && (
-                      <div className="no-scrollbar mt-3 flex snap-x gap-4 overflow-x-auto pb-2 ps-11">
-                        {listings.map((p) => (
-                          <div key={p.id} className="snap-start shrink-0">
-                            <a href={`/listing/${p.id}`} className="block">
-                              <PropertyCard property={p} />
-                            </a>
-                            {(m.notes?.[p.id] || m.explanations?.[p.id]) && (
-                              <p className="mt-1.5 max-w-[280px] text-[11.5px] font-semibold leading-relaxed text-slate-500">
-                                {m.notes?.[p.id] && (
-                                  <span className="text-[#0061FF] font-bold">{m.notes[p.id]}</span>
-                                )}
-                                {m.notes?.[p.id] && m.explanations?.[p.id] ? ' · ' : ''}
-                                {m.explanations?.[p.id]}
-                              </p>
-                            )}
-                          </div>
-                        ))}
+                      <div className="mt-3 ps-0 sm:ps-11">
+                        <ListingCarousel
+                          listings={listings}
+                          notes={m.notes}
+                          explanations={m.explanations}
+                        />
                       </div>
                     )}
 

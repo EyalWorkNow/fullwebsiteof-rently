@@ -501,8 +501,22 @@ export default function Hero() {
       />
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">
+        {/* 3D Iridescent Orb Graphic */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex items-center justify-center my-2">
+          <div className="relative flex items-center justify-center">
+            <div className="absolute h-32 w-32 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#0061FF]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
+            <div className="relative h-16 w-16 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(0,97,255,0.25)] transition-transform duration-700 hover:scale-105">
+              <div className="h-full w-full rounded-full bg-gradient-to-br from-white/90 via-sky-50/70 to-blue-100/90 backdrop-blur-md relative overflow-hidden flex items-center justify-center">
+                <div className="absolute -top-3 -left-3 h-8 w-8 rounded-full bg-white/80 blur-sm" />
+                <div className="absolute bottom-1 right-2 h-6 w-6 rounded-full bg-sky-300/40 blur-md" />
+                <MagicStar size={26} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-sm relative z-10 animate-spin-slow" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Top Badges: Model Switcher & Live Engine Status */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex flex-wrap items-center justify-center gap-2.5">
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.04 }} className="flex flex-wrap items-center justify-center gap-2.5 mt-2">
           <div className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-white/90 p-1 shadow-sm backdrop-blur-md">
             <button
               type="button"
@@ -543,7 +557,7 @@ export default function Hero() {
         <motion.h1
           {...rise}
           transition={{ duration: 0.5, delay: 0.08 }}
-          className="mt-5 text-3xl sm:text-5xl md:text-6xl font-black leading-tight text-navy tracking-tight"
+          className="mt-4 text-3xl sm:text-5xl md:text-6xl font-black leading-tight text-navy tracking-tight"
         >
           כיף שבאת, איזו{' '}
           <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
@@ -630,6 +644,18 @@ export default function Hero() {
                 placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
                 className="w-full min-w-0 bg-transparent text-[15px] sm:text-[16px] md:text-[17px] font-medium text-navy outline-none placeholder:text-slate-400 leading-relaxed py-2"
               />
+
+              {/* Attach Contract PDF Quick Button */}
+              <button
+                type="button"
+                onClick={() => runChip('אני רוצה להעלות ולנתח חוזה שכירות ב-PDF')}
+                className="hidden sm:flex shrink-0 items-center gap-1 rounded-xl border border-slate-200/90 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/60 hover:text-[#0061FF] cursor-pointer"
+                title="העלאת חוזה שכירות PDF"
+              >
+                <DocumentText size={15} color="#0061FF" variant="Bold" />
+                <span>צרף חוזה</span>
+              </button>
+
               <HeroAiSearchButton disabled={searching}>
                 <span>{searching ? "מחפשת…" : "חיפוש"}</span>
                 <SearchNormal1
@@ -655,7 +681,7 @@ export default function Hero() {
             </div>
           </form>
 
-          {/* Integrated Trust & Proof Strip */}
+          {/* Integrated Trust & Proof Ticker Strip */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-[12.5px] font-bold text-secondary-text">
             <span className="flex items-center gap-1.5">
               <ShieldSecurity size={16} color="#0061FF" variant="Bold" />
@@ -664,7 +690,12 @@ export default function Hero() {
             <span className="text-slate-300">•</span>
             <span className="flex items-center gap-1.5">
               <Flash size={16} color="#0061FF" variant="Bold" />
-              <span>מבוסס נתוני נדל״ן רשמיים, למ״ר ומפות</span>
+              <span>מענה AI ב-0.4 שניות</span>
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="flex items-center gap-1.5">
+              <MagicStar size={16} color="#0061FF" variant="Bold" />
+              <span>נתוני למ״ר ומפות רשמיות</span>
             </span>
           </div>
 

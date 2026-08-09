@@ -1548,18 +1548,18 @@ export default function AtiWorkspace() {
         </button>
 
         {/* Scrollable Conversation Content — Centered inside Chat Area Column */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto flex flex-col items-center justify-between max-w-[840px] mx-auto">
+        <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto flex flex-col items-center justify-center max-w-[840px] mx-auto py-4">
           {showHeroState ? (
-            /* Welcome Hero View — 100% centered inside Chat Area Column */
-            <div className="flex-1 flex flex-col justify-between items-center w-full mx-auto text-center pt-2 pb-4 md:pt-4 md:pb-4 min-h-[calc(100dvh-120px)] md:min-h-0">
+            /* Welcome Hero View — Compact, tightly-coupled hero group */
+            <div className="flex flex-col items-center justify-center w-full mx-auto text-center gap-6 my-auto">
               {/* Central Greeting Header */}
-              <div className="flex flex-col items-center justify-center text-center my-auto md:my-0 py-2 shrink-0 w-full mx-auto">
+              <div className="flex flex-col items-center justify-center text-center shrink-0 w-full mx-auto">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] opacity-30 blur-xl animate-pulse" />
                   <IridescentOrb />
                 </div>
 
-                <h1 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-snug">
+                <h1 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-snug">
                   שלום, במה אוכל{' '}
                   <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
                     לסייע לך היום?
@@ -1570,7 +1570,7 @@ export default function AtiWorkspace() {
                 </p>
 
                 {/* Quick Chips suggestions */}
-                <div className="mt-5 flex flex-wrap justify-center gap-2 px-2 w-full max-w-[680px] mx-auto self-center">
+                <div className="mt-4 flex flex-wrap justify-center gap-2 px-2 w-full max-w-[680px] mx-auto">
                   {CHIPS.map((chip) => (
                     <button
                       key={chip}

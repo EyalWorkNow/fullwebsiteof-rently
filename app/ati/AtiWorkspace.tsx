@@ -1522,23 +1522,26 @@ export default function AtiWorkspace() {
   const showHeroState = !active || active.messages.length === 0
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden bg-gradient-to-b from-blue-50/50 via-slate-50/90 to-blue-50/40">
-      {/* Background Ambient Glows */}
-      <div className="pointer-events-none absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-[#38B6FF]/20 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 -right-40 h-[500px] w-[500px] rounded-full bg-[#0061FF]/15 blur-3xl" />
+    <div className="relative flex h-full w-full overflow-hidden bg-slate-50">
+      {/* ── Futuristic AI Mesh Gradient & Tech Grid Background ── */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100/80 via-slate-50 to-blue-50/50" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[650px] w-[900px] rounded-full bg-gradient-to-tr from-[#0061FF]/18 via-[#38B6FF]/22 to-indigo-300/15 blur-[130px]" />
+      <div className="pointer-events-none absolute -bottom-35 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-b from-[#38B6FF]/15 via-blue-400/10 to-[#0061FF]/12 blur-[110px]" />
+      {/* Subtle tech grid background pattern */}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#0061ff08_1px,transparent_1px),linear-gradient(to_bottom,#0061ff08_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
 
-      {/* Floating Desktop Sidebar (Right Side in RTL) */}
-      <aside className="hidden lg:block shrink-0 z-20 m-3.5 w-72">
+      {/* Floating Desktop Sidebar (Absolute Positioned on Right side so main screen stays 100% centered!) */}
+      <aside className="hidden xl:block absolute top-3.5 end-3.5 bottom-3.5 z-30 w-72">
         {sidebarContent}
       </aside>
 
-      {/* Main Workspace Area */}
-      <section className="flex flex-1 flex-col items-center min-w-0 h-full relative z-10 w-full">
+      {/* Main Workspace Area (Spans 100% width, 100% centered) */}
+      <section className="flex flex-1 flex-col items-center justify-center min-w-0 h-full relative z-10 w-full">
         {/* Floating Mobile Conversation History Pill Button */}
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden absolute top-3 start-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
+          className="xl:hidden absolute top-3 start-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
         >
           <Messages3 size={16} color="#0061FF" variant="Bold" />
           <span>שיחות קודמות</span>
@@ -1547,11 +1550,14 @@ export default function AtiWorkspace() {
         {/* Scrollable Conversation Content */}
         <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto px-3 sm:px-6 md:px-8 py-3 md:py-6 flex flex-col items-center">
           {showHeroState ? (
-            /* Welcome Hero View — centered hero + large chatbox */
-            <div className="flex-1 flex flex-col justify-between items-center max-w-[840px] w-full mx-auto text-center pt-4 pb-8 md:pt-8 md:pb-6 min-h-[calc(100dvh-100px)] md:min-h-0">
+            /* Welcome Hero View — 100% centered hero + large chatbox */
+            <div className="flex-1 flex flex-col justify-between items-center max-w-[840px] w-full mx-auto text-center pt-4 pb-6 md:pt-6 md:pb-6 min-h-[calc(100dvh-100px)] md:min-h-0">
               {/* Central Greeting Header */}
-              <div className="flex flex-col items-center my-auto md:my-0 py-4 shrink-0">
-                <IridescentOrb />
+              <div className="flex flex-col items-center my-auto md:my-0 py-2 shrink-0">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] opacity-30 blur-xl animate-pulse" />
+                  <IridescentOrb />
+                </div>
 
                 <h1 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-snug">
                   שלום, במה אוכל{' '}

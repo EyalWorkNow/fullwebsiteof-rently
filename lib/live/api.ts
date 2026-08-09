@@ -86,6 +86,40 @@ async function fetchPropertiesDirect(limit = 60): Promise<PropertiesResult> {
   }
 }
 
+// Best-effort profile sync — call once right after a REAL (non-anonymous)
+// sign-in (see AuthGate.tsx's onUser). The app writes name/role/discoverable
+// to this same `users` row on every sign-in (UserRepository.upsertProfile);
+// the website never did, so a person who registered FIRST on the website was
+// completely invisible to the app's profile system (no row at all — no role,
+// no discoverability, no persona) when they later opened the app with the
+// same account. PUT is now a safe field-level merge server-side (only fields
+// THIS call sends are touched — see the router's users-table merge), so this
+// can't clobber a role/discoverable flag the app already set. Never throws.
+export async function syncUserProfile(user: {
+  uid: string
+  displayName?: string | null
+  photoURL?: string | null
+  email?: string | null
+}): Promise<void> {
+  try {
+    const token = await getToken()
+    if (!token) return
+    await fetch(`${BASE}/users/${encodeURIComponent(user.uid)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: user.displayName || user.email || '',
+        photoUrl: user.photoURL || '',
+      }),
+    })
+  } catch {
+    // best-effort — never blocks sign-in
+  }
+}
+
 // GET /properties/<id> — single listing (same endpoint the app's share-link uses).
 // Falls back to the sample list so /listing/s1 etc. always work.
 export async function fetchPropertyById(id: string): Promise<{ item: Property | null; live: boolean }> {

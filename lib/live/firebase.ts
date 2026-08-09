@@ -10,6 +10,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signOut as fbSignOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   type User,
 } from 'firebase/auth'
 
@@ -51,8 +53,12 @@ export async function ensureAuth(): Promise<User | null> {
 }
 
 export async function getToken(): Promise<string | null> {
-  const manual = typeof window !== 'undefined' ? localStorage.getItem('rently_token') : null
-  if (manual) return manual
+  // Previously checked localStorage['rently_token'] first and, if present,
+  // returned it verbatim as if it were a real Firebase ID token — bypassing
+  // getIdToken() entirely. Nothing in this codebase ever set that key (it
+  // was a dev-only escape hatch), but anyone with devtools access could set
+  // it to an arbitrary string and every API call would send it as the
+  // Bearer token. Removed — always mint a real, verifiable token.
   const u = cachedUser ?? (await ensureAuth())
   if (!u) return null
   try {
@@ -107,6 +113,38 @@ export async function signInWithGoogle(): Promise<User | null> {
         console.warn('[firebase] redirect sign-in failed:', lastAuthError, e2)
       }
     }
+    return null
+  }
+}
+
+// Email/password — the website previously offered Google only, so a user who
+// registered with email/password IN THE APP had no way to reach that same
+// account here (they'd either be stuck, or create a second, unrelated
+// Google-based account that a human would assume is "the same person" but is
+// actually a different Firebase uid). Same project as the app, so this signs
+// into/creates the identical account the app's own email/password flow uses.
+export async function signInWithEmail(email: string, password: string): Promise<User | null> {
+  lastAuthError = null
+  try {
+    const res = await signInWithEmailAndPassword(auth, email, password)
+    cachedUser = res.user
+    return res.user
+  } catch (e) {
+    lastAuthError = (e as { code?: string })?.code ?? 'unknown'
+    console.warn('[firebase] email sign-in failed:', lastAuthError, e)
+    return null
+  }
+}
+
+export async function signUpWithEmail(email: string, password: string): Promise<User | null> {
+  lastAuthError = null
+  try {
+    const res = await createUserWithEmailAndPassword(auth, email, password)
+    cachedUser = res.user
+    return res.user
+  } catch (e) {
+    lastAuthError = (e as { code?: string })?.code ?? 'unknown'
+    console.warn('[firebase] email sign-up failed:', lastAuthError, e)
     return null
   }
 }

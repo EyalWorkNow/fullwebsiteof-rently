@@ -20,6 +20,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type FormEvent,
   type ReactNode,
 } from 'react'
 import { CloseCircle } from 'iconsax-react'
@@ -29,8 +30,11 @@ import {
   currentUser,
   lastAuthErrorCode,
   onUser,
+  signInWithEmail,
   signInWithGoogle,
+  signUpWithEmail,
 } from '@/lib/live/firebase'
+import { syncUserProfile } from '@/lib/live/api'
 
 // ── Auth store (one Firebase listener for the whole app) ─────────────────────
 
@@ -42,6 +46,7 @@ interface AuthSnapshot {
 const SIGNED_OUT: AuthSnapshot = { user: null, ready: false }
 let authSnapshot: AuthSnapshot = SIGNED_OUT
 let authWatching = false
+let lastSyncedUid: string | null = null
 const authListeners = new Set<() => void>()
 
 function emitAuth() {
@@ -58,6 +63,13 @@ function subscribeAuth(listener: () => void): () => void {
     onUser((u) => {
       authSnapshot = { user: u, ready: true }
       emitAuth()
+      // Once per real (non-anonymous) uid, not on every token refresh —
+      // onAuthStateChanged also fires for those. See syncUserProfile's doc
+      // for why this matters (website-first signups being invisible to app).
+      if (u && !u.isAnonymous && lastSyncedUid !== u.uid) {
+        lastSyncedUid = u.uid
+        void syncUserProfile(u)
+      }
     })
   }
   return () => {
@@ -177,6 +189,13 @@ const AUTH_ERROR_TEXT: Record<string, string> = {
   'auth/network-request-failed': 'אין חיבור לרשת כרגע. בדקו את החיבור ונסו שוב.',
   'auth/unauthorized-domain': 'הכתובת הזו לא מאושרת בהגדרות ההתחברות של הפרויקט.',
   'auth/operation-not-allowed': 'התחברות עם Google לא מופעלת בפרויקט.',
+  'auth/invalid-email': 'כתובת האימייל לא תקינה.',
+  'auth/user-not-found': 'לא נמצא חשבון עם האימייל הזה.',
+  'auth/wrong-password': 'הסיסמה שגויה.',
+  'auth/invalid-credential': 'אימייל או סיסמה שגויים.',
+  'auth/email-already-in-use': 'כבר קיים חשבון עם האימייל הזה — נסו להתחבר במקום.',
+  'auth/weak-password': 'הסיסמה חייבת להכיל לפחות 6 תווים.',
+  'auth/missing-password': 'יש להזין סיסמה.',
 }
 
 const FOCUSABLE =
@@ -196,6 +215,13 @@ export function AuthGateModal() {
   const signInRef = useRef<HTMLButtonElement>(null)
   const [signingIn, setSigningIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Email/password — was Google-only, which locked out anyone who registered
+  // with email/password in the app (same Firebase project, so this signs
+  // into/creates the identical account, not a separate one).
+  const [showEmail, setShowEmail] = useState(false)
+  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   useEffect(() => {
     const id = idRef.current!
@@ -249,6 +275,10 @@ export function AuthGateModal() {
     if (!visible) return
     setError(null)
     setSigningIn(false)
+    setShowEmail(false)
+    setEmailMode('signin')
+    setEmail('')
+    setPassword('')
     const t = setTimeout(() => signInRef.current?.focus(), 0)
     return () => clearTimeout(t)
   }, [visible])
@@ -259,6 +289,18 @@ export function AuthGateModal() {
     setSigningIn(true)
     setError(null)
     const u = await signInWithGoogle()
+    setSigningIn(false)
+    if (isRegisteredUser(u)) resolveGate()
+    else setError(lastAuthErrorCode() ?? 'unknown')
+  }
+
+  async function handleEmailSubmit(e: FormEvent) {
+    e.preventDefault()
+    setSigningIn(true)
+    setError(null)
+    const u = emailMode === 'signin'
+      ? await signInWithEmail(email, password)
+      : await signUpWithEmail(email, password)
     setSigningIn(false)
     if (isRegisteredUser(u)) resolveGate()
     else setError(lastAuthErrorCode() ?? 'unknown')
@@ -312,6 +354,53 @@ export function AuthGateModal() {
           </span>
           {signingIn ? 'מתחברים…' : 'התחברות עם Google'}
         </button>
+
+        {!showEmail ? (
+          <button
+            type="button"
+            onClick={() => setShowEmail(true)}
+            className="mt-3 text-[13px] font-bold text-secondary-text transition-colors hover:text-navy"
+          >
+            או התחברות עם אימייל וסיסמה
+          </button>
+        ) : (
+          <form onSubmit={handleEmailSubmit} className="mt-4 flex flex-col gap-2.5 text-start">
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="אימייל"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-2xl border border-border-app px-4 py-2.5 text-sm outline-none focus:border-primary/50"
+            />
+            <input
+              type="password"
+              required
+              autoComplete={emailMode === 'signin' ? 'current-password' : 'new-password'}
+              placeholder="סיסמה"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-2xl border border-border-app px-4 py-2.5 text-sm outline-none focus:border-primary/50"
+            />
+            <button
+              type="submit"
+              disabled={signingIn}
+              className="mt-1 w-full rounded-full bg-primary px-5 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              {signingIn
+                ? 'מתחברים…'
+                : emailMode === 'signin' ? 'התחברות' : 'יצירת חשבון'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEmailMode(emailMode === 'signin' ? 'signup' : 'signin')}
+              className="mx-auto text-[13px] font-bold text-secondary-text transition-colors hover:text-navy"
+            >
+              {emailMode === 'signin' ? 'משתמשים חדשים — יצירת חשבון' : 'כבר יש לי חשבון — התחברות'}
+            </button>
+          </form>
+        )}
 
         {error && (
           <p className="mt-3 text-sm text-coral">

@@ -10,7 +10,10 @@
 //            {data:{…}}-wrapped: {reply, propertyDraft, suggestions, listings}.
 //            The listings the assistant already returns are surfaced here as
 //            inline cards (the app drops them).
-// • Publish: PUT /properties/{id} with the full app row (property_repository
+// • Publish: POST /properties/{id} for a brand-new listing (so the backend's
+//            isNewListing-gated enrichment/paywall-quota/saved-search-alert
+//            pipeline actually runs — it never did under PUT), PUT for an
+//            edit of an existing one. Full app row shape (property_repository
 //            _propertyToRow) — 23 feat_* booleans + the legal consent record.
 //            The one addition over portal-api: `condition` comes from the draft
 //            card instead of being hard-coded, because the canonical web draft
@@ -490,8 +493,18 @@ export async function publishDraft(
     updatedAt: nowIso,
   }
 
+  // POST, not PUT: the backend only runs its "new listing" pipeline
+  // (smart-tag/embedding/price-badge enrichment, the 3-free-listing paywall
+  // quota check, and instant saved-search push alerts to matching tenants)
+  // when isNewListing is detected on the POST handler — PUT never triggers
+  // any of it (aws/lambda/router/index.mjs). Publishing via PUT (as this
+  // used to) meant every website-created listing silently skipped all of
+  // that, AND bypassed the paywall entirely (unlimited free listings via
+  // the website while the app enforces 3). The URL/body shape is unchanged
+  // (the server reads body.id regardless of method), so this is a
+  // same-shape method swap, not a payload change.
   const res = await fetch(`${BASE}/properties/${encodeURIComponent(id)}`, {
-    method: 'PUT',
+    method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify(row),
   })

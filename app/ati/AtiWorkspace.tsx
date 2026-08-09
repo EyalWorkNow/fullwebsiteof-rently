@@ -1528,49 +1528,49 @@ export default function AtiWorkspace() {
       <div className="pointer-events-none absolute bottom-0 -right-40 h-[500px] w-[500px] rounded-full bg-[#0061FF]/15 blur-3xl" />
 
       {/* Floating Desktop Sidebar (Right Side in RTL) */}
-      <aside className="hidden lg:block shrink-0 z-20 m-3.5">
+      <aside className="hidden lg:block shrink-0 z-20 m-3.5 w-72">
         {sidebarContent}
       </aside>
 
       {/* Main Workspace Area */}
-      <section className="flex flex-1 flex-col min-w-0 h-full relative z-10">
+      <section className="flex flex-1 flex-col items-center min-w-0 h-full relative z-10 w-full">
         {/* Floating Mobile Conversation History Pill Button */}
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden absolute top-2 start-3 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 text-[11.5px] font-bold text-slate-700 shadow-sm backdrop-blur-md transition hover:bg-white hover:text-[#0061FF]"
+          className="lg:hidden absolute top-3 start-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
         >
-          <Messages3 size={15} color="#0061FF" variant="Bold" />
+          <Messages3 size={16} color="#0061FF" variant="Bold" />
           <span>שיחות קודמות</span>
         </button>
 
         {/* Scrollable Conversation Content */}
-        <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto px-3 sm:px-4 md:px-8 py-2 md:py-4 flex flex-col">
+        <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto px-3 sm:px-6 md:px-8 py-3 md:py-6 flex flex-col items-center">
           {showHeroState ? (
-            /* Welcome Hero View — top greeting + bottom chatbox on mobile */
-            <div className="flex-1 flex flex-col justify-between items-center max-w-[760px] w-full mx-auto text-center pt-6 pb-12 md:pt-10 md:pb-4 min-h-[calc(100dvh-110px)] md:min-h-0">
+            /* Welcome Hero View — centered hero + large chatbox */
+            <div className="flex-1 flex flex-col justify-between items-center max-w-[840px] w-full mx-auto text-center pt-4 pb-8 md:pt-8 md:pb-6 min-h-[calc(100dvh-100px)] md:min-h-0">
               {/* Central Greeting Header */}
-              <div className="flex flex-col items-center my-auto md:my-0 py-2 shrink-0">
+              <div className="flex flex-col items-center my-auto md:my-0 py-4 shrink-0">
                 <IridescentOrb />
 
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
+                <h1 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-snug">
                   שלום, במה אוכל{' '}
                   <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
                     לסייע לך היום?
                   </span>
                 </h1>
-                <p className="mt-1.5 text-xs sm:text-sm font-semibold text-slate-500 max-w-[480px] px-2">
+                <p className="mt-2 text-xs sm:text-sm md:text-base font-semibold text-slate-500 max-w-[540px] px-2 leading-relaxed">
                   חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית
                 </p>
 
                 {/* Quick Chips suggestions */}
-                <div className="mt-4 flex flex-wrap justify-center gap-1.5 px-2">
+                <div className="mt-5 flex flex-wrap justify-center gap-2 px-2">
                   {CHIPS.map((chip) => (
                     <button
                       key={chip}
                       type="button"
                       onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-[11.5px] sm:text-[12px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
+                      className="rounded-full border border-slate-200/90 bg-white/90 px-3.5 py-1.5 text-[12px] sm:text-[13px] font-extrabold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:border-blue-400 hover:bg-white hover:text-[#0061FF] hover:shadow-md cursor-pointer"
                     >
                       {chip}
                     </button>
@@ -1578,25 +1578,27 @@ export default function AtiWorkspace() {
                 </div>
               </div>
 
-              {/* Floating Prompt Card Container (Bottom Anchored on Mobile with Floating Button Clearance) */}
-              <div className="w-full max-w-[680px] mt-auto shrink-0 pt-2">
+              {/* Large & Prominent Chatbox Input Section */}
+              <div className="w-full max-w-[840px] mt-auto shrink-0 pt-3">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
                     guardedSend(input)
                   }}
-                  className="relative rounded-2xl md:rounded-3xl border border-slate-200/80 bg-white/95 p-2.5 sm:p-3 md:p-4 shadow-[0_12px_36px_rgba(0,97,255,0.09)] backdrop-blur-xl transition focus-within:border-[#0061FF] focus-within:ring-2 focus-within:ring-blue-100"
+                  className="relative rounded-3xl border-2 border-blue-200/90 bg-white p-3 sm:p-4 md:p-5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100"
                 >
                   {/* Single/Multi line Prompt Text Input Row */}
-                  <div className="flex items-center gap-2 sm:gap-2.5">
-                    <MagicStar size={20} variant="Bold" color="#0061FF" className="shrink-0" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#0061FF]">
+                      <MagicStar size={22} variant="Bold" color="#0061FF" />
+                    </div>
                     <textarea
                       ref={textareaRef}
                       value={input}
                       onChange={(e) => {
                         setInput(e.target.value)
                         e.target.style.height = 'auto'
-                        e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
+                        e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -1605,8 +1607,8 @@ export default function AtiWorkspace() {
                         }
                       }}
                       rows={1}
-                      placeholder="איזו דירה נחפש היום? (או שאל כל דבר)"
-                      className="w-full resize-none bg-transparent text-[14px] sm:text-[15px] font-medium text-slate-800 outline-none placeholder:text-slate-400 leading-normal py-1.5 min-h-[36px] max-h-[120px]"
+                      placeholder="איזו דירה נחפש היום? (או שאל כל דבר על מחירים, חוזים, אזורים...)"
+                      className="w-full resize-none bg-transparent text-[15px] sm:text-[16px] md:text-[17px] font-medium text-slate-900 outline-none placeholder:text-slate-400/90 leading-relaxed py-2 min-h-[44px] max-h-[140px]"
                     />
                     <UserSendButton
                       disabled={!input.trim()}
@@ -1615,40 +1617,40 @@ export default function AtiWorkspace() {
                   </div>
 
                   {/* Horizontal Scrollable Feature Pills */}
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
                     <button
                       type="button"
                       onClick={() => guardedSend('בצע ניתוח אינטליגנציית אזור על תחבורה, בתי ספר ושקט בסביבה')}
-                      className="shrink-0 flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11.5px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
                     >
-                      <Location size={13} color="currentColor" />
+                      <Location size={14} color="#0061FF" variant="Bold" />
                       <span>אינטליגנציית אזור</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => guardedSend('בצע השוואת מחירי שוק מול דירות דומות באזור')}
-                      className="shrink-0 flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11.5px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
                     >
-                      <ChartSquare size={13} color="currentColor" />
+                      <ChartSquare size={14} color="#0061FF" variant="Bold" />
                       <span>השוואת מחירי שוק</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => guardedSend('סנן דירות שמתאימות לסגנון החיים וההרגלים שלי')}
-                      className="shrink-0 flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11.5px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
                     >
-                      <Magicpen size={13} color="currentColor" />
+                      <Magicpen size={14} color="#0061FF" variant="Bold" />
                       <span>סינון סגנון חיים</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => guardedSend('אני רוצה להתייעץ ולנתח חוזה שכירות')}
-                      className="shrink-0 flex items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 px-2.5 py-1 text-[11.5px] font-bold text-slate-600 transition hover:border-blue-300 hover:bg-white hover:text-[#0061FF]"
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
                     >
-                      <DocumentText size={13} color="currentColor" />
+                      <DocumentText size={14} color="#0061FF" variant="Bold" />
                       <span>בדיקת חוזים</span>
                     </button>
                   </div>
@@ -1662,7 +1664,7 @@ export default function AtiWorkspace() {
             </div>
           ) : (
             /* Active Conversation View */
-            <div className="mx-auto max-w-[800px] space-y-6 pb-24">
+            <div className="w-full max-w-[840px] space-y-6 pb-28">
               {active.messages.map((m, i) => {
                 const listings = m.listingIds?.length ? resolveListings(m.listingIds) : []
                 return (
@@ -1680,7 +1682,7 @@ export default function AtiWorkspace() {
                               מותאם אישית ✨
                             </p>
                           )}
-                          <div className="max-w-[620px] whitespace-pre-line rounded-2xl rounded-bl-sm border border-slate-200/80 bg-white px-4 py-3 text-[14.5px] font-medium leading-relaxed text-slate-800 shadow-sm">
+                          <div className="max-w-[640px] whitespace-pre-line rounded-2xl rounded-bl-sm border border-slate-200/80 bg-white px-4 py-3 text-[14.5px] font-medium leading-relaxed text-slate-800 shadow-sm">
                             {m.text}
                             {m.why && (
                               <span className="mt-2 block text-[12px] font-semibold leading-relaxed text-slate-500 border-t border-slate-100 pt-1.5">
@@ -1747,32 +1749,34 @@ export default function AtiWorkspace() {
 
         {/* Floating Bottom Input Bar for Active Chat */}
         {!showHeroState && (
-          <div className="absolute bottom-4 left-4 right-4 md:left-8 md:right-8 z-30">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                guardedSend(input)
-              }}
-              className="mx-auto max-w-[800px] flex items-center gap-2 rounded-2xl border border-white/95 bg-white/95 p-2 ps-4 shadow-[0_15px_35px_rgba(0,97,255,0.09)] backdrop-blur-xl"
-            >
-              <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0" />
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="הקלד הודעה..."
-                className="min-w-0 flex-1 bg-transparent text-[14.5px] font-medium text-slate-800 outline-none placeholder:text-slate-400"
-              />
-              <UserSendButton
-                disabled={!input.trim()}
-                onClick={() => guardedSend(input)}
-              />
-            </form>
-            {showAuthHint && !isRegistered && (
-              <p className="mx-auto mt-2 max-w-[800px] rounded-full bg-white/95 px-3 py-1 text-center text-[11.5px] font-semibold text-secondary-text shadow-sm backdrop-blur-xl">
-                כדי שאתי תענה צריך להתחבר קודם (בחינם, אותו חשבון כמו באפליקציה) — לחצו על שלח שוב כדי להתחבר.
-              </p>
-            )}
+          <div className="absolute bottom-4 left-4 right-4 md:left-8 md:right-8 z-30 flex justify-center">
+            <div className="w-full max-w-[840px]">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  guardedSend(input)
+                }}
+                className="flex items-center gap-3 rounded-3xl border-2 border-blue-200/90 bg-white/95 p-3 ps-5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition focus-within:border-[#0061FF]"
+              >
+                <MagicStar size={22} variant="Bold" color="#0061FF" className="shrink-0" />
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="הקלד הודעה..."
+                  className="min-w-0 flex-1 bg-transparent text-[15px] md:text-[16px] font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                />
+                <UserSendButton
+                  disabled={!input.trim()}
+                  onClick={() => guardedSend(input)}
+                />
+              </form>
+              {showAuthHint && !isRegistered && (
+                <p className="mt-2 rounded-full bg-white/95 px-3 py-1 text-center text-[11.5px] font-semibold text-secondary-text shadow-sm backdrop-blur-xl">
+                  כדי שאתי תענה צריך להתחבר קודם (בחינם, אותו חשבון כמו באפליקציה) — לחצו על שלח שוב כדי להתחבר.
+                </p>
+              )}
+            </div>
           </div>
         )}
       </section>

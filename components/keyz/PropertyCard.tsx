@@ -94,7 +94,7 @@ export default function PropertyCard({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => e.key === 'Enter' && onSelect?.()}
-      className="w-[280px] sm:w-[320px] md:w-[340px] max-w-full shrink-0 cursor-pointer overflow-hidden rounded-[24px] border border-slate-200/90 bg-white shadow-xs transition duration-300 ease-out hover:-translate-y-1 hover:border-[#0061FF] hover:shadow-[0_12px_30px_rgba(0,97,255,0.15)] active:scale-[0.98]"
+      className="w-[280px] sm:w-[320px] md:w-[340px] max-w-full shrink-0 cursor-pointer overflow-hidden rounded-[24px] border border-slate-200/90 bg-white shadow-xs transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-[0.98]"
     >
       {/* Media block — 4px inset, inner radius 22px */}
       <div className="p-1">

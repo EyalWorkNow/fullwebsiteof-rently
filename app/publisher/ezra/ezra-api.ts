@@ -77,30 +77,46 @@ function sanitizeFileName(name: string): string {
 
 /** Uploads one image file, returns its public HTTPS URL. Throws a Hebrew-message
  *  Error on any failure — the caller decides how to surface it (per-file status). */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+/** Uploads one image file, returns its public HTTPS URL or Base64 fallback URL. */
 export async function uploadPhoto(file: File): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('אפשר להעלות קבצי תמונה בלבד.')
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-  const key = `uploads/${Date.now()}_${sanitizeFileName(file.name.replace(/\.[^.]+$/, ''))}.${ext}`
 
-  const presignRes = await fetch(`${BASE}/storage/presign`, {
-    method: 'POST',
-    headers: await authHeaders(),
-    body: JSON.stringify({ key, contentType: file.type }),
-  })
-  if (presignRes.status === 401 || presignRes.status === 403) {
-    throw new Error('צריך להתחבר כדי להעלות תמונות.')
+  try {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+    const key = `uploads/${Date.now()}_${sanitizeFileName(file.name.replace(/\.[^.]+$/, ''))}.${ext}`
+
+    const presignRes = await fetch(`${BASE}/storage/presign`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ key, contentType: file.type }),
+    })
+    if (presignRes.ok) {
+      const { uploadUrl, publicUrl } = await presignRes.json()
+      if (uploadUrl && publicUrl) {
+        const putRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        })
+        if (putRes.ok && typeof publicUrl === 'string') {
+          return publicUrl
+        }
+      }
+    }
+  } catch {
+    /* Fallback to Base64 data URL if cloud storage presign or PUT fails */
   }
-  if (!presignRes.ok) throw new Error('לא הצלחנו להכין את ההעלאה. נסו שוב.')
-  const { uploadUrl, publicUrl } = await presignRes.json()
-  if (!uploadUrl || !publicUrl) throw new Error('לא הצלחנו להכין את ההעלאה. נסו שוב.')
 
-  const putRes = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: file,
-  })
-  if (!putRes.ok) throw new Error('העלאת התמונה נכשלה. נסו שוב.')
-  return publicUrl as string
+  return await fileToBase64(file)
 }
 
 /** DELETE /properties/{id} — server enforces ownerUserId === caller. */

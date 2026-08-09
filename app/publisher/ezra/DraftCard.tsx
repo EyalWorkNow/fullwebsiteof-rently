@@ -87,12 +87,15 @@ export default function DraftCard({
     }))
     setPending((p) => [...p, ...entries])
 
+    let currentPhotos = [...photos]
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       const entry = entries[i]
       try {
         const url = await uploadPhoto(file)
-        onPhotosChange([...photos, url])
+        currentPhotos = [...currentPhotos, url]
+        onPhotosChange(currentPhotos)
         setPending((p) => p.filter((x) => x.id !== entry.id))
         URL.revokeObjectURL(entry.previewUrl)
       } catch (e) {
@@ -128,8 +131,6 @@ export default function DraftCard({
 
   async function publish() {
     if (publishing) return
-    // Read the account at publish time — after a gate sign-in this is the fresh
-    // (non-anonymous) user, whose uid must own the listing.
     const u = currentUser()
     if (!u || u.isAnonymous) {
       setError('צריך להתחבר כדי לפרסם דירה.')
@@ -137,6 +138,14 @@ export default function DraftCard({
     }
     if (photos.length === 0) {
       setError('יש להעלות לפחות תמונה אחת של הדירה כדי לפרסם.')
+      return
+    }
+    if (!fields.city || !fields.city.trim()) {
+      setError('יש למלא עיר בטיוטה כדי לפרסם את הדירה.')
+      return
+    }
+    if (!fields.price || parseInt(fields.price, 10) <= 0) {
+      setError('יש למלא מחיר תקין בטיוטה כדי לפרסם את הדירה.')
       return
     }
     setPublishing(true)

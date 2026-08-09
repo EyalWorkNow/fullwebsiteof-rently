@@ -1524,14 +1524,14 @@ export default function AtiWorkspace() {
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-slate-50">
       {/* ── Futuristic AI Mesh Gradient & Tech Grid Background ── */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100/80 via-slate-50 to-blue-50/50" />
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[650px] w-[900px] rounded-full bg-gradient-to-tr from-[#0061FF]/18 via-[#38B6FF]/22 to-indigo-300/15 blur-[130px]" />
-      <div className="pointer-events-none absolute -bottom-35 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-b from-[#38B6FF]/15 via-blue-400/10 to-[#0061FF]/12 blur-[110px]" />
+      <div className="pointer-events-none absolute inset-0 h-full w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100/90 via-slate-50 to-blue-50/70" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[750px] w-[1000px] rounded-full bg-gradient-to-tr from-[#0061FF]/22 via-[#38B6FF]/25 to-indigo-300/20 blur-[130px]" />
+      <div className="pointer-events-none absolute -bottom-20 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-b from-[#38B6FF]/18 via-blue-400/15 to-[#0061FF]/15 blur-[110px]" />
       {/* Subtle tech grid background pattern */}
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#0061ff08_1px,transparent_1px),linear-gradient(to_bottom,#0061ff08_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
+      <div className="pointer-events-none absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#0061ff0a_1px,transparent_1px),linear-gradient(to_bottom,#0061ff0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
 
-      {/* Floating Desktop Sidebar (Absolute Positioned on Right side so main screen stays 100% centered!) */}
-      <aside className="hidden xl:block absolute top-3.5 end-3.5 bottom-3.5 z-30 w-72">
+      {/* Floating Desktop Sidebar (Explicitly Anchored on the RIGHT Side) */}
+      <aside className="hidden xl:block absolute top-3.5 right-3.5 bottom-3.5 z-30 w-72">
         {sidebarContent}
       </aside>
 
@@ -1541,7 +1541,7 @@ export default function AtiWorkspace() {
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="xl:hidden absolute top-3 start-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
+          className="xl:hidden absolute top-3 right-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
         >
           <Messages3 size={16} color="#0061FF" variant="Bold" />
           <span>שיחות קודמות</span>
@@ -1795,7 +1795,7 @@ export default function AtiWorkspace() {
             onClick={() => setSidebarOpen(false)}
             aria-hidden
           />
-          <div className="absolute inset-y-0 end-0 flex max-w-[85vw] shadow-2xl p-2">
+          <div className="absolute inset-y-0 right-0 flex max-w-[85vw] shadow-2xl p-2">
             {sidebarContent}
           </div>
         </div>

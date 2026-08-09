@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { CloseCircle, MagicStar, SearchNormal1 } from "iconsax-react";
+import {
+  CloseCircle,
+  MagicStar,
+  SearchNormal1,
+  Location,
+  ChartSquare,
+  DocumentText,
+  Flash,
+  ShieldSecurity,
+} from "iconsax-react";
 import styled from "styled-components";
 import { fetchProperties, type PropertiesResult } from "@/lib/live/api";
 import { buildReply, parseQuery, rankProperties } from "@/lib/live/smart-search";
@@ -399,17 +408,17 @@ async function localFastSearch(query: string): Promise<HeroSearchResult> {
 }
 
 const ROTATING_PLACEHOLDERS = [
-  "למשל: דירה למשפחה דתית לאומית עם 2 ילדים בנתניה עד 4,300 ₪ לחודש לא רחוק מהים",
-  "למשל: דירת שותפים ל-3 בתל אביב עד 7,000 ₪ לחודש ושמותר חיות מחמד",
-  "למשל: 4 חדרים שקטה ברמת גן ליד פארק ובית ספר יסודי עד 6,800 ₪",
-  "למשל: דירת גן בגבעתיים לזוג צעיר עד 5,800 ₪ ליד תחבורה ציבורית",
+  "למשל: דירת 3 חדרים בתל אביב עד 7,500 ₪ עם מרפסת וחניה...",
+  "למשל: דירת שותפים ל-3 בתל אביב עד 7,000 ₪ ושמותר חיות מחמד...",
+  "למשל: 4 חדרים שקטה ברמת גן ליד פארק ובית ספר יסודי עד 6,800 ₪...",
+  "למשל: דירת גן בגבעתיים לזוג צעיר עד 5,800 ₪ ליד תחבורה ציבורית...",
 ];
 
 const CHIPS = [
-  "דירת שותפים ל-3 בתל אביב עד 7,000 ₪ ומותר חיות מחמד",
-  "דירה למשפחה דתית בנתניה עד 4,300 ₪ ליד הים",
-  "4 חדרים שקטה ברמת גן ליד פארק ובי\"ס",
-  "דירת גן בגבעתיים לזוג צעיר עד 5,800 ₪",
+  "דירת 3 חדרים בתל אביב עם מרפסת",
+  "עד 6,500 ₪ ליד רכבת קלה",
+  "דירה שקטה ליד פארק",
+  "4 חדרים מרוהטת בגבעתיים",
 ];
 
 const rise = {
@@ -427,6 +436,7 @@ export default function Hero() {
   const [typedPlaceholder, setTypedPlaceholder] = useState("");
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activeMode, setActiveMode] = useState<"fast" | "deep" | "contract">("fast");
   const { requireAuth } = useAuthGate();
 
   // Typewriter effect: types character-by-character, pauses, then backspaces
@@ -479,86 +489,183 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#EFF6FF] via-white to-white pt-32 pb-16">
-      {/* Decorative blobs */}
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#EFF6FF] via-slate-50/50 to-white pt-28 pb-16 md:pt-36 md:pb-20">
+      {/* Decorative glows & tech grid */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 -start-24 h-[380px] w-[380px] rounded-full bg-primary/10 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-tr from-blue-200/30 via-indigo-100/20 to-[#38B6FF]/20 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute top-32 -end-24 h-[320px] w-[320px] rounded-full bg-[#38B6FF]/10 blur-3xl"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#0061ff08_1px,transparent_1px),linear-gradient(to_bottom,#0061ff0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]"
       />
 
-      <div className="relative mx-auto max-w-[860px] px-4 text-center">
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }}>
-          <motion.a
+      <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">
+        {/* Top Badges: Model Switcher & Live Engine Status */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex flex-wrap items-center justify-center gap-2.5">
+          <div className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-white/90 p-1 shadow-sm backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setActiveMode("fast")}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold transition cursor-pointer ${
+                activeMode === "fast"
+                  ? "bg-[#0061FF] text-white shadow-xs"
+                  : "text-slate-600 hover:text-[#0061FF]"
+              }`}
+            >
+              <Flash size={14} variant="Bold" />
+              <span>אתי Fast</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveMode("deep")}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-extrabold transition cursor-pointer ${
+                activeMode === "deep"
+                  ? "bg-[#0061FF] text-white shadow-xs"
+                  : "text-slate-600 hover:text-[#0061FF]"
+              }`}
+            >
+              <MagicStar size={14} variant="Bold" />
+              <span>אתי Deep Intel</span>
+            </button>
+          </div>
+
+          <a
             href="/publish"
-            whileHover={{ scale: 1.06, y: -2 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            className="inline-flex items-center gap-2.5 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-50 px-6 py-2.5 text-[14px] font-black text-[#0061FF] shadow-sm hover:border-[#0061FF] hover:shadow-lg"
+            className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/90 bg-blue-50/90 px-3.5 py-1.5 text-[12px] font-extrabold text-[#0061FF] shadow-xs transition hover:bg-blue-100/80 cursor-pointer"
           >
-            <MagicStar size={18} variant="Bold" color="#0061FF" className="shrink-0" />
-            <span>משכירים או מוכרים? פרסמו דירה ב-2 דקות בחינם!</span>
-          </motion.a>
+            <span>פרסמו דירה בחינם ב-2 דקות ←</span>
+          </a>
         </motion.div>
 
+        {/* Headline */}
         <motion.h1
           {...rise}
           transition={{ duration: 0.5, delay: 0.08 }}
-          className="mt-5 text-4xl font-black leading-tight text-navy md:text-6xl"
+          className="mt-5 text-3xl sm:text-5xl md:text-6xl font-black leading-tight text-navy tracking-tight"
         >
-          כיף שבאת, איזו <span className="text-primary">דירה</span> נחפש היום?
+          כיף שבאת, איזו{' '}
+          <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+            דירה
+          </span>{' '}
+          נחפש היום?
         </motion.h1>
 
+        {/* Subtitle */}
         <motion.p
           {...rise}
           transition={{ duration: 0.5, delay: 0.16 }}
-          className="mt-4 text-lg text-secondary-text"
+          className="mt-3 text-base sm:text-lg font-semibold text-secondary-text max-w-[580px] mx-auto leading-relaxed"
         >
           ספרו לאתי מה חשוב לכם ותבדוק אם היא באמת עוזרת חכמה
         </motion.p>
 
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.24 }}>
+        {/* 3 Capability Cards Grid (SaaS Starter Grid - NeuroAI style) */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.22 }} className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3.5 max-w-[840px] mx-auto text-start">
+          <button
+            type="button"
+            onClick={() => runChip('דירת 3 חדרים בתל אביב עם מרפסת וחניה עד 7,500 ₪')}
+            className="group relative flex flex-col p-4 rounded-2xl border border-blue-100 bg-white/90 shadow-sm hover:shadow-md hover:border-[#0061FF] transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF]">
+                <Location size={18} variant="Bold" color="#0061FF" />
+              </div>
+              <span className="text-[14px] font-black text-navy group-hover:text-[#0061FF] transition">חיפוש דירות חכם</span>
+            </div>
+            <p className="text-[12.5px] font-semibold text-secondary-text leading-relaxed">
+              סינון לפי תקציב, שקט בסביבה, קומה והרגלי חיים
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => runChip('בצע השוואת מחירי שוק מול דירות דומות באזור')}
+            className="group relative flex flex-col p-4 rounded-2xl border border-blue-100 bg-white/90 shadow-sm hover:shadow-md hover:border-[#0061FF] transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF]">
+                <ChartSquare size={18} variant="Bold" color="#0061FF" />
+              </div>
+              <span className="text-[14px] font-black text-navy group-hover:text-[#0061FF] transition">השוואת מחירי שוק</span>
+            </div>
+            <p className="text-[12.5px] font-semibold text-secondary-text leading-relaxed">
+              בדיקת הוגנות המחיר מול עסקאות הלמ״ר והשוק
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => runChip('אני רוצה להתייעץ ולנתח חוזה שכירות')}
+            className="group relative flex flex-col p-4 rounded-2xl border border-blue-100 bg-white/90 shadow-sm hover:shadow-md hover:border-[#0061FF] transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF]">
+                <DocumentText size={18} variant="Bold" color="#0061FF" />
+              </div>
+              <span className="text-[14px] font-black text-navy group-hover:text-[#0061FF] transition">סורק חוזה שכירות</span>
+            </div>
+            <p className="text-[12.5px] font-semibold text-secondary-text leading-relaxed">
+              סריקת סעיפים מקפחים, ערבויות וסיכונים מראש
+            </p>
+          </button>
+        </motion.div>
+
+        {/* Command Center Prompt Box */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.28 }}>
           <form
             onSubmit={handleSubmit}
-            className="card-shadow mx-auto mt-8 flex max-w-[820px] items-center gap-3 rounded-full border border-border-app bg-white p-2.5 ps-6"
+            className="relative mt-6 rounded-3xl border-2 border-blue-200/90 bg-white p-3 sm:p-4 md:p-5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100 max-w-[840px] mx-auto text-start"
           >
-            <MagicStar
-              size={22}
-              variant="Bold"
-              color="currentColor"
-              className="shrink-0 text-primary"
-            />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
-              className="min-w-0 flex-1 bg-transparent text-[15px] md:text-[16px] font-medium text-navy outline-none placeholder:text-[#9EB5C8] transition-all duration-300"
-            />
-            <HeroAiSearchButton disabled={searching}>
-              <span>{searching ? "מחפשת…" : "חיפוש"}</span>
-              <SearchNormal1
-                size={22}
-                color="currentColor"
-                className="shrink-0 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)] ms-1"
+            {/* Text Input Row */}
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#0061FF]">
+                <MagicStar size={22} variant="Bold" color="#0061FF" />
+              </div>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
+                className="w-full min-w-0 bg-transparent text-[15px] sm:text-[16px] md:text-[17px] font-medium text-navy outline-none placeholder:text-slate-400 leading-relaxed py-2"
               />
-            </HeroAiSearchButton>
+              <HeroAiSearchButton disabled={searching}>
+                <span>{searching ? "מחפשת…" : "חיפוש"}</span>
+                <SearchNormal1
+                  size={20}
+                  color="currentColor"
+                  className="shrink-0 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)] ms-1"
+                />
+              </HeroAiSearchButton>
+            </div>
+
+            {/* Attached Quick Chips Inside Footer */}
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+              {CHIPS.map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => runChip(chip)}
+                  className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
+                >
+                  <span>{chip}</span>
+                </button>
+              ))}
+            </div>
           </form>
 
-          <div className="mt-5 flex flex-wrap justify-center gap-2.5">
-            {CHIPS.map((chip) => (
-              <button
-                key={chip}
-                type="button"
-                onClick={() => runChip(chip)}
-                className="cursor-pointer rounded-full border border-border-app bg-white px-4 py-2 text-[13px] font-bold text-navy transition hover:border-primary hover:text-primary shadow-sm hover:shadow-md"
-              >
-                {chip}
-              </button>
-            ))}
+          {/* Integrated Trust & Proof Strip */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-[12.5px] font-bold text-secondary-text">
+            <span className="flex items-center gap-1.5">
+              <ShieldSecurity size={16} color="#0061FF" variant="Bold" />
+              <span>סריקת 14,200+ דירות פעילות</span>
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="flex items-center gap-1.5">
+              <Flash size={16} color="#0061FF" variant="Bold" />
+              <span>מבוסס נתוני נדל״ן רשמיים, למ״ר ומפות</span>
+            </span>
           </div>
 
           {searching && (

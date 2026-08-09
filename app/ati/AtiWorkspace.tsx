@@ -1064,7 +1064,6 @@ export default function AtiWorkspace() {
   // again just reopens the identical modal with no clue why. This hint is the
   // only thing that changes — it explains once, it doesn't touch the gate.
   const [showAuthHint, setShowAuthHint] = useState(false)
-  const [selectedAiMode, setSelectedAiMode] = useState<'fast' | 'deep'>('fast')
   const guardedSend = useCallback(
     (raw: string) => {
       if (!raw.trim()) return
@@ -1551,144 +1550,42 @@ export default function AtiWorkspace() {
         {/* Scrollable Conversation Content — Centered inside Chat Area Column */}
         <div ref={scrollRef} className="no-scrollbar flex-1 w-full overflow-y-auto flex flex-col items-center justify-center max-w-[840px] mx-auto py-4">
           {showHeroState ? (
-            /* Welcome Hero View — Ultimate ChatGPT/Claude Level AI SaaS Command Center */
-            <div className="flex flex-col items-center justify-center w-full max-w-[840px] mx-auto text-center gap-5 md:gap-6 my-auto py-2">
-              
-              {/* 1. Live Engine Indicator & AI Mode Switcher Pill */}
-              <div className="flex flex-wrap items-center justify-center gap-2.5 shrink-0">
-                <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-white/90 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-xs backdrop-blur-md">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
-                  <span>14,200+ דירות פעילות ומאגרי נדל״ן בלייב</span>
-                </div>
-
-                <div className="inline-flex items-center gap-1 rounded-full border border-slate-200/90 bg-slate-100/90 p-1 shadow-inner text-[12px] font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAiMode('fast')}
-                    className={`rounded-full px-3.5 py-1 font-black transition-all flex items-center gap-1.5 cursor-pointer ${
-                      selectedAiMode === 'fast'
-                        ? 'bg-white text-[#0061FF] shadow-xs'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <LampCharge size={13} color={selectedAiMode === 'fast' ? '#0061FF' : 'currentColor'} variant="Bold" />
-                    <span>אתי Fast</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAiMode('deep')}
-                    className={`rounded-full px-3.5 py-1 font-black transition-all flex items-center gap-1.5 cursor-pointer ${
-                      selectedAiMode === 'deep'
-                        ? 'bg-[#0061FF] text-white shadow-xs'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <MagicStar size={13} variant="Bold" color={selectedAiMode === 'deep' ? '#FFFFFF' : 'currentColor'} />
-                    <span>Deep Intel</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Central AI Branding & Greeting Header */}
-              <div className="flex flex-col items-center justify-center text-center shrink-0 w-full">
-                <div className="relative mb-2">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0061FF] via-[#38B6FF] to-indigo-400 opacity-30 blur-2xl animate-pulse" />
+            /* Welcome Hero View — Compact, tightly-coupled hero group */
+            <div className="flex flex-col items-center justify-center w-full mx-auto text-center gap-6 my-auto">
+              {/* Central Greeting Header */}
+              <div className="flex flex-col items-center justify-center text-center shrink-0 w-full mx-auto">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] opacity-30 blur-xl animate-pulse" />
                   <IridescentOrb />
                 </div>
 
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-snug">
+                <h1 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-snug">
                   שלום, במה אוכל{' '}
                   <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
                     לסייע לך היום?
                   </span>
                 </h1>
-                <p className="mt-1.5 text-xs sm:text-sm md:text-base font-semibold text-slate-500 max-w-[560px] px-2 leading-relaxed">
-                  {selectedAiMode === 'fast'
-                    ? 'חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית'
-                    : 'מצב ניתוח עמוק פעיל: חישוב תשואות, סורק חוזים משפטי והשוואת עסקאות נדל״ן מול הלמ״ר'}
+                <p className="mt-2 text-xs sm:text-sm md:text-base font-semibold text-slate-500 max-w-[540px] px-2 leading-relaxed">
+                  חפש דירות, שאל שאלות או בקש ניתוח שוק והשוואת מחירים בשפה חופשית
                 </p>
+
+                {/* Quick Chips suggestions */}
+                <div className="mt-4 flex flex-wrap justify-center gap-2 px-2 w-full max-w-[680px] mx-auto">
+                  {CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => guardedSend(chip)}
+                      className="rounded-full border border-slate-200/90 bg-white/90 px-4 py-1.5 text-[12px] sm:text-[13px] font-extrabold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:border-blue-400 hover:bg-white hover:text-[#0061FF] hover:shadow-md cursor-pointer"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* 3. 4 Glassmorphic Starter Capability Cards Grid (2x2 Grid) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-[780px] px-1">
-                <button
-                  type="button"
-                  onClick={() => guardedSend('חפש לי דירת 3 חדרים בתל אביב עד 7,000 ₪ עם מרפסת וחניה באזור שקט')}
-                  className="group text-start flex items-start gap-3 rounded-2xl border border-slate-200/90 bg-white/80 p-3.5 shadow-xs backdrop-blur-md transition-all duration-200 hover:border-[#0061FF] hover:bg-white hover:shadow-md cursor-pointer"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF] transition-transform group-hover:scale-110">
-                    <Location size={18} variant="Bold" color="#0061FF" />
-                  </div>
-                  <div>
-                    <h3 className="text-[13.5px] font-extrabold text-slate-900 group-hover:text-[#0061FF] transition">
-                      🏠 חיפוש דירות חכם
-                    </h3>
-                    <p className="text-[11.5px] font-semibold text-slate-500 leading-snug mt-0.5">
-                      סינון לפי תקציב, קומה, שקט והרגלי חיים
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => guardedSend('בצע ניתוח השוואת מחירי שוק ועסקאות נדל״ן דומות באזור')}
-                  className="group text-start flex items-start gap-3 rounded-2xl border border-slate-200/90 bg-white/80 p-3.5 shadow-xs backdrop-blur-md transition-all duration-200 hover:border-[#0061FF] hover:bg-white hover:shadow-md cursor-pointer"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF] transition-transform group-hover:scale-110">
-                    <ChartSquare size={18} variant="Bold" color="#0061FF" />
-                  </div>
-                  <div>
-                    <h3 className="text-[13.5px] font-extrabold text-slate-900 group-hover:text-[#0061FF] transition">
-                      📊 השוואת מחירי שוק
-                    </h3>
-                    <p className="text-[11.5px] font-semibold text-slate-500 leading-snug mt-0.5">
-                      בדיקת הוגנות המחיר מול ממוצע הלמ״ר
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => guardedSend('אני רוצה להעלות חוזה שכירות לסריקה וזיהוי סעיפים בעייתיים')}
-                  className="group text-start flex items-start gap-3 rounded-2xl border border-slate-200/90 bg-white/80 p-3.5 shadow-xs backdrop-blur-md transition-all duration-200 hover:border-[#0061FF] hover:bg-white hover:shadow-md cursor-pointer"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF] transition-transform group-hover:scale-110">
-                    <DocumentText size={18} variant="Bold" color="#0061FF" />
-                  </div>
-                  <div>
-                    <h3 className="text-[13.5px] font-extrabold text-slate-900 group-hover:text-[#0061FF] transition">
-                      📄 סורק חוזה שכירות
-                    </h3>
-                    <p className="text-[11.5px] font-semibold text-slate-500 leading-snug mt-0.5">
-                      סריקת סעיפים מקפחים, ערבויות וסיכונים
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => guardedSend('בצע ניתוח אינטליגנציית סביבה על תחבורה, בתי ספר ופארקים באזור')}
-                  className="group text-start flex items-start gap-3 rounded-2xl border border-slate-200/90 bg-white/80 p-3.5 shadow-xs backdrop-blur-md transition-all duration-200 hover:border-[#0061FF] hover:bg-white hover:shadow-md cursor-pointer"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF] transition-transform group-hover:scale-110">
-                    <Magicpen size={18} variant="Bold" color="#0061FF" />
-                  </div>
-                  <div>
-                    <h3 className="text-[13.5px] font-extrabold text-slate-900 group-hover:text-[#0061FF] transition">
-                      📍 אינטליגנציית סביבה
-                    </h3>
-                    <p className="text-[11.5px] font-semibold text-slate-500 leading-snug mt-0.5">
-                      נתוני תחבורה, בתי ספר, רכבת ורמת שקט
-                    </p>
-                  </div>
-                </button>
-              </div>
-
-              {/* 4. Multi-Modal Command Center Chatbox Box */}
-              <div className="w-full max-w-[840px] mx-auto shrink-0 pt-3">
+              {/* Large & Prominent Chatbox Input Section */}
+              <div className="w-full max-w-[840px] mx-auto mt-auto shrink-0 pt-3">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
@@ -1723,6 +1620,45 @@ export default function AtiWorkspace() {
                       disabled={!input.trim()}
                       onClick={() => guardedSend(input)}
                     />
+                  </div>
+
+                  {/* Horizontal Scrollable Feature Pills */}
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+                    <button
+                      type="button"
+                      onClick={() => guardedSend('בצע ניתוח אינטליגנציית אזור על תחבורה, בתי ספר ושקט בסביבה')}
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
+                    >
+                      <Location size={14} color="#0061FF" variant="Bold" />
+                      <span>אינטליגנציית אזור</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => guardedSend('בצע השוואת מחירי שוק מול דירות דומות באזור')}
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
+                    >
+                      <ChartSquare size={14} color="#0061FF" variant="Bold" />
+                      <span>השוואת מחירי שוק</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => guardedSend('סנן דירות שמתאימות לסגנון החיים וההרגלים שלי')}
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
+                    >
+                      <Magicpen size={14} color="#0061FF" variant="Bold" />
+                      <span>סינון סגנון חיים</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => guardedSend('אני רוצה להתייעץ ולנתח חוזה שכירות')}
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
+                    >
+                      <DocumentText size={14} color="#0061FF" variant="Bold" />
+                      <span>בדיקת חוזים</span>
+                    </button>
                   </div>
                 </form>
                 {showAuthHint && !isRegistered && (

@@ -45,7 +45,7 @@ function PropertyActionMenu({
 
   if (confirming) {
     return (
-      <div className="absolute end-0 top-full z-50 mt-2 w-[220px] rounded-2xl border border-border-app bg-white p-3.5 shadow-[0_12px_32px_rgba(7,41,70,0.14)]">
+      <div className="absolute left-0 top-full z-50 mt-2 w-[220px] rounded-2xl border border-border-app bg-white p-3.5 shadow-[0_12px_32px_rgba(7,41,70,0.14)]">
         <p className="text-[12.5px] font-bold text-navy">למחוק את המודעה הזו לצמיתות?</p>
         <div className="mt-3 flex gap-2">
           <button
@@ -74,7 +74,7 @@ function PropertyActionMenu({
   }
 
   return (
-    <div className="absolute end-0 top-full z-50 mt-2 min-w-[170px] overflow-hidden rounded-2xl border border-border-app bg-white shadow-[0_12px_32px_rgba(7,41,70,0.14)]">
+    <div className="absolute left-0 top-full z-50 mt-2 min-w-[170px] overflow-hidden rounded-2xl border border-border-app bg-white shadow-[0_12px_32px_rgba(7,41,70,0.14)]">
       <button
         type="button"
         onClick={() => { onEdit(); onClose() }}
@@ -138,15 +138,15 @@ function PublisherPropertyCard({
             </div>
           )}
 
-          {/* Status badge — top-start */}
+          {/* Status badge — top-right */}
           <span
-            className={`absolute top-2.5 start-2.5 rounded-full px-3 py-1 text-[11.5px] font-bold badge-shadow bg-white/90 ${status.cls}`}
+            className={`absolute top-2.5 right-2.5 rounded-full px-3 py-1 text-[11.5px] font-bold badge-shadow bg-white/90 ${status.cls}`}
           >
             {status.text}
           </span>
 
-          {/* 3-dot action menu — top-end */}
-          <div ref={menuRef} className="absolute top-2.5 end-2.5 relative">
+          {/* 3-dot action menu — top-left */}
+          <div ref={menuRef} className="absolute top-2.5 left-2.5">
             <button
               type="button"
               aria-label="אפשרויות"
@@ -154,7 +154,7 @@ function PublisherPropertyCard({
                 e.stopPropagation()
                 setMenuOpen((v) => !v)
               }}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white badge-shadow hover:bg-cloud transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white badge-shadow hover:bg-cloud transition-colors cursor-pointer"
             >
               <More size={15} color="#072946" />
             </button>

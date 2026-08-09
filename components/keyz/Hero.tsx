@@ -575,54 +575,60 @@ export default function Hero() {
           ספרו לאתי מה חשוב לכם ותבדוק אם היא באמת עוזרת חכמה
         </motion.p>
 
-        {/* 3 Capability Cards Grid (SaaS Starter Grid - NeuroAI style) */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.22 }} className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3.5 max-w-[840px] mx-auto text-start">
+        {/* Capability Selectable Tags Bar (Sleek, Compact Tag Pills) */}
+        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.22 }} className="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 max-w-[840px] mx-auto">
           <button
             type="button"
-            onClick={() => runChip('דירת 3 חדרים בתל אביב עם מרפסת וחניה עד 7,500 ₪')}
-            className="group relative flex flex-col p-4 rounded-2xl border border-blue-100 bg-white/90 shadow-sm hover:shadow-md hover:border-[#0061FF] transition-all duration-200 cursor-pointer"
+            onClick={() => {
+              setActiveMode("fast");
+              runChip('דירת 3 חדרים בתל אביב עם מרפסת וחניה עד 7,500 ₪');
+            }}
+            className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+              activeMode === "fast"
+                ? "border-[#0061FF] bg-blue-50/90 text-[#0061FF] ring-2 ring-blue-100"
+                : "border-slate-200/90 bg-white/95 text-navy hover:border-[#0061FF] hover:text-[#0061FF]"
+            }`}
           >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF]">
-                <Location size={18} variant="Bold" color="#0061FF" />
-              </div>
-              <span className="text-[14px] font-black text-navy group-hover:text-[#0061FF] transition">חיפוש דירות חכם</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100/80 text-[#0061FF] shrink-0">
+              <Location size={16} variant="Bold" color="#0061FF" />
             </div>
-            <p className="text-[12.5px] font-semibold text-secondary-text leading-relaxed">
-              סינון לפי תקציב, שקט בסביבה, קומה והרגלי חיים
-            </p>
+            <span className="text-[13.5px] font-black tracking-tight">חיפוש דירות חכם</span>
           </button>
 
           <button
             type="button"
-            onClick={() => runChip('בצע השוואת מחירי שוק מול דירות דומות באזור')}
-            className="group relative flex flex-col p-4 rounded-2xl border border-blue-100 bg-white/90 shadow-sm hover:shadow-md hover:border-[#0061FF] transition-all duration-200 cursor-pointer"
+            onClick={() => {
+              setActiveMode("deep");
+              runChip('בצע השוואת מחירי שוק מול דירות דומות באזור');
+            }}
+            className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+              activeMode === "deep"
+                ? "border-[#0061FF] bg-blue-50/90 text-[#0061FF] ring-2 ring-blue-100"
+                : "border-slate-200/90 bg-white/95 text-navy hover:border-[#0061FF] hover:text-[#0061FF]"
+            }`}
           >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF]">
-                <ChartSquare size={18} variant="Bold" color="#0061FF" />
-              </div>
-              <span className="text-[14px] font-black text-navy group-hover:text-[#0061FF] transition">השוואת מחירי שוק</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100/80 text-[#0061FF] shrink-0">
+              <ChartSquare size={16} variant="Bold" color="#0061FF" />
             </div>
-            <p className="text-[12.5px] font-semibold text-secondary-text leading-relaxed">
-              בדיקת הוגנות המחיר מול עסקאות הלמ״ר והשוק
-            </p>
+            <span className="text-[13.5px] font-black tracking-tight">השוואת מחירי שוק</span>
           </button>
 
           <button
             type="button"
-            onClick={() => runChip('אני רוצה להתייעץ ולנתח חוזה שכירות')}
-            className="group relative flex flex-col p-4 rounded-2xl border border-blue-100 bg-white/90 shadow-sm hover:shadow-md hover:border-[#0061FF] transition-all duration-200 cursor-pointer"
+            onClick={() => {
+              setActiveMode("contract");
+              runChip('אני רוצה להתייעץ ולנתח חוזה שכירות');
+            }}
+            className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+              activeMode === "contract"
+                ? "border-[#0061FF] bg-blue-50/90 text-[#0061FF] ring-2 ring-blue-100"
+                : "border-slate-200/90 bg-white/95 text-navy hover:border-[#0061FF] hover:text-[#0061FF]"
+            }`}
           >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF]">
-                <DocumentText size={18} variant="Bold" color="#0061FF" />
-              </div>
-              <span className="text-[14px] font-black text-navy group-hover:text-[#0061FF] transition">סורק חוזה שכירות</span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100/80 text-[#0061FF] shrink-0">
+              <DocumentText size={16} variant="Bold" color="#0061FF" />
             </div>
-            <p className="text-[12.5px] font-semibold text-secondary-text leading-relaxed">
-              סריקת סעיפים מקפחים, ערבויות וסיכונים מראש
-            </p>
+            <span className="text-[13.5px] font-black tracking-tight">סורק חוזה שכירות</span>
           </button>
         </motion.div>
 

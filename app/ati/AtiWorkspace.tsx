@@ -1546,12 +1546,10 @@ export default function AtiWorkspace() {
 
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-slate-50">
-      {/* ── Futuristic AI Mesh Gradient & Tech Grid Background ── */}
+      {/* ── Futuristic AI Mesh Gradient Background (Pure Smooth Ambient Glow) ── */}
       <div className="pointer-events-none absolute inset-0 h-full w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100/90 via-slate-50 to-blue-50/70" />
       <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[750px] w-[1000px] rounded-full bg-gradient-to-tr from-[#0061FF]/22 via-[#38B6FF]/25 to-indigo-300/20 blur-[130px]" />
       <div className="pointer-events-none absolute -bottom-20 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-b from-[#38B6FF]/18 via-blue-400/15 to-[#0061FF]/15 blur-[110px]" />
-      {/* Subtle tech grid background pattern */}
-      <div className="pointer-events-none absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#0061ff0a_1px,transparent_1px),linear-gradient(to_bottom,#0061ff0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
 
       {/* 1. Sidebar Column (Right Side in RTL, Flex Flow) */}
       <aside className="hidden lg:block shrink-0 z-20 p-3.5 w-72 md:w-80 h-full">

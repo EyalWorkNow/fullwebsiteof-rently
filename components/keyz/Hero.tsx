@@ -489,14 +489,10 @@ export default function Hero() {
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#EFF6FF] via-slate-50/50 to-white pt-28 pb-16 md:pt-36 md:pb-20">
-      {/* Decorative glows & tech grid */}
+      {/* Decorative ambient glows */}
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-tr from-blue-200/30 via-indigo-100/20 to-[#38B6FF]/20 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#0061ff08_1px,transparent_1px),linear-gradient(to_bottom,#0061ff0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]"
       />
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">

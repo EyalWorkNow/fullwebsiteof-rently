@@ -11,6 +11,8 @@ import {
   DocumentText,
   Flash,
   ShieldSecurity,
+  Paperclip,
+  Microphone2,
 } from "iconsax-react";
 import styled from "styled-components";
 import { fetchProperties, type PropertiesResult } from "@/lib/live/api";
@@ -527,7 +529,7 @@ export default function Hero() {
               }`}
             >
               <Flash size={16} variant="Bold" />
-              <span>אתי Fast</span>
+              <span>אתי מהירה</span>
             </button>
 
             <button
@@ -540,7 +542,7 @@ export default function Hero() {
               }`}
             >
               <MagicStar size={16} variant="Bold" />
-              <span>אתי Deep Intel</span>
+              <span>אתי מעמיקה</span>
             </button>
           </div>
         </motion.div>
@@ -657,16 +659,28 @@ export default function Hero() {
                 className="w-full min-w-0 bg-transparent text-[15px] sm:text-[16px] md:text-[17px] font-medium text-navy outline-none placeholder:text-slate-400 leading-relaxed py-2"
               />
 
-              {/* Attach Contract PDF Quick Button */}
-              <button
-                type="button"
-                onClick={() => runChip('אני רוצה להעלות ולנתח חוזה שכירות ב-PDF')}
-                className="hidden sm:flex shrink-0 items-center gap-1 rounded-xl border border-slate-200/90 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/60 hover:text-[#0061FF] cursor-pointer"
-                title="העלאת חוזה שכירות PDF"
-              >
-                <DocumentText size={15} color="#0061FF" variant="Bold" />
-                <span>צרף חוזה</span>
-              </button>
+              {/* Action Icons: 1. File Attachment / Contract, 2. Voice Recording */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => runChip('אני רוצה להעלות ולנתח חוזה שכירות ב-PDF')}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
+                  title="צירוף קובץ או חוזה שכירות"
+                  aria-label="צירוף קובץ או חוזה שכירות"
+                >
+                  <Paperclip size={19} variant="Bold" color="currentColor" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => runChip('הקלטה קולית: אתי, מצאי לי דירת 3 חדרים')}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
+                  title="הקלטה קולית לאתי"
+                  aria-label="הקלטה קולית לאתי"
+                >
+                  <Microphone2 size={19} variant="Bold" color="currentColor" />
+                </button>
+              </div>
 
               <HeroAiSearchButton disabled={searching}>
                 <span>{searching ? "מחפשת…" : "חיפוש"}</span>

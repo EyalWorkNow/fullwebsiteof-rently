@@ -469,23 +469,19 @@ export default function Hero() {
   }, [typedPlaceholder, isDeleting, placeholderIdx]);
 
   const runSearch = (q: string) => {
-    setSearching(true);
-    setResult(null);
-    localFastSearch(q)
-      .then(setResult)
-      .finally(() => setSearching(false));
+    const modeParam = activeMode ? `&mode=${activeMode}` : '&mode=fast';
+    window.location.href = `/ati?q=${encodeURIComponent(q)}${modeParam}`;
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const q = query.trim() || ROTATING_PLACEHOLDERS[placeholderIdx].replace("למשל: ", "");
-    if (!q || searching) return;
+    if (!q) return;
     requireAuth(SEARCH_REASON, () => runSearch(q));
   };
 
   const runChip = (chip: string) => {
     setQuery(chip);
-    if (searching) return;
     requireAuth(SEARCH_REASON, () => runSearch(chip));
   };
 
@@ -712,58 +708,6 @@ export default function Hero() {
               <span>נתוני למ״ר ומפות רשמיות</span>
             </span>
           </div>
-
-          {searching && (
-            <div className="mx-auto mt-8 flex max-w-[820px] items-center gap-3 rounded-3xl border border-border-app bg-white p-5 text-start card-shadow">
-              <MagicStar size={20} variant="Bold" color="currentColor" className="shrink-0 animate-pulse text-primary" />
-              <span className="text-[14px] font-semibold text-secondary-text">
-                אתי סורקת את הדירות הפעילות…
-              </span>
-            </div>
-          )}
-
-          {result && !searching && (
-            <div className="mt-8 text-start">
-              <div className="mx-auto max-w-[820px] rounded-3xl border border-border-app bg-white p-5 card-shadow">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-light2">
-                      <MagicStar size={18} variant="Bold" color="currentColor" className="text-primary" />
-                    </span>
-                    <div>
-                      <p className="text-[12px] font-bold text-primary">אתי</p>
-                      <p className="mt-0.5 text-[14.5px] font-semibold leading-relaxed text-navy">
-                        {result.reply || "הנה מה שמצאתי:"}
-                      </p>
-                      {!result.live && (
-                        <p className="mt-1 text-[11.5px] font-semibold text-secondary-text">
-                          (נתוני דוגמה)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="סגירת תוצאות"
-                    onClick={() => setResult(null)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center text-secondary-text transition hover:text-coral"
-                  >
-                    <CloseCircle size={20} color="currentColor" />
-                  </button>
-                </div>
-              </div>
-
-              {result.listings.length > 0 && (
-                <ListingCarousel listings={result.listings} className="mt-4" />
-              )}
-
-              <p className="mt-3 text-center text-[13px] font-bold">
-                <a href="/real-estate" className="text-primary hover:underline">
-                  לכל הדירות עם סינון מלא ←
-                </a>
-              </p>
-            </div>
-          )}
 
           <p className="mt-6 text-[13px] text-secondary-text">
             החיפוש המלא עם אתי זמין באפליקציה{" "}

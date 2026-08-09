@@ -1055,6 +1055,28 @@ export default function AtiWorkspace() {
     ],
   )
 
+  // Handle incoming query from Homepage Hero: ?q=...
+  const initialQueryHandledRef = useRef(false)
+  useEffect(() => {
+    if (!loaded || initialQueryHandledRef.current) return
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const initialQuery = params.get('q')
+    const mode = params.get('mode')
+    if (initialQuery) {
+      initialQueryHandledRef.current = true
+      if (mode === 'fast') {
+        setImmediate(true)
+        saveImmediateMode(true)
+      } else if (mode === 'deep') {
+        setImmediate(false)
+        saveImmediateMode(false)
+      }
+      window.history.replaceState({}, '', '/ati')
+      void send(initialQuery)
+    }
+  }, [loaded, send])
+
   const { requireAuth, isRegistered } = useAuthGate()
   const sendRef = useRef(send)
   sendRef.current = send

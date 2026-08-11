@@ -495,6 +495,19 @@ export default function Hero() {
         className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-tr from-blue-200/30 via-indigo-100/20 to-[#38B6FF]/20 blur-3xl"
       />
 
+      {/* 3D Balloon House Background Image (Top Right in RTL) */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-28 sm:-right-40 md:-right-52 lg:-right-48 -top-2 sm:-top-4 md:-top-6 lg:-top-8 z-0 w-[378px] sm:w-[566px] md:w-[680px] lg:w-[780px] max-w-none select-none opacity-[0.55] rotate-[10deg] transition-all"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/balloon-house.png"
+          alt=""
+          className="h-auto w-full object-contain filter drop-shadow-[0_20px_35px_rgba(37,99,235,0.15)]"
+        />
+      </div>
+
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">
         {/* 1. Enlarged 3D Iridescent Orb / Coin */}
         <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex items-center justify-center my-3">
@@ -506,7 +519,12 @@ export default function Hero() {
                 <div className="absolute -top-4 -left-4 h-14 w-14 rounded-full bg-white/90 blur-sm" />
                 <div className="absolute bottom-2 right-3 h-9 w-9 rounded-full bg-sky-400/30 blur-md" />
                 <div className="absolute top-6 right-4 h-5 w-5 rounded-full bg-blue-400/25 blur-sm" />
-                <MagicStar size={42} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-md relative z-10 animate-spin-slow" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/rently-icon.svg"
+                  alt="Rently Icon"
+                  className="h-16 w-16 sm:h-20 sm:w-20 object-contain drop-shadow-md relative z-10 transition-transform duration-300 hover:scale-105"
+                />
               </div>
             </div>
           </div>

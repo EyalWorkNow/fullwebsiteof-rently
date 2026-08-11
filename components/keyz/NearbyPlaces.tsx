@@ -68,6 +68,7 @@ import NearbyMap from './NearbyMap'
 import NearbyRadar from './NearbyRadar'
 import {
   GroupLegend,
+  getPlaceDisplayName,
   groupColor,
   type NearbyGroupWithCount,
   type NearbyPoi,
@@ -679,7 +680,7 @@ export default function NearbyPlaces({
                         className="flex items-center gap-2 px-4 py-2 transition hover:bg-cloud/60"
                       >
                         <span className="min-w-0 flex-1 truncate text-[14px] font-bold text-navy">
-                          {pl.name || 'ללא שם'}
+                          {getPlaceDisplayName(pl.name, openSection.key, openSection.label)}
                         </span>
                         <span className="shrink-0 text-[12.5px] font-bold text-secondary-text">
                           {mins ? `${mins} · ` : ''}

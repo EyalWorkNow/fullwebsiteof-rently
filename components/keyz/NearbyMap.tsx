@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import type { Map as LeafletMap, LayerGroup } from 'leaflet'
 import { distLabel, walkLabel } from '@/lib/live/nearby'
-import { groupColor, groupSvgPath, type NearbyPoi } from './nearby-groups'
+import { getPlaceDisplayName, groupColor, groupSvgPath, type NearbyPoi } from './nearby-groups'
 
 type LeafletModule = typeof import('leaflet')
 
@@ -20,6 +20,8 @@ function popupEl(d: NearbyPoi): HTMLElement {
   const svgPath = groupSvgPath(d.group)
   const w = walkLabel(d.km)
   const distText = w ? `${distLabel(d.km)} · ${w}` : distLabel(d.km)
+  const displayName = getPlaceDisplayName(d.name, d.group, d.kindLabel)
+  const categorySub = d.kindLabel.replace(' קרובים', '').replace(' קרובות', '').trim()
 
   const root = document.createElement('div')
   root.dir = 'rtl'
@@ -59,13 +61,14 @@ function popupEl(d: NearbyPoi): HTMLElement {
 
   // Title / Name
   const name = document.createElement('div')
-  name.textContent = d.name || d.kindLabel
+  name.textContent = displayName
   name.style.cssText = 'font-weight: 900; color: #ffffff; font-size: 13.5px; line-height: 1.3; text-align: center;'
 
-  // Category kind (if name exists and is different from kindLabel)
+  // Category kind (show if d.name exists and is distinct from categorySub)
   const kind = document.createElement('div')
-  if (d.name && d.name !== d.kindLabel) {
-    kind.textContent = d.kindLabel
+  const showSub = d.name && d.name.trim() !== '' && displayName !== categorySub
+  if (showSub) {
+    kind.textContent = categorySub
     kind.style.cssText = 'color: rgba(255, 255, 255, 0.88); font-size: 11px; font-weight: 700; text-align: center;'
   }
 
@@ -76,7 +79,7 @@ function popupEl(d: NearbyPoi): HTMLElement {
 
   // Google Maps link button
   const gLink = document.createElement('a')
-  gLink.href = googleHref(d.name || d.kindLabel, d.lat, d.lon)
+  gLink.href = googleHref(displayName, d.lat, d.lon)
   gLink.target = '_blank'
   gLink.rel = 'noopener noreferrer'
   gLink.style.cssText = `
@@ -97,7 +100,7 @@ function popupEl(d: NearbyPoi): HTMLElement {
   gLink.innerHTML = `<span>פתיחה בגוגל</span> <span style="font-size: 10px;">↗</span>`
 
   root.append(iconBadge, name)
-  if (d.name && d.name !== d.kindLabel) root.append(kind)
+  if (showSub) root.append(kind)
   root.append(dist, gLink)
 
   return root

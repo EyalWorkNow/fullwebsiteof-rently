@@ -16,7 +16,7 @@
 
 import { useMemo, useState } from 'react'
 import { distLabel, walkLabel } from '@/lib/live/nearby'
-import { groupColor, type NearbyPoi } from './nearby-groups'
+import { getPlaceDisplayName, groupColor, type NearbyPoi } from './nearby-groups'
 
 const SIZE = 400 // viewBox is SIZE×SIZE, center at SIZE/2
 const C = SIZE / 2
@@ -170,7 +170,7 @@ export default function NearbyRadar({
             }}
           >
             <div className="text-[12.5px] font-extrabold text-navy">
-              {activeDot.name || 'ללא שם'}
+              {getPlaceDisplayName(activeDot.name, activeDot.group, activeDot.kindLabel)}
             </div>
             <div className="text-[11.5px] font-bold text-secondary-text">
               {distLabel(activeDot.km)}

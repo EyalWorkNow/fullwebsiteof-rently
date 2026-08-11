@@ -20,11 +20,10 @@ export const metadata: Metadata = {
   description: "חיפוש דירות עם AI — אתי מוצאת לך את הדירה הבאה, עם נתוני סביבה אמיתיים, סיורי 360 והתאמה חכמה.",
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/brand/app_icon.png", type: "image/png" },
+      { url: "/rently%20icon.svg", type: "image/svg+xml" },
     ],
-    shortcut: ["/brand/app_icon.png"],
-    apple: [{ url: "/brand/app_icon.png" }],
+    shortcut: ["/rently%20icon.svg"],
+    apple: [{ url: "/rently%20icon.svg" }],
   },
   openGraph: {
     title: "Rently — כיף שבאת, איזו דירה נחפש היום?",

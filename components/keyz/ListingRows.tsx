@@ -20,10 +20,11 @@ function Row({
 }) {
   const track = useRef<HTMLDivElement>(null)
 
-  // RTL: scroll by exactly 1 single card width (374px card + 20px gap = 394px)
+  // RTL: scroll by 1 card width + gap (384px card + 16px gap = 400px)
   const scroll = (forward: boolean) => {
     if (!track.current) return
-    const cardStep = 394
+    const firstCard = track.current.firstElementChild as HTMLElement | null
+    const cardStep = firstCard ? firstCard.offsetWidth + 16 : 400
     track.current.scrollBy({ left: forward ? -cardStep : cardStep, behavior: 'smooth' })
   }
 
@@ -40,31 +41,36 @@ function Row({
             </span>
           )}
         </div>
-        <div className="hidden gap-2 md:flex">
-          <button
-            type="button"
-            aria-label="הקודם"
-            onClick={() => scroll(false)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-app bg-white badge-shadow transition hover:bg-slate-50 active:scale-95"
-          >
-            <ArrowRight2 size={18} color="#072946" />
-          </button>
-          <button
-            type="button"
-            aria-label="הבא"
-            onClick={() => scroll(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-border-app bg-white badge-shadow transition hover:bg-slate-50 active:scale-95"
-          >
-            <ArrowLeft2 size={18} color="#072946" />
-          </button>
-        </div>
       </div>
-      <div ref={track} className="no-scrollbar flex snap-x snap-mandatory gap-4 sm:gap-5 overflow-x-auto pb-3 pt-1 px-1">
-        {items.map((p) => (
-          <div key={p.id} className="w-[84vw] sm:w-[374px] shrink-0 snap-start">
-            <PropertyCard property={p} onSelect={() => onSelectProperty(p)} />
-          </div>
-        ))}
+
+      <div className="relative group px-10 sm:px-14">
+        {/* Previous Button (Right Side in RTL) */}
+        <button
+          type="button"
+          aria-label="הקודם"
+          onClick={() => scroll(false)}
+          className="absolute right-0 top-1/2 z-20 -translate-y-1/2 hidden md:flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:bg-slate-50 hover:scale-110 active:scale-95 hover:shadow-lg text-navy"
+        >
+          <ArrowRight2 size={20} color="#072946" />
+        </button>
+
+        {/* Next Button (Left Side in RTL) */}
+        <button
+          type="button"
+          aria-label="הבא"
+          onClick={() => scroll(true)}
+          className="absolute left-0 top-1/2 z-20 -translate-y-1/2 hidden md:flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:bg-slate-50 hover:scale-110 active:scale-95 hover:shadow-lg text-navy"
+        >
+          <ArrowLeft2 size={20} color="#072946" />
+        </button>
+
+        <div ref={track} className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto py-2 px-0 scroll-smooth">
+          {items.map((p) => (
+            <div key={p.id} className="w-[84vw] sm:w-[calc((100%-16px)/2)] md:w-[calc((100%-32px)/3)] shrink-0 snap-start">
+              <PropertyCard property={p} onSelect={() => onSelectProperty(p)} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -72,9 +78,9 @@ function Row({
 
 function SkeletonRow() {
   return (
-    <div className="mb-10 flex gap-5 overflow-hidden">
+    <div className="mb-10 flex gap-4 overflow-hidden px-10 sm:px-14">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-[340px] w-[374px] shrink-0 animate-pulse rounded-[28px] bg-cloud" />
+        <div key={i} className="h-[340px] w-[calc((100%-32px)/3)] shrink-0 animate-pulse rounded-[28px] bg-cloud" />
       ))}
     </div>
   )

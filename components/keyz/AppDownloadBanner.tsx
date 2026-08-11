@@ -35,23 +35,28 @@ export default function AppDownloadBanner() {
             </div>
           </div>
 
-          {/* Visual side: phone mock */}
-          <div className="rounded-[44px] bg-navy p-3 w-[240px] mx-auto shadow-2xl">
-            <div className="rounded-[34px] bg-white overflow-hidden aspect-[9/19] p-4 flex flex-col gap-3">
+          {/* Visual side: Ultra-realistic iPhone Mockup with real app screenshot */}
+          <div className="relative mx-auto w-[250px] sm:w-[270px] transition-transform duration-300 hover:scale-[1.02]">
+            {/* Ambient phone glow & shadow */}
+            <div className="absolute -inset-2 rounded-[52px] bg-gradient-to-tr from-primary/35 via-sky-400/25 to-blue-600/35 blur-2xl opacity-80" />
+
+            {/* iPhone Device Frame */}
+            <div className="relative rounded-[46px] border-[9px] border-slate-900 bg-slate-900 shadow-[0_25px_60px_-15px_rgba(7,41,70,0.45)] overflow-hidden">
+              {/* Dynamic Island Notch */}
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 h-4 w-20 bg-black rounded-full z-20 flex items-center justify-center pointer-events-none">
+                <div className="h-2.5 w-2.5 rounded-full bg-slate-900/90 ml-auto mr-1.5" />
+              </div>
+
+              {/* Real App Screenshot */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo.png"
-                alt="Rently"
-                className="h-6 w-auto mx-auto mt-1"
+                src="/swippage.png"
+                alt="אפליקציית רנטלי - סוויפים"
+                className="w-full h-auto object-cover rounded-[36px] block relative z-10"
               />
-              <div className="rounded-2xl bg-primary-light2 aspect-[1.6] w-full flex items-center justify-center text-primary">
-                <Building size={40} variant="Bulk" color="currentColor" />
-              </div>
-              <div className="bg-cloud rounded-full h-3 w-3/4" />
-              <div className="bg-cloud rounded-full h-3 w-1/2" />
-              <div className="bg-primary rounded-full h-9 w-full mt-auto mb-1 flex items-center justify-center text-white text-[12px] font-bold">
-                הצג דירות
-              </div>
+
+              {/* Glass sheen overlay */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/15 pointer-events-none z-20" />
             </div>
           </div>
         </div>

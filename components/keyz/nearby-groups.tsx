@@ -53,6 +53,49 @@ export interface NearbyPoi {
   kindLabel: string
 }
 
+/** Formats a place display name so it shows the specific place name or a singular description instead of generic 'פארקים קרובים' */
+export function getPlaceDisplayName(name?: string, group?: string, kindLabel?: string): string {
+  if (name && name.trim() !== '' && name.trim() !== 'ללא שם' && !name.endsWith('קרובים') && !name.endsWith('קרובות')) {
+    return name.trim()
+  }
+
+  const fallbackNames: Record<string, string> = {
+    parks: 'פארק ציבורי',
+    playgrounds: 'גן שעשועים',
+    schools: 'בית ספר',
+    kindergartens: 'גן ילדים',
+    health: 'מרכז רפואי',
+    pharmacies: 'בית מרקחת',
+    supermarkets: 'סופרמרקט',
+    poi_retail: 'מרכז מסחרי',
+    transit: 'תחנת תחבורה',
+    worship: 'בית כנסת',
+    culture: 'מוסד תרבות',
+    dining: 'מסעדה / בית קפה',
+    gyms: 'חדר כושר',
+    synagogues: 'בית כנסת',
+    pools: 'בריכת שחייה',
+    dog_parks: 'גינת כלבים',
+    vets: 'מרפאה וטרינרית',
+    bike_share: 'תחנת אופניים משותפים',
+    coworking: 'מתחם עבודה',
+    parking: 'חניון ציבורי',
+    nightlife_venues: 'מקום בילוי',
+    future_infra: 'תשתית מתוכננת',
+  }
+
+  if (group && fallbackNames[group]) {
+    return fallbackNames[group]
+  }
+
+  if (kindLabel) {
+    const cleaned = kindLabel.replace(' קרובים', '').replace(' קרובות', '').trim()
+    if (cleaned) return cleaned
+  }
+
+  return 'מקום בסביבה'
+}
+
 // Complete palette & icon mappings for all 22 categories
 export const CATEGORY_META: Record<string, { label: string; color: string; icon: Icon; svgPath: string }> = {
   schools: {

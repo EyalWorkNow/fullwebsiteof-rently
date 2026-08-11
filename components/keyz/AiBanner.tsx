@@ -1,4 +1,27 @@
-import { MagicStar, Building } from "iconsax-react";
+import { MagicStar } from "iconsax-react";
+import PropertyCard from "./PropertyCard";
+import type { Property } from "@/lib/live/types";
+
+const SAMPLE_ATI_PROPERTY: Property = {
+  id: "sample-ati-1",
+  lat: 32.0853,
+  lon: 34.7818,
+  price: 7200,
+  rooms: 3,
+  sizeM2: 78,
+  floor: "3",
+  city: "תל אביב",
+  neighborhood: "צפון ישן",
+  street: "הירקון",
+  streetNumber: 12,
+  propertyType: "דירה",
+  transactionType: "rent",
+  agencyListing: false,
+  imageUrls: [
+    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80"
+  ],
+  smartTags: ["🌳 ליד פארק", "🏫 ליד בית ספר", "🚉 ליד תחבורה"]
+};
 
 export default function AiBanner() {
   return (
@@ -38,30 +61,17 @@ export default function AiBanner() {
             </div>
           </div>
 
-          {/* Visual side: mock chat card */}
+          {/* Visual side: mock chat card with real PropertyCard */}
           <div className="relative">
-            <div className="bg-white rounded-[28px] p-5 card-shadow max-w-[380px] mx-auto rotate-[-2deg] flex flex-col gap-3">
-              <div className="bg-primary-light2 text-navy rounded-2xl rounded-br-md px-4 py-3 text-[14px] font-semibold self-end">
+            <div className="bg-white/95 backdrop-blur-md rounded-[28px] p-5 card-shadow max-w-[400px] mx-auto rotate-[-2deg] flex flex-col gap-3.5 border border-white/20">
+              <div className="bg-primary-light2 text-navy rounded-2xl rounded-br-md px-4 py-3 text-[14px] font-semibold self-end shadow-xs">
                 משהו שקט ליד פארק, עד 7,500 ₪ 🙏
               </div>
-              <div className="bg-cloud rounded-2xl rounded-bl-md px-4 py-3 text-[14px] text-navy self-start">
+              <div className="bg-cloud rounded-2xl rounded-bl-md px-4 py-3 text-[14px] text-navy self-start font-medium border border-slate-100">
                 מצאתי 12 דירות. הנה 3 שממש שוות בדיקה — כולן במרחק הליכה מפארק 🌳
               </div>
-              <div className="flex gap-3 items-center border border-border-app rounded-2xl p-3">
-                <div className="w-14 h-14 shrink-0 rounded-xl bg-primary-light2 flex items-center justify-center text-primary">
-                  <Building size={28} variant="Bulk" color="currentColor" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[14px] font-black text-navy">
-                    רחוב הירקון 12
-                  </span>
-                  <span className="text-[12px] text-secondary-text">
-                    תל אביב · 3 חד׳ · 78 מ״ר
-                  </span>
-                </div>
-                <span className="text-[14px] font-black text-navy ms-auto">
-                  ₪7,200
-                </span>
+              <div className="pointer-events-none select-none">
+                <PropertyCard property={SAMPLE_ATI_PROPERTY} />
               </div>
             </div>
           </div>

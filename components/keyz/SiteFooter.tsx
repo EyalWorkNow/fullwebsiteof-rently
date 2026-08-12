@@ -1,105 +1,162 @@
-import { Instagram, Facebook, Whatsapp } from "iconsax-react";
+import { Instagram, Facebook, Youtube } from "iconsax-react";
 
-const APP_LINKS = [
-  { label: "חיפוש דירות", href: "/real-estate" },
-  { label: "אתי — חיפוש AI", href: "/#ati" },
-  { label: "סיורי 360", href: "/guides/how-360-tours-work" },
-  { label: "פרסום דירה", href: "/publish" },
+// TikTok custom icon SVG since iconsax doesn't have it built-in
+function TikTokIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  );
+}
+
+// LinkedIn custom icon SVG
+function LinkedinIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+      <rect x="2" y="9" width="4" height="12" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
+  );
+}
+
+const ABOUT_LINKS = [
+  { label: "מי אנחנו", href: "/about" },
+  { label: "חכם לדעת", href: "/guides" },
+  { label: "שאלות ותשובות", href: "/faq" },
+  { label: "צור קשר", href: "/contact" },
+  { label: "מפת אתר", href: "/site-map" },
 ];
 
-const OWNER_LINKS = [
-  { label: "פרסום דירה בחינם", href: "/publish" },
-  { label: "כלים למתווכים", href: "/publish" },
-  { label: "הדמיית AI", href: "/#services" },
-  { label: "חוזה דיגיטלי", href: "/#services" },
+const LEGAL_LINKS = [
+  { label: "תנאי שימוש", href: "/terms" },
+  { label: "מדיניות פרטיות", href: "/privacy-policy" },
+  { label: "הצהרת נגישות", href: "/accessibility-statement" },
+  { label: "תקנון הגרלת רכב", href: "/terms" },
 ];
 
-const SOCIALS = [
-  { label: "Instagram", href: "#", Icon: Instagram },
-  { label: "Facebook", href: "#", Icon: Facebook },
-  { label: "WhatsApp", href: "#", Icon: Whatsapp },
+const SERVICE_LINKS = [
+  { label: "פרסום רכב", href: "/publish" },
+  { label: "פרסום נדל״ן", href: "/publish" },
+  { label: "כניסה לעסקים", href: "/publisher" },
 ];
 
 export default function SiteFooter() {
   return (
-    <footer className="bg-navy-deep text-white rounded-t-[36px] pt-14 pb-16 sm:pb-8 mt-12 sm:mt-20">
+    <footer className="w-full bg-white border-t border-slate-100 py-12 text-navy">
       <div className="max-w-[1200px] mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-10">
-          <div>
-            <img
-              src="/logo.png"
-              alt="Rently"
-              className="h-10 w-auto brightness-0 invert"
-            />
-            <p className="text-white/70 text-sm mt-3">מוצאים בית, בכיף.</p>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-[15px] mb-4">האפליקציה</h3>
-            <ul className="space-y-2">
-              {APP_LINKS.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-white/70 hover:text-white text-sm transition"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-[15px] mb-4">לבעלי נכסים</h3>
-            <ul className="space-y-2">
-              {OWNER_LINKS.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-white/70 hover:text-white text-sm transition"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-[15px] mb-4">יצירת קשר</h3>
-            <a
-              href="mailto:support@rently.co.il"
-              className="text-white/70 hover:text-white text-sm transition"
-            >
-              support@rently.co.il
+        <div className="flex flex-col md:flex-row items-start justify-between gap-10 md:gap-16">
+          {/* Right side (RTL): Brand Logo, Copy & Social Icons */}
+          <div className="flex flex-col items-start gap-4 max-w-[320px]">
+            {/* Bold Stylized Brand Logo */}
+            <a href="/" className="inline-block group">
+              <span className="text-4xl font-black tracking-tighter text-navy uppercase font-sans">
+                rently
+              </span>
             </a>
-            <div className="flex gap-3 mt-4">
-              {SOCIALS.map(({ label, href, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
-                >
-                  <Icon size={20} color="currentColor" />
-                </a>
-              ))}
+
+            <div className="flex items-center gap-3 mt-1">
+              <a
+                href="#"
+                aria-label="LinkedIn"
+                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-700 hover:border-navy hover:text-navy transition"
+              >
+                <LinkedinIcon className="w-4 h-4" />
+              </a>
+              <a
+                href="#"
+                aria-label="YouTube"
+                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-700 hover:border-navy hover:text-navy transition"
+              >
+                <Youtube size={16} color="currentColor" />
+              </a>
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-700 hover:border-navy hover:text-navy transition"
+              >
+                <Instagram size={16} color="currentColor" />
+              </a>
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-700 hover:border-navy hover:text-navy transition"
+              >
+                <Facebook size={16} color="currentColor" />
+              </a>
+              <a
+                href="#"
+                aria-label="TikTok"
+                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-700 hover:border-navy hover:text-navy transition"
+              >
+                <TikTokIcon className="w-4 h-4" />
+              </a>
+            </div>
+
+            <p className="text-[13px] text-slate-500 font-medium mt-3">
+              © 2026 רנטלי מרקטפלייס בע"מ. כל הזכויות שמורות
+            </p>
+          </div>
+
+          {/* Left side (RTL): 3 Link Columns (אודות, משפטי, שירותים) */}
+          <div className="grid grid-cols-3 gap-8 md:gap-14 w-full md:w-auto">
+            {/* Column 1: אודות */}
+            <div>
+              <h3 className="font-extrabold text-[15px] text-[#7C3AED] mb-4">
+                אודות
+              </h3>
+              <ul className="space-y-2.5">
+                {ABOUT_LINKS.map((link) => (
+                  <li key={link.label}>
+                    <a
+                      href={link.href}
+                      className="text-slate-700 hover:text-navy text-[13.5px] font-medium transition"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column 2: משפטי */}
+            <div>
+              <h3 className="font-extrabold text-[15px] text-[#7C3AED] mb-4">
+                משפטי
+              </h3>
+              <ul className="space-y-2.5">
+                {LEGAL_LINKS.map((link) => (
+                  <li key={link.label}>
+                    <a
+                      href={link.href}
+                      className="text-slate-700 hover:text-navy text-[13.5px] font-medium transition"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column 3: שירותים */}
+            <div>
+              <h3 className="font-extrabold text-[15px] text-[#7C3AED] mb-4">
+                שירותים
+              </h3>
+              <ul className="space-y-2.5">
+                {SERVICE_LINKS.map((link) => (
+                  <li key={link.label}>
+                    <a
+                      href={link.href}
+                      className="text-slate-700 hover:text-navy text-[13.5px] font-medium transition"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-        </div>
-
-        <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/50">
-          <p>© 2026 Rently. כל הזכויות שמורות.</p>
-          <p>
-            <a href="/terms" className="hover:text-white transition">
-              תנאי שימוש
-            </a>
-            {" · "}
-            <a href="/privacy-policy" className="hover:text-white transition">
-              פרטיות
-            </a>
-          </p>
         </div>
       </div>
     </footer>

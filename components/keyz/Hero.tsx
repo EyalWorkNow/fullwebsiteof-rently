@@ -553,12 +553,31 @@ export default function Hero() {
         <motion.div {...rise} transition={{ duration: 0.5, delay: 0.28 }}>
           <form
             onSubmit={handleSubmit}
-            className="relative mt-6 rounded-3xl border-2 border-blue-200/90 bg-white p-2.5 sm:p-3 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100 max-w-[680px] mx-auto text-start"
+            className="relative mt-6 rounded-full border-2 border-blue-200/90 bg-white px-3 py-2 sm:px-4 sm:py-2.5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100 max-w-[680px] mx-auto text-start"
           >
-            {/* Text Input Row - Left side buttons, 10px gap */}
-            <div className="flex items-center justify-between gap-[10px]">
-              {/* Left Side Buttons */}
+            {/* Text Input Row - In RTL layout, Right side buttons (Right to Left flow) */}
+            <div className="flex items-center gap-[10px]">
+              {/* Input Area with Typing Placeholder */}
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
+                className="w-full min-w-0 bg-transparent text-[15px] sm:text-[16px] font-medium text-navy outline-none placeholder:text-slate-400 leading-relaxed py-1.5 text-right px-2"
+              />
+
+              {/* Right Side Buttons */}
               <div className="flex items-center gap-[10px] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => runChip('הקלטה קולית: אתי, מצאי לי דירת 3 חדרים')}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
+                  title="הקלטה קולית לאתי"
+                  aria-label="הקלטה קולית לאתי"
+                >
+                  <Microphone2 size={19} variant="Bold" color="currentColor" />
+                </button>
+
                 <HeroAiSearchButton disabled={searching}>
                   <span>{searching ? "מחפשת…" : "חיפוש"}</span>
                   <SearchNormal1
@@ -567,26 +586,7 @@ export default function Hero() {
                     className="shrink-0 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)] ms-1"
                   />
                 </HeroAiSearchButton>
-
-                <button
-                  type="button"
-                  onClick={() => runChip('הקלטה קולית: אתי, מצאי לי דירת 3 חדרים')}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
-                  title="הקלטה קולית לאתי"
-                  aria-label="הקלטה קולית לאתי"
-                >
-                  <Microphone2 size={19} variant="Bold" color="currentColor" />
-                </button>
               </div>
-
-              {/* Input Area with Typing Placeholder */}
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
-                className="w-full min-w-0 bg-transparent text-[15px] sm:text-[16px] font-medium text-navy outline-none placeholder:text-slate-400 leading-relaxed py-1.5 text-right"
-              />
             </div>
           </form>
 

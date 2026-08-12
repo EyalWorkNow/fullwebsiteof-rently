@@ -49,40 +49,13 @@ export default function Services() {
   return (
     <section id="services" className="py-12 md:py-16 scroll-mt-24 overflow-hidden">
       <div className="max-w-[1200px] mx-auto px-4">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-          <div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-navy tracking-tight">
-              שירותים חכמים ב־Rently
-            </h2>
-            <p className="text-secondary-text mt-1 text-[14.5px] font-medium">
-              כלים שהופכים חיפוש ופרסום דירה לחוויה אינטראקטיבית
-            </p>
-          </div>
-
-          {/* Mobile swipe controls indicator */}
-          <div className="flex sm:hidden items-center justify-between bg-slate-100/90 rounded-full p-1.5">
-            <span className="text-[12px] font-bold text-slate-600 px-3">
-              דפדף בין השירותים ({activeIndex + 1}/{SERVICES.length})
-            </span>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={prevCard}
-                aria-label="הקודם"
-                className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-navy shadow-xs active:scale-95 transition"
-              >
-                <ArrowRight2 size={16} color="currentColor" />
-              </button>
-              <button
-                type="button"
-                onClick={nextCard}
-                aria-label="הבא"
-                className="w-8 h-8 rounded-full bg-[#0061FF] flex items-center justify-center text-white shadow-xs active:scale-95 transition"
-              >
-                <ArrowLeft2 size={16} color="currentColor" />
-              </button>
-            </div>
-          </div>
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-navy tracking-tight">
+            שירותים חכמים ב־Rently
+          </h2>
+          <p className="text-secondary-text mt-1 text-[14.5px] font-medium">
+            כלים שהופכים חיפוש ופרסום דירה לחוויה אינטראקטיבית
+          </p>
         </div>
 
         {/* ── MOBILE PHYSICS CAROUSEL / DRAG STACK (sm:hidden) ── */}

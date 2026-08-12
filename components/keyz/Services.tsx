@@ -4,14 +4,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MagicStar, Video, DocumentText, Map1, ArrowLeft2, ArrowRight2, type Icon } from "iconsax-react";
 
-const SERVICES: { id: string; icon: Icon; title: string; desc: string; tag: string; bgGradient: string; iconBg: string }[] = [
+const SERVICES: { id: string; icon: Icon; title: string; desc: string; iconBg: string }[] = [
   {
     id: "ai-staging",
     icon: MagicStar,
     title: "הדמיית AI",
     desc: "מעלים תמונה של חדר — ומקבלים הדמיה מעוצבת ומרוהטת תוך שניות",
-    tag: "חדשנות AI",
-    bgGradient: "from-blue-600 via-indigo-600 to-sky-500",
     iconBg: "bg-blue-50 text-[#0061FF]",
   },
   {
@@ -19,8 +17,6 @@ const SERVICES: { id: string; icon: Icon; title: string; desc: string; tag: stri
     icon: Video,
     title: "סיורי 360",
     desc: "מצלמים סיבוב אחד בטלפון ומקבלים סיור וירטואלי מקצועי לדירה",
-    tag: "3D וירטואלי",
-    bgGradient: "from-sky-500 via-blue-600 to-cyan-500",
     iconBg: "bg-sky-50 text-sky-600",
   },
   {
@@ -28,8 +24,6 @@ const SERVICES: { id: string; icon: Icon; title: string; desc: string; tag: stri
     icon: DocumentText,
     title: "חוזה דיגיטלי",
     desc: "חוזה שכירות עם חתימה דיגיטלית מאובטחת — בלי הדפסות ובלי פגישות",
-    tag: "מאובטח 100%",
-    bgGradient: "from-[#072946] via-blue-900 to-indigo-900",
     iconBg: "bg-[#072946]/10 text-[#072946]",
   },
   {
@@ -37,8 +31,6 @@ const SERVICES: { id: string; icon: Icon; title: string; desc: string; tag: stri
     icon: Map1,
     title: "ניתוח שכונה",
     desc: "ציוני סביבה אמיתיים: חינוך, תחבורה, פארקים, רעש ומחירים באזור",
-    tag: "נתוני לייב",
-    bgGradient: "from-emerald-600 via-teal-600 to-sky-600",
     iconBg: "bg-emerald-50 text-emerald-600",
   },
 ];
@@ -59,9 +51,6 @@ export default function Services() {
       <div className="max-w-[1200px] mx-auto px-4">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-blue-50 text-[#0061FF] text-[12.5px] font-black mb-2">
-              ✨ חוויית אפליקציה מתקדמת
-            </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-navy tracking-tight">
               שירותים חכמים ב־Rently
             </h2>
@@ -136,9 +125,6 @@ export default function Services() {
                       <div className={`w-12 h-12 rounded-2xl ${item.iconBg} flex items-center justify-center shadow-xs`}>
                         <item.icon size={26} variant="Bulk" color="currentColor" />
                       </div>
-                      <span className="text-[11px] font-black px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-                        {item.tag}
-                      </span>
                     </div>
 
                     <h3 className="text-[20px] font-black text-navy mt-4">{item.title}</h3>
@@ -174,7 +160,7 @@ export default function Services() {
 
         {/* ── DESKTOP GRID (hidden on mobile, visible sm+) ── */}
         <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-5">
-          {SERVICES.map(({ icon: ServiceIcon, title, desc, tag, iconBg }) => (
+          {SERVICES.map(({ icon: ServiceIcon, title, desc, iconBg }) => (
             <motion.div
               key={title}
               whileHover={{ y: -6, scale: 1.02 }}
@@ -186,9 +172,6 @@ export default function Services() {
                   <div className={`w-[52px] h-[52px] rounded-2xl ${iconBg} flex items-center justify-center transition-transform group-hover:scale-110`}>
                     <ServiceIcon size={28} variant="Bulk" color="currentColor" />
                   </div>
-                  <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
-                    {tag}
-                  </span>
                 </div>
                 <h3 className="text-[18px] font-black text-navy mt-5 group-hover:text-[#0061FF] transition-colors">{title}</h3>
                 <p className="text-[13.5px] text-slate-600 mt-2 leading-relaxed font-medium">

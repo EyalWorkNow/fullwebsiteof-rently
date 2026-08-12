@@ -502,9 +502,9 @@ export default function Hero() {
           playsInline
           className="h-auto w-full object-contain filter drop-shadow-[0_20px_35px_rgba(37,99,235,0.15)]"
         >
-          <source src="/jumping-house.mov" type="video/mp4" />
-          <source src="/jumping-house.mov" type="video/quicktime" />
-          <source src="/%D7%91%D7%99%D7%AA%20%D7%A7%D7%95%D7%A4%D7%A5.mov" type="video/quicktime" />
+          <source src="/floating-house.mov" type="video/mp4" />
+          <source src="/floating-house.mov" type="video/quicktime" />
+          <source src="/%D7%91%D7%99%D7%AA%20%D7%9E%D7%A0%D7%97%D7%A42.mov" type="video/quicktime" />
         </video>
       </div>
 

@@ -43,7 +43,7 @@ function Row({
         </div>
       </div>
 
-      <div className="relative group px-10 sm:px-14">
+      <div className="relative group px-0 sm:px-14">
         {/* Previous Button (Right Side in RTL) */}
         <button
           type="button"
@@ -64,9 +64,9 @@ function Row({
           <ArrowLeft2 size={20} color="#072946" />
         </button>
 
-        <div ref={track} className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto py-2 px-0 scroll-smooth">
+        <div ref={track} className="no-scrollbar flex snap-x snap-mandatory gap-3.5 sm:gap-4 overflow-x-auto py-2 px-0 scroll-smooth">
           {items.map((p) => (
-            <div key={p.id} className="w-[84vw] sm:w-[calc((100%-16px)/2)] md:w-[calc((100%-32px)/3)] shrink-0 snap-start">
+            <div key={p.id} className="w-[88vw] sm:w-[calc((100%-16px)/2)] md:w-[calc((100%-32px)/3)] max-w-[360px] shrink-0 snap-start">
               <PropertyCard property={p} onSelect={() => onSelectProperty(p)} />
             </div>
           ))}

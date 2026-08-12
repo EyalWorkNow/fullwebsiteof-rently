@@ -3,16 +3,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  CloseCircle,
-  MagicStar,
   SearchNormal1,
-  Location,
-  ChartSquare,
-  DocumentText,
-  Flash,
-  ShieldSecurity,
-  Paperclip,
   Microphone2,
+  ShieldSecurity,
+  Flash,
+  MagicStar,
 } from "iconsax-react";
 import styled from "styled-components";
 import { fetchProperties, type PropertiesResult } from "@/lib/live/api";
@@ -530,57 +525,6 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* 2. Ultra-Sleek Segmented Model Switcher Toggle */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.04 }} className="flex justify-center">
-          <div className="inline-flex items-center gap-1.5 rounded-full border-2 border-blue-200/90 bg-white/95 p-1.5 shadow-md backdrop-blur-xl">
-            <button
-              type="button"
-              onClick={() => setActiveMode("fast")}
-              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-black transition-all duration-200 cursor-pointer ${
-                activeMode === "fast"
-                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/25 scale-[1.02]"
-                  : "text-slate-600 hover:text-[#0061FF] hover:bg-blue-50/60"
-              }`}
-            >
-              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors ${
-                activeMode === "fast" ? "bg-white/25 text-white" : "bg-blue-100/90 text-[#0061FF]"
-              }`}>
-                <Flash size={13} variant="Bold" color="currentColor" />
-              </div>
-              <span>אתי מהירה</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveMode("deep")}
-              className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-black transition-all duration-200 cursor-pointer ${
-                activeMode === "deep"
-                  ? "bg-[#0061FF] text-white shadow-md shadow-blue-500/25 scale-[1.02]"
-                  : "text-slate-600 hover:text-[#0061FF] hover:bg-blue-50/60"
-              }`}
-            >
-              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors ${
-                activeMode === "deep" ? "bg-white/25 text-white" : "bg-blue-100/90 text-[#0061FF]"
-              }`}>
-                <MagicStar size={13} variant="Bold" color="currentColor" />
-              </div>
-              <span>אתי מעמיקה</span>
-            </button>
-          </div>
-        </motion.div>
-
-        {/* 3. Hero CTA Spotlight Badge (Under Toggle, No Sparkles) */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.08 }} className="flex justify-center mt-3.5">
-          <motion.a
-            href="/publish"
-            whileHover={{ scale: 1.04, y: -1 }}
-            whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/90 bg-gradient-to-r from-blue-50 via-white to-blue-50 px-5 py-2 text-[13px] sm:text-[13.5px] font-black text-[#0061FF] shadow-xs transition-all hover:border-[#0061FF] hover:bg-blue-100/60 hover:shadow-md cursor-pointer"
-          >
-            <span>משכירים או מוכרים? פרסמו דירה בחינם ב-2 דקות ←</span>
-          </motion.a>
-        </motion.div>
-
         {/* Headline */}
         <motion.h1
           {...rise}
@@ -605,98 +549,29 @@ export default function Hero() {
           ספרו לאתי מה חשוב לכם ותבדוק אם היא באמת עוזרת חכמה
         </motion.p>
 
-        {/* Capability Selectable Tags Bar (Sleek, Compact Tag Pills) */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0.22 }} className="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 max-w-[840px] mx-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveMode("fast");
-              runChip('דירת 3 חדרים בתל אביב עם מרפסת וחניה עד 7,500 ₪');
-            }}
-            className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
-              activeMode === "fast"
-                ? "border-[#0061FF] bg-blue-50/90 text-[#0061FF] ring-2 ring-blue-100"
-                : "border-slate-200/90 bg-white/95 text-navy hover:border-[#0061FF] hover:text-[#0061FF]"
-            }`}
-          >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100/80 text-[#0061FF] shrink-0">
-              <Location size={16} variant="Bold" color="#0061FF" />
-            </div>
-            <span className="text-[13.5px] font-black tracking-tight">חיפוש דירות חכם</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveMode("deep");
-              runChip('בצע השוואת מחירי שוק מול דירות דומות באזור');
-            }}
-            className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
-              activeMode === "deep"
-                ? "border-[#0061FF] bg-blue-50/90 text-[#0061FF] ring-2 ring-blue-100"
-                : "border-slate-200/90 bg-white/95 text-navy hover:border-[#0061FF] hover:text-[#0061FF]"
-            }`}
-          >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100/80 text-[#0061FF] shrink-0">
-              <ChartSquare size={16} variant="Bold" color="#0061FF" />
-            </div>
-            <span className="text-[13.5px] font-black tracking-tight">השוואת מחירי שוק</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveMode("contract");
-              runChip('אני רוצה להתייעץ ולנתח חוזה שכירות');
-            }}
-            className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
-              activeMode === "contract"
-                ? "border-[#0061FF] bg-blue-50/90 text-[#0061FF] ring-2 ring-blue-100"
-                : "border-slate-200/90 bg-white/95 text-navy hover:border-[#0061FF] hover:text-[#0061FF]"
-            }`}
-          >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100/80 text-[#0061FF] shrink-0">
-              <DocumentText size={16} variant="Bold" color="#0061FF" />
-            </div>
-            <span className="text-[13.5px] font-black tracking-tight">סורק חוזה שכירות</span>
-          </button>
-        </motion.div>
-
         {/* Command Center Prompt Box */}
         <motion.div {...rise} transition={{ duration: 0.5, delay: 0.28 }}>
           <form
             onSubmit={handleSubmit}
-            className="relative mt-6 rounded-3xl border-2 border-blue-200/90 bg-white p-3 sm:p-4 md:p-5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100 max-w-[840px] mx-auto text-start"
+            className="relative mt-6 rounded-3xl border-2 border-blue-200/90 bg-white p-2.5 sm:p-3 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100 max-w-[680px] mx-auto text-start"
           >
-            {/* Text Input Row */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#0061FF]">
-                <MagicStar size={22} variant="Bold" color="#0061FF" />
-              </div>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
-                className="w-full min-w-0 bg-transparent text-[15px] sm:text-[16px] md:text-[17px] font-medium text-navy outline-none placeholder:text-slate-400 leading-relaxed py-2"
-              />
-
-              {/* Action Icons: 1. File Attachment / Contract, 2. Voice Recording */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => runChip('אני רוצה להעלות ולנתח חוזה שכירות ב-PDF')}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
-                  title="צירוף קובץ או חוזה שכירות"
-                  aria-label="צירוף קובץ או חוזה שכירות"
-                >
-                  <Paperclip size={19} variant="Bold" color="currentColor" />
-                </button>
+            {/* Text Input Row - Left side buttons, 10px gap */}
+            <div className="flex items-center justify-between gap-[10px]">
+              {/* Left Side Buttons */}
+              <div className="flex items-center gap-[10px] shrink-0">
+                <HeroAiSearchButton disabled={searching}>
+                  <span>{searching ? "מחפשת…" : "חיפוש"}</span>
+                  <SearchNormal1
+                    size={20}
+                    color="currentColor"
+                    className="shrink-0 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)] ms-1"
+                  />
+                </HeroAiSearchButton>
 
                 <button
                   type="button"
                   onClick={() => runChip('הקלטה קולית: אתי, מצאי לי דירת 3 חדרים')}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
                   title="הקלטה קולית לאתי"
                   aria-label="הקלטה קולית לאתי"
                 >
@@ -704,28 +579,14 @@ export default function Hero() {
                 </button>
               </div>
 
-              <HeroAiSearchButton disabled={searching}>
-                <span>{searching ? "מחפשת…" : "חיפוש"}</span>
-                <SearchNormal1
-                  size={20}
-                  color="currentColor"
-                  className="shrink-0 filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)] ms-1"
-                />
-              </HeroAiSearchButton>
-            </div>
-
-            {/* Attached Quick Chips Inside Footer */}
-            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
-              {CHIPS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => runChip(chip)}
-                  className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
-                >
-                  <span>{chip}</span>
-                </button>
-              ))}
+              {/* Input Area with Typing Placeholder */}
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={typedPlaceholder || "למשל: ספרו לאתי מה תרצו..."}
+                className="w-full min-w-0 bg-transparent text-[15px] sm:text-[16px] font-medium text-navy outline-none placeholder:text-slate-400 leading-relaxed py-1.5 text-right"
+              />
             </div>
           </form>
 

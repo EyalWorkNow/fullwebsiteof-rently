@@ -104,7 +104,7 @@ export default function SiteFooter() {
           <div className="grid grid-cols-3 gap-8 md:gap-14 w-full md:w-auto">
             {/* Column 1: אודות */}
             <div>
-              <h3 className="font-extrabold text-[15px] text-[#7C3AED] mb-4">
+              <h3 className="font-extrabold text-[15px] text-[#0061FF] mb-4">
                 אודות
               </h3>
               <ul className="space-y-2.5">
@@ -123,7 +123,7 @@ export default function SiteFooter() {
 
             {/* Column 2: משפטי */}
             <div>
-              <h3 className="font-extrabold text-[15px] text-[#7C3AED] mb-4">
+              <h3 className="font-extrabold text-[15px] text-[#0061FF] mb-4">
                 משפטי
               </h3>
               <ul className="space-y-2.5">
@@ -142,7 +142,7 @@ export default function SiteFooter() {
 
             {/* Column 3: שירותים */}
             <div>
-              <h3 className="font-extrabold text-[15px] text-[#7C3AED] mb-4">
+              <h3 className="font-extrabold text-[15px] text-[#0061FF] mb-4">
                 שירותים
               </h3>
               <ul className="space-y-2.5">

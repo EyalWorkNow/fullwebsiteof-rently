@@ -30,22 +30,24 @@ const sections: { heading: string; text: string }[] = [
 
 export default function CookiePolicyPage() {
   return (
-    <main className="pt-28 pb-20">
-      <div className="max-w-[760px] mx-auto px-4">
-        <h1 className="text-3xl font-black text-navy">מדיניות עוגיות</h1>
-        <p className="text-[13px] text-secondary-text mt-2">
-          עודכן לאחרונה: אוגוסט 2026
+    <main className="pt-28 pb-20 bg-slate-50/50">
+      <div className="max-w-[800px] mx-auto px-6 bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-slate-100">
+        <h1 className="text-3xl sm:text-4xl font-black text-navy tracking-tight">מדיניות עוגיות</h1>
+        <p className="text-[13.5px] font-semibold text-secondary-text mt-2 border-b border-slate-100 pb-4">
+          שקיפות בשימוש בטכנולוגיות מעקב ועוגיות ב-Rently · עודכן לאחרונה: אוגוסט 2026
         </p>
-        {sections.map((s) => (
-          <section key={s.heading}>
-            <h2 className="text-lg font-black text-navy mt-8 mb-2">
-              {s.heading}
-            </h2>
-            <p className="text-[14.5px] leading-relaxed text-navy/85">
-              {s.text}
-            </p>
-          </section>
-        ))}
+        <div className="mt-6 space-y-8">
+          {sections.map((s) => (
+            <section key={s.heading}>
+              <h2 className="text-lg font-extrabold text-navy mb-2.5">
+                {s.heading}
+              </h2>
+              <p className="text-[14.5px] leading-relaxed text-slate-700 font-normal">
+                {s.text}
+              </p>
+            </section>
+          ))}
+        </div>
       </div>
     </main>
   );

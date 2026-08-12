@@ -32,13 +32,15 @@ const LEGAL_LINKS = [
   { label: "תנאי שימוש", href: "/terms" },
   { label: "מדיניות פרטיות", href: "/privacy-policy" },
   { label: "הצהרת נגישות", href: "/accessibility-statement" },
-  { label: "תקנון הגרלת רכב", href: "/terms" },
+  { label: "מדיניות עוגיות", href: "/cookie-policy" },
 ];
 
 const SERVICE_LINKS = [
-  { label: "פרסום רכב", href: "/publish" },
-  { label: "פרסום נדל״ן", href: "/publish" },
-  { label: "כניסה לעסקים", href: "/publisher" },
+  { label: "חיפוש דירות להשכרה", href: "/real-estate" },
+  { label: "חיפוש דירות למכירה", href: "/real-estate" },
+  { label: "אתי — עוזרת AI", href: "/#ati" },
+  { label: "פרסום נכס בחינם", href: "/publish" },
+  { label: "כניסה למתווכים ועסקים", href: "/publisher" },
 ];
 
 export default function SiteFooter() {

@@ -15,7 +15,6 @@ import { buildReply, parseQuery, rankProperties } from "@/lib/live/smart-search"
 import type { Property } from "@/lib/live/types";
 import PropertyCard from "./PropertyCard";
 import ListingCarousel from "./ListingCarousel";
-import { useAuthGate } from "./auth/AuthGate";
 
 // ── Hero Liquid Animated Search Button (Rently Blue Palette) ─────────────────
 function HeroAiSearchButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
@@ -424,9 +423,6 @@ const rise = {
   animate: { opacity: 1, y: 0 },
 };
 
-// Sending a search is the meaningful action — browsing the page never asks.
-const SEARCH_REASON = "כדי לשמור את החיפוש ולקבל התאמות אישיות";
-
 export default function Hero() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -435,7 +431,6 @@ export default function Hero() {
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeMode, setActiveMode] = useState<"fast" | "deep" | "contract">("fast");
-  const { requireAuth } = useAuthGate();
 
   // Typewriter effect: types character-by-character, pauses, then backspaces
   useEffect(() => {
@@ -470,16 +465,21 @@ export default function Hero() {
     window.location.href = `/ati?q=${encodeURIComponent(q)}${modeParam}`;
   };
 
+  // Fast search (this bar's only mode - activeMode never actually changes
+  // from "fast", there's no UI toggle wired to setActiveMode) is meant to be
+  // open to anyone, same as browsing /real-estate. Only the אתי conversation
+  // itself (guardedSend in AtiWorkspace.tsx) should ask for an account -
+  // this bar was wrongly gating the search that leads INTO that page too.
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const q = query.trim() || ROTATING_PLACEHOLDERS[placeholderIdx].replace("למשל: ", "");
     if (!q) return;
-    requireAuth(SEARCH_REASON, () => runSearch(q));
+    runSearch(q);
   };
 
   const runChip = (chip: string) => {
     setQuery(chip);
-    requireAuth(SEARCH_REASON, () => runSearch(chip));
+    runSearch(chip);
   };
 
   return (
@@ -490,17 +490,22 @@ export default function Hero() {
         className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-tr from-blue-200/30 via-indigo-100/20 to-[#38B6FF]/20 blur-3xl"
       />
 
-      {/* 3D Balloon House Background Image (Top Right in RTL) */}
+      {/* 3D Jumping House Background Video (Top Right in RTL) */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-28 sm:-right-40 md:-right-52 lg:-right-48 -top-2 sm:-top-4 md:-top-6 lg:-top-8 z-0 w-[378px] sm:w-[566px] md:w-[680px] lg:w-[780px] max-w-none select-none opacity-[0.55] rotate-[10deg] transition-all"
+        className="pointer-events-none absolute -right-28 sm:-right-40 md:-right-52 lg:-right-48 -top-2 sm:-top-4 md:-top-6 lg:-top-8 z-0 w-[378px] sm:w-[566px] md:w-[680px] lg:w-[780px] max-w-none select-none opacity-[0.25] transition-all"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/balloon-house.png"
-          alt=""
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           className="h-auto w-full object-contain filter drop-shadow-[0_20px_35px_rgba(37,99,235,0.15)]"
-        />
+        >
+          <source src="/jumping-house.mov" type="video/mp4" />
+          <source src="/jumping-house.mov" type="video/quicktime" />
+          <source src="/%D7%91%D7%99%D7%AA%20%D7%A7%D7%95%D7%A4%D7%A5.mov" type="video/quicktime" />
+        </video>
       </div>
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">

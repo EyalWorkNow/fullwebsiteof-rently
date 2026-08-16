@@ -21,6 +21,17 @@ const FIREBASE_KEY = 'AIzaSyDRxWwbIw0x-pv-8HAtfo3n0RSgK3mdJbM' // public web cli
 const FRESH_MS = 10 * 60_000
 const STALE_MS = 6 * 60 * 60_000
 const TOKEN_TTL_MS = 50 * 60_000
+// Neither upstream fetch below used to carry a timeout, so a hung backend
+// (cold Lambda that accepts the connection but never responds) blocked every
+// concurrent visitor sharing `inflight` indefinitely — the skeleton grid had
+// no ceiling to fall back from. See /api/nearby, which already guards this.
+const FETCH_TIMEOUT_MS = 10_000
+
+function withTimeout(ms: number): { signal: AbortSignal; cancel: () => void } {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), ms)
+  return { signal: ctrl.signal, cancel: () => clearTimeout(timer) }
+}
 
 // Heavy fields the card grid / filter engine / map never read. Dropping them is
 // safe because /listing/<id> fetches the complete row separately.
@@ -46,6 +57,7 @@ let inflight: Promise<unknown> | null = null
 
 async function anonToken(): Promise<string | null> {
   if (tokenCache && Date.now() - tokenCache.ts < TOKEN_TTL_MS) return tokenCache.token
+  const { signal, cancel } = withTimeout(FETCH_TIMEOUT_MS)
   try {
     const res = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_KEY}`,
@@ -53,6 +65,7 @@ async function anonToken(): Promise<string | null> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ returnSecureToken: true }),
+        signal,
       },
     )
     if (!res.ok) return null
@@ -62,6 +75,8 @@ async function anonToken(): Promise<string | null> {
     return data.idToken
   } catch {
     return null
+  } finally {
+    cancel()
   }
 }
 
@@ -100,22 +115,28 @@ function slim(p: Record<string, unknown>): Record<string, unknown> {
 
 async function loadListings(): Promise<unknown> {
   const token = await anonToken()
-  // rank=0 asks the router to skip its per-listing rank decoration (~15ms/row).
-  // Unknown params are ignored by older deployments, so this is safe either way.
-  const res = await fetch(`${UPSTREAM}/properties?status=active&limit=500&order=desc&rank=0`, {
-    headers: {
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    cache: 'no-store',
-  })
-  if (!res.ok) throw new Error(`upstream ${res.status}`)
-  const data = await res.json()
-  const items = (data.items ?? data ?? [])
-    .filter((p: Record<string, unknown>) => p && p.id && typeof p.price === 'number')
-    .map(slim)
-  if (!items.length) throw new Error('empty upstream')
-  return { items, live: true }
+  const { signal, cancel } = withTimeout(FETCH_TIMEOUT_MS)
+  try {
+    // rank=0 asks the router to skip its per-listing rank decoration (~15ms/row).
+    // Unknown params are ignored by older deployments, so this is safe either way.
+    const res = await fetch(`${UPSTREAM}/properties?status=active&limit=500&order=desc&rank=0`, {
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      cache: 'no-store',
+      signal,
+    })
+    if (!res.ok) throw new Error(`upstream ${res.status}`)
+    const data = await res.json()
+    const items = (data.items ?? data ?? [])
+      .filter((p: Record<string, unknown>) => p && p.id && typeof p.price === 'number')
+      .map(slim)
+    if (!items.length) throw new Error('empty upstream')
+    return { items, live: true }
+  } finally {
+    cancel()
+  }
 }
 
 function refresh(): Promise<unknown> {

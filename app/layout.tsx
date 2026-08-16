@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
-import { LanguageProvider } from "@/contexts/LanguageContext";
 import ScrollProgress from "@/components/ScrollProgress";
 import BackToTop from "@/components/BackToTop";
 import TopBar from "@/components/keyz/TopBar";
@@ -36,16 +35,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-white text-navy">
-        <LanguageProvider>
-          <ScrollProgress />
-          <TopBar />
-          {children}
-          <SiteFooter />
-          <BackToTop />
-          <AccessibilityWidget />
-          {/* Action-triggered registration gate — rendered once for the whole app. */}
-          <AuthGateModal />
-        </LanguageProvider>
+        <ScrollProgress />
+        <TopBar />
+        {children}
+        <SiteFooter />
+        <BackToTop />
+        <AccessibilityWidget />
+        {/* Action-triggered registration gate — rendered once for the whole app. */}
+        <AuthGateModal />
       </body>
     </html>
   );

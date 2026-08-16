@@ -17,7 +17,7 @@ function hasRealKey() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, phone, role, source } = await req.json();
+    const { name, email, phone, role, source, message } = await req.json();
 
     if (!name || !email) {
       return NextResponse.json({ error: "name and email required" }, { status: 400 });
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       console.log(`   טלפון: ${phone || "—"}`);
       console.log(`   סוג: ${roleLabel[role] || role}`);
       console.log(`   מקור: ${source}`);
+      console.log(`   הודעה: ${message || "—"}`);
       return NextResponse.json({ ok: true, dev: true });
     }
 
@@ -58,12 +59,13 @@ export async function POST(req: NextRequest) {
         <tr><td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px">טלפון</td>
             <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-weight:700;color:#1A2B4A">
               ${phone ? `<a href="tel:${phone}" style="color:#17BDB0">${phone}</a>` : "—"}</td></tr>
-        <tr><td style="padding:10px 0;color:#64748b;font-size:13px">סוג משתמש</td>
-            <td style="padding:10px 0;font-weight:700;color:#1A2B4A">
+        <tr><td style="padding:10px 0;${message ? "border-bottom:1px solid #f1f5f9;" : ""}color:#64748b;font-size:13px">סוג משתמש</td>
+            <td style="padding:10px 0;${message ? "border-bottom:1px solid #f1f5f9;" : ""}font-weight:700;color:#1A2B4A">
               <span style="background:${role === "landlord" ? "#EEF2FF" : role === "agent" ? "#FFE8EA" : "#E0F7F5"};color:${role === "landlord" ? "#6366F1" : role === "agent" ? "#FF6B7A" : "#17BDB0"};padding:3px 10px;border-radius:99px;font-size:12px">
                 ${roleLabel[role] || role || "—"}
               </span></td></tr>
       </table>
+      ${message ? `<div style="margin-top:16px"><div style="color:#64748b;font-size:13px;margin-bottom:6px">הודעה</div><div style="white-space:pre-wrap;font-weight:600;color:#1A2B4A;line-height:1.6">${message}</div></div>` : ""}
     </div>
 
     <div style="background:#F8FBFF;padding:16px 28px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8;text-align:center">

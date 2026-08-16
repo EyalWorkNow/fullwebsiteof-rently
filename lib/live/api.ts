@@ -7,6 +7,11 @@ import type { ChatTurn, Property } from './types'
 // Same-origin rewrite (next.config.ts) proxies to the prod API — no CORS.
 const BASE = '/api/rently'
 
+// None of the fetches below used to carry a timeout — a hung backend left the
+// caller's `.catch()`/sample-data fallback unreachable and the loading state
+// stuck forever (see /api/nearby, which already guards this the same way).
+const FETCH_TIMEOUT_MS = 10_000
+
 // Accepts an array, a JSON-encoded array string, or garbage — always returns an array.
 function coerceList<T>(v: unknown): T[] {
   if (Array.isArray(v)) return v as T[]
@@ -44,7 +49,10 @@ export function fetchProperties(limit = 60): Promise<PropertiesResult> {
 
 async function loadProperties(limit: number): Promise<PropertiesResult> {
   try {
-    const res = await fetch('/api/listings', { headers: { Accept: 'application/json' } })
+    const res = await fetch('/api/listings', {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     const items: Property[] = (data.items ?? []).slice(0, Math.max(limit, 500))
@@ -65,6 +73,7 @@ async function fetchPropertiesDirect(limit = 60): Promise<PropertiesResult> {
         Accept: 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
@@ -130,6 +139,7 @@ export async function fetchPropertyById(id: string): Promise<{ item: Property | 
         Accept: 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()

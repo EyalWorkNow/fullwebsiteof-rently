@@ -25,7 +25,11 @@ const SendButton: React.FC<SendButtonProps> = ({ disabled, onClick }) => {
     >
       {mounted ? (
         <StyledUiverseWrapper>
-          <button className="uiverse" type="submit" disabled={disabled} onClick={disabled ? undefined : onClick}>
+          {/* type="button", not "submit": this sits inside a <form onSubmit>,
+              and a submit button fires BOTH its own onClick and the form's
+              onSubmit for the same click — sending every message twice. The
+              form's onSubmit already calls the same handler. */}
+          <button className="uiverse" type="button" disabled={disabled} onClick={disabled ? undefined : onClick}>
             <div className="wrapper">
               <span>שלח</span>
               <div className="circle circle-12" />
@@ -46,7 +50,7 @@ const SendButton: React.FC<SendButtonProps> = ({ disabled, onClick }) => {
       ) : (
         <button
           className="rounded-[24px] bg-primary px-5 py-2 text-[15px] font-bold text-white shadow-md"
-          type="submit"
+          type="button"
           disabled={disabled}
           onClick={disabled ? undefined : onClick}
         >

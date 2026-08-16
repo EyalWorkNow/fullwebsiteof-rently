@@ -33,23 +33,60 @@ export const auth = getAuth(app)
 
 let cachedUser: User | null = null
 
+// The bootstrap race that was signing users out right after Google login:
+// every independent caller (listings, analytics, saved, personalize,
+// messages, publisher portal — anything using getToken()) used to call this
+// while cachedUser was still null on page load, and EACH ONE independently
+// registered its own onAuthStateChanged listener (never unsubscribed — a
+// permanent leak) and fired its own signInAnonymously(auth) call. If a user
+// signed in with Google before one of those straggling anonymous calls came
+// back over the network, Firebase's signInAnonymously doesn't check the
+// current session before applying its result — it just overwrites
+// auth.currentUser with the freshly-created anonymous user, silently
+// replacing the just-established Google session. Fixed by sharing ONE
+// bootstrap across all callers and refusing to let a stale anonymous result
+// clobber a real sign-in that happened in the meantime.
+let bootstrap: Promise<User | null> | null = null
+
+function bootstrapAuth(): Promise<User | null> {
+  if (bootstrap) return bootstrap
+  bootstrap = new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      unsubscribe()
+      if (u) {
+        cachedUser = u
+        resolve(u)
+        return
+      }
+      // No persisted session at all — fall back to anonymous.
+      signInAnonymously(auth)
+        .then((res) => {
+          // A real sign-in may have landed on `auth` while this was in
+          // flight (e.g. the user completed Google login in the meantime).
+          // Never let the anonymous result overwrite it.
+          if (auth.currentUser && !auth.currentUser.isAnonymous) {
+            cachedUser = auth.currentUser
+            resolve(auth.currentUser)
+            return
+          }
+          cachedUser = res.user
+          resolve(res.user)
+        })
+        .catch((e) => {
+          console.warn('[firebase] anonymous sign-in failed:', e?.code || e)
+          resolve(null)
+        })
+    })
+  })
+  return bootstrap
+}
+
 // Best-effort anonymous sign-in so listing fetches carry a Firebase ID token.
 // If anonymous auth is disabled the promise resolves null and callers fall back
 // to sample data.
 export async function ensureAuth(): Promise<User | null> {
   if (cachedUser) return cachedUser
-  return new Promise((resolve) => {
-    onAuthStateChanged(auth, (u) => {
-      if (u) {
-        cachedUser = u
-        resolve(u)
-      }
-    })
-    signInAnonymously(auth).catch((e) => {
-      console.warn('[firebase] anonymous sign-in failed:', e?.code || e)
-      resolve(null)
-    })
-  })
+  return bootstrapAuth()
 }
 
 export async function getToken(): Promise<string | null> {

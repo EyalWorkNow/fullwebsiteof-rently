@@ -17,11 +17,19 @@ import { NextRequest, NextResponse } from 'next/server'
 // single IP hammering the API, not a distributed residential-proxy botnet.
 // If that shows up, upgrade the store to Upstash/Redis (same interface,
 // shared state) rather than rewriting this logic.
-export const config = { matcher: ['/api/rently/:path*'] }
+// /api/nearby added: it fans out to third-party Overpass mirrors per request
+// (see that route's own comment on its ~2-concurrent-slot budget) and its
+// cache key includes the raw query string, so varying either the coordinates
+// by a hair or the query text bypasses the cache on every hit — with no limit
+// here, that let a script force a fresh outbound request per call, risking
+// the server's own outbound IP getting rate-limited/banned by Overpass and
+// breaking the feature for every real visitor.
+export const config = { matcher: ['/api/rently/:path*', '/api/nearby'] }
 
 const WINDOW_MS = 60_000
 const GENERAL_LIMIT = 120
 const PROPERTIES_ANON_LIMIT = 20
+const NEARBY_LIMIT = 30
 
 interface Bucket {
   count: number
@@ -56,6 +64,11 @@ function tooManyRequests(): NextResponse {
 
 export function proxy(req: NextRequest): NextResponse {
   const ip = clientIp(req)
+
+  if (req.nextUrl.pathname.startsWith('/api/nearby')) {
+    if (!hit(`${ip}:nearby`, NEARBY_LIMIT)) return tooManyRequests()
+    return NextResponse.next()
+  }
 
   if (!hit(`${ip}:general`, GENERAL_LIMIT)) {
     return tooManyRequests()

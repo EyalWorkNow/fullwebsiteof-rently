@@ -113,7 +113,11 @@ const UserSendButton: React.FC<UserSendButtonProps> = ({ disabled, onClick }) =>
     <div className="relative inline-flex items-center justify-center shrink-0" style={{ opacity: disabled ? 0.45 : 1 }}>
       {mounted ? (
         <StyledUiverseWrapper>
-          <button className="uiverse" type="submit" disabled={disabled} onClick={disabled ? undefined : onClick}>
+          {/* type="button", not "submit": this sits inside a <form onSubmit>,
+              and a submit button fires BOTH its own onClick and the form's
+              onSubmit for the same click — sending every message twice. The
+              form's onSubmit already calls the same handler. */}
+          <button className="uiverse" type="button" disabled={disabled} onClick={disabled ? undefined : onClick}>
             <div className="wrapper">
               <span>שלח</span>
               <div className="circle circle-12" />
@@ -134,7 +138,7 @@ const UserSendButton: React.FC<UserSendButtonProps> = ({ disabled, onClick }) =>
       ) : (
         <button
           className="rounded-[24px] bg-[#0061FF] px-5 py-2 text-[15px] font-bold text-white shadow-md"
-          type="submit"
+          type="button"
           disabled={disabled}
           onClick={disabled ? undefined : onClick}
         >
@@ -682,6 +686,15 @@ function AtiAvatar({ size = 32 }: { size?: number }) {
 }
 
 export default function AtiWorkspace() {
+  // Scopes conversation history to the signed-in account (falls back to a
+  // shared "guest" bucket for anonymous visitors — see store.ts's getKey).
+  // Previously loadConversations()/saveConversations() were called with no
+  // uid at all, so every visitor on a given browser shared the SAME bucket
+  // regardless of who was signed in — on a shared/public device, whoever
+  // signed in second saw the first person's entire chat history.
+  const { requireAuth, isRegistered, user } = useAuthGate()
+  const scopeUid = user && !user.isAnonymous ? user.uid : null
+
   const [conversations, setConversations] = useState<AtiConversation[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -703,11 +716,18 @@ export default function AtiWorkspace() {
   const openerIdxRef = useRef(0)
 
   // ── Bootstrapping ──────────────────────────────────────────────────────────
+  // Re-runs whenever the resolved account changes (anonymous → real user, or
+  // a different real user on the same browser) so the loaded/saved
+  // conversation bucket always matches who's actually signed in.
   useEffect(() => {
-    setConversations(loadConversations())
+    setConversations(loadConversations(scopeUid))
+    setActiveId(null)
+    setLoaded(true)
+  }, [scopeUid])
+
+  useEffect(() => {
     const savedImm = loadImmediateMode()
     setImmediate(savedImm !== undefined ? savedImm : true)
-    setLoaded(true)
     ensureProperties().then(({ items }) => {
       const map = propsMapRef.current
       for (const p of items) if (p?.id && !map.has(p.id)) map.set(p.id, p)
@@ -716,8 +736,8 @@ export default function AtiWorkspace() {
   }, [])
 
   useEffect(() => {
-    if (loaded) saveConversations(conversations)
-  }, [conversations, loaded])
+    if (loaded) saveConversations(conversations, scopeUid)
+  }, [conversations, loaded, scopeUid])
 
   const active = conversations.find((c) => c.id === activeId) ?? null
 
@@ -1078,8 +1098,6 @@ export default function AtiWorkspace() {
       void send(initialQuery)
     }
   }, [loaded, send])
-
-  const { requireAuth, isRegistered } = useAuthGate()
   const sendRef = useRef(send)
   sendRef.current = send
   // Declining the sign-in gate is intentional (see AuthGate's dismissGate) —

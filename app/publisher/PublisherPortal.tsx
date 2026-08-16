@@ -280,9 +280,14 @@ export default function PublisherPortal() {
 
         <div className="no-scrollbar relative flex flex-1 flex-col overflow-y-auto bg-[#F8FAFC]/50 px-4 md:px-8 py-6 md:py-8">
           {tab === 'overview' && <OverviewTab user={user} />}
-          {tab === 'ezra' && (
+          {/* Kept mounted (hidden, not unmounted) even when another tab is active:
+              send() is async — the AI reply and any draft merge only land in state
+              after the request resolves. Unmounting on tab switch used to drop that
+              reply silently (a dead fiber's setState is a no-op) if the landlord
+              switched away while waiting. */}
+          <div className={tab === 'ezra' ? undefined : 'hidden'}>
             <EzraWorkspace pendingEdit={editRequest} onConsumePendingEdit={() => setEditRequest(null)} />
-          )}
+          </div>
           {tab === 'properties' && (
             <PropertiesTab
               user={user}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState, useSyncExternalStore } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Briefcase,
@@ -18,6 +18,7 @@ import {
 } from 'iconsax-react'
 import { addressLabel, cityLabel, priceLabel, primaryImage } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
+import { ensureLoaded, isSavedCached, onSavedChange, toggleSaved as toggleSavedRemote } from '@/lib/live/saved'
 import PropertyCard from './PropertyCard'
 import NearbyPlaces from './NearbyPlaces'
 import EnrichmentCards from './EnrichmentCards'
@@ -69,13 +70,20 @@ export default function PropertyPreviewModal({
   onSelectProperty,
 }: PropertyPreviewModalProps) {
   const [imgIndex, setImgIndex] = useState(0)
-  const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [contacted, setContacted] = useState(false)
+  const saved = useSyncExternalStore(
+    onSavedChange,
+    () => (property ? isSavedCached(property.id) : false),
+    () => false,
+  )
+  useEffect(() => {
+    void ensureLoaded()
+  }, [])
 
   if (!property) return null
 
   const p = property
+  const toggleSaved = () => toggleSavedRemote(p.id, !saved)
   const isBroker = p.agencyListing === true
   const images = galleryImages(p)
   const mainImg = images[imgIndex] ?? primaryImage(p)
@@ -278,14 +286,15 @@ export default function PropertyPreviewModal({
                   </div>
                   <div className="border-t border-slate-100 pt-2" />
 
-                  <button
-                    type="button"
-                    onClick={() => setContacted(true)}
+                  <a
+                    href={APP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0061FF] py-3.5 text-center font-bold text-white shadow-md transition hover:bg-blue-700"
                   >
                     <Call size={18} color="currentColor" />
-                    <span>{contacted ? '050-XXXXXXX (גלוי)' : 'צור קשר באפליקציה'}</span>
-                  </button>
+                    <span>צור קשר באפליקציה</span>
+                  </a>
 
                   <button
                     type="button"
@@ -302,7 +311,7 @@ export default function PropertyPreviewModal({
 
                   <button
                     type="button"
-                    onClick={() => setSaved(!saved)}
+                    onClick={toggleSaved}
                     className={`flex w-full items-center justify-center gap-2 rounded-full border py-2.5 text-xs font-bold transition ${
                       saved ? 'border-red-200 bg-red-50 text-red-500' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}

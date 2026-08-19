@@ -21,6 +21,7 @@ import type { Icon } from 'iconsax-react'
 import { addressLabel, cityLabel, priceLabel, primaryImage } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
 import { ensureLoaded, isSavedCached, onSavedChange, toggleSaved as toggleSavedRemote } from '@/lib/live/saved'
+import { useAuthGate } from '@/components/keyz/auth/AuthGate'
 
 // Geo-tag emoji prefixes → iconsax icon (emoji is stripped from the label).
 const GEO_ICONS: [string, Icon][] = [
@@ -82,10 +83,17 @@ export default function PropertyCard({
     }
   }
 
+  // Saving while anonymous writes to a throwaway anon uid — the heart "works"
+  // but everything saved vanishes when the user registers, and never appears
+  // in the app. Gate the save behind a real account so it lands on the SAME
+  // uid the app reads.
+  const { requireAuth } = useAuthGate()
   const toggleSaved = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    toggleSavedRemote(property.id, !saved)
+    requireAuth('כדי לשמור דירות ולראות אותן גם באפליקציה', () =>
+      toggleSavedRemote(property.id, !saved),
+    )
   }
 
   return (
@@ -101,7 +109,7 @@ export default function PropertyCard({
         <div className="relative aspect-[2.1] overflow-hidden rounded-[22px]">
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={img} alt={addressLabel(property)} className="absolute inset-0 h-full w-full object-cover" />
+            <img src={img} alt={addressLabel(property)} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-primary-light2">
               <Building size={48} color="#2563EB" />

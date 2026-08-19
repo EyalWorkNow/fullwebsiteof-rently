@@ -6,6 +6,7 @@ import {
   signInAnonymously,
   onAuthStateChanged,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -89,6 +90,25 @@ export async function ensureAuth(): Promise<User | null> {
   return bootstrapAuth()
 }
 
+// getIdToken() failures that mean the refresh token itself is dead — not a
+// network blip, an actually-revoked/expired session (password changed,
+// account disabled, or storage holding the refresh token got evicted, e.g.
+// Safari ITP clearing IndexedDB after ~7 days). Firebase's SDK does NOT sign
+// the user out on its own when this happens: auth.currentUser stays
+// populated, so the UI kept showing "signed in" (name/avatar, no auth-gate
+// modal) while every authenticated feature silently stopped working —
+// exactly the "the site threw me out" reports, just without an actual
+// sign-out ever happening. Detect these specific codes and reconcile reality
+// with an explicit sign-out so the UI honestly reflects it and the person
+// gets a normal re-login prompt instead of a silently broken app.
+const DEAD_SESSION_CODES = new Set([
+  'auth/user-token-expired',
+  'auth/invalid-user-token',
+  'auth/user-disabled',
+  'auth/user-not-found',
+  'auth/tokens-exceed-limit',
+])
+
 export async function getToken(): Promise<string | null> {
   // Previously checked localStorage['rently_token'] first and, if present,
   // returned it verbatim as if it were a real Firebase ID token — bypassing
@@ -100,7 +120,12 @@ export async function getToken(): Promise<string | null> {
   if (!u) return null
   try {
     return await u.getIdToken()
-  } catch {
+  } catch (e) {
+    const code = (e as { code?: string })?.code
+    if (code && DEAD_SESSION_CODES.has(code)) {
+      cachedUser = null
+      void fbSignOut(auth).catch(() => {})
+    }
     return null
   }
 }
@@ -148,6 +173,38 @@ export async function signInWithGoogle(): Promise<User | null> {
       } catch (e2) {
         lastAuthError = (e2 as { code?: string })?.code ?? code
         console.warn('[firebase] redirect sign-in failed:', lastAuthError, e2)
+      }
+    }
+    return null
+  }
+}
+
+// Apple — the app offers Sign in with Apple, and an Apple-created account
+// (especially with a private-relay email) is unreachable via Google/email:
+// without this, that user gets a second, unrelated uid on the web and none of
+// their app data. Same Firebase project → same uid as the app's Apple flow.
+// Requires the Apple provider to be enabled in the Firebase console (same
+// Services ID the iOS app already uses).
+export async function signInWithApple(): Promise<User | null> {
+  lastAuthError = null
+  const provider = new OAuthProvider('apple.com')
+  provider.addScope('email')
+  provider.addScope('name')
+  try {
+    const res = await signInWithPopup(auth, provider)
+    cachedUser = res.user
+    return res.user
+  } catch (e) {
+    const code = (e as { code?: string })?.code ?? 'unknown'
+    lastAuthError = code
+    console.warn('[firebase] apple popup sign-in failed:', code, e)
+    if (REDIRECTABLE.has(code)) {
+      try {
+        await signInWithRedirect(auth, provider)
+        return null
+      } catch (e2) {
+        lastAuthError = (e2 as { code?: string })?.code ?? code
+        console.warn('[firebase] apple redirect sign-in failed:', lastAuthError, e2)
       }
     }
     return null

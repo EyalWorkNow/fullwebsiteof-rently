@@ -111,18 +111,18 @@ export default function MessagesTab({ user }: { user: FbUser | null }) {
     )
   }
 
-  if (leads === null || matches === null) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-8 h-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="text-center text-secondary-text bg-cloud rounded-2xl px-4 py-10 max-w-[500px] mx-auto">
         לא הצלחנו לטעון את הפניות כרגע. נסו לרענן את העמוד.
+      </div>
+    )
+  }
+
+  if (leads === null || matches === null) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
       </div>
     )
   }

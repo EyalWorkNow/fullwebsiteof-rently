@@ -1,7 +1,6 @@
 'use client'
 
 import { getToken } from './firebase'
-import { SAMPLE_PROPERTIES } from './sample'
 import type { ChatTurn, Property } from './types'
 
 // Same-origin rewrite (next.config.ts) proxies to the prod API — no CORS.
@@ -39,9 +38,12 @@ let listingsMemo: { res: Promise<PropertiesResult>; ts: number } | null = null
 
 export function fetchProperties(limit = 60): Promise<PropertiesResult> {
   if (listingsMemo && Date.now() - listingsMemo.ts < 60_000) return listingsMemo.res
+  // No fabricated fallback listings — the app never shows fake data, so the
+  // web must not either (same email must mean same catalogue). live:false +
+  // empty lets the UI show its honest empty/error state.
   const res = loadProperties(limit).catch(() => {
     listingsMemo = null
-    return { items: SAMPLE_PROPERTIES, live: false }
+    return { items: [], live: false }
   })
   listingsMemo = { res, ts: Date.now() }
   return res
@@ -55,6 +57,10 @@ async function loadProperties(limit: number): Promise<PropertiesResult> {
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
+    // Intentionally NOT Math.min(limit, ...): /api/listings always fetches up
+    // to 500 upstream (see app/api/listings/route.ts) so every caller shares
+    // ONE cached payload (listingsMemo) regardless of the limit it asked
+    // for — callers wanting fewer items slice/filter the result themselves.
     const items: Property[] = (data.items ?? []).slice(0, Math.max(limit, 500))
     if (!items.length) throw new Error('no items')
     return { items, live: data.live !== false }
@@ -90,8 +96,8 @@ async function fetchPropertiesDirect(limit = 60): Promise<PropertiesResult> {
     if (!items.length) throw new Error('no items')
     return { items, live: true }
   } catch (e) {
-    console.warn('[api] properties fell back to sample:', (e as Error).message)
-    return { items: SAMPLE_PROPERTIES, live: false }
+    console.warn('[api] properties fetch failed:', (e as Error).message)
+    return { items: [], live: false }
   }
 }
 
@@ -123,6 +129,7 @@ export async function syncUserProfile(user: {
         name: user.displayName || user.email || '',
         photoUrl: user.photoURL || '',
       }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
   } catch {
     // best-effort — never blocks sign-in
@@ -130,7 +137,8 @@ export async function syncUserProfile(user: {
 }
 
 // GET /properties/<id> — single listing (same endpoint the app's share-link uses).
-// Falls back to the sample list so /listing/s1 etc. always work.
+// No sample fallback: a listing that doesn't exist in the live DB renders the
+// not-found state, never a fabricated one.
 export async function fetchPropertyById(id: string): Promise<{ item: Property | null; live: boolean }> {
   try {
     const token = await getToken()
@@ -155,8 +163,8 @@ export async function fetchPropertyById(id: string): Promise<{ item: Property | 
       live: true,
     }
   } catch (e) {
-    console.warn('[api] property-by-id fell back to sample:', (e as Error).message)
-    return { item: SAMPLE_PROPERTIES.find((p) => p.id === id) ?? null, live: false }
+    console.warn('[api] property-by-id fetch failed:', (e as Error).message)
+    return { item: null, live: false }
   }
 }
 
@@ -181,6 +189,7 @@ export async function atiFastSearch(query: string): Promise<AtiSearchResult> {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ messages, mode: 'tenant_search' }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
@@ -239,7 +248,7 @@ async function localKeywordSearch(query: string): Promise<AtiSearchResult> {
 
 // Presentation helpers shared by the property card.
 export function priceLabel(p: Property): string {
-  const n = p.price.toLocaleString('he-IL')
+  const n = (p.price ?? 0).toLocaleString('he-IL')
   return p.transactionType === 'sale' ? `₪${n}` : `₪${n}/חודש`
 }
 

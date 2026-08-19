@@ -25,6 +25,8 @@ import {
   TickCircle,
 } from 'iconsax-react'
 
+const A11Y_STORAGE_KEY = 'rently-a11y-settings'
+
 // ── USER COMPONENT: Custom Gooey Fluid SVG Toggle Switch ──────────────────────
 interface SwitchProps {
   checked: boolean
@@ -71,7 +73,7 @@ const CustomSwitch: React.FC<SwitchProps> = ({ checked, onChange, id }) => {
 
 const StyledSwitchWrapper = styled.div`
   .toggle-container {
-    --active-color: #0061FF;
+    --active-color: #2563EB;
     --inactive-color: #CBD5E1;
     position: relative;
     aspect-ratio: 292 / 142;
@@ -185,6 +187,86 @@ export default function AccessibilityWidget() {
   const [mouseY, setMouseY] = useState(200)
   const panelRef = useRef<HTMLDivElement>(null)
 
+  // All settings live under ONE JSON key so they survive navigation. `hydrated`
+  // gates the writer so the initial default state doesn't overwrite stored prefs
+  // before the reader has run.
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(A11Y_STORAGE_KEY)
+      if (raw) {
+        const s = JSON.parse(raw) as Record<string, unknown>
+        if (typeof s.fontSize === 'number') setFontSize(s.fontSize)
+        if (typeof s.letterSpacing === 'boolean') setLetterSpacing(s.letterSpacing)
+        if (typeof s.lineHeight === 'boolean') setLineHeight(s.lineHeight)
+        if (typeof s.alignRight === 'boolean') setAlignRight(s.alignRight)
+        if (typeof s.readableFont === 'boolean') setReadableFont(s.readableFont)
+        if (typeof s.highContrast === 'boolean') setHighContrast(s.highContrast)
+        if (typeof s.grayscale === 'boolean') setGrayscale(s.grayscale)
+        if (typeof s.invertColors === 'boolean') setInvertColors(s.invertColors)
+        if (typeof s.darkContrast === 'boolean') setDarkContrast(s.darkContrast)
+        if (typeof s.highlightLinks === 'boolean') setHighlightLinks(s.highlightLinks)
+        if (typeof s.highlightHeadings === 'boolean') setHighlightHeadings(s.highlightHeadings)
+        if (typeof s.largeCursor === 'boolean') setLargeCursor(s.largeCursor)
+        if (typeof s.readingLine === 'boolean') setReadingLine(s.readingLine)
+        if (typeof s.readingMask === 'boolean') setReadingMask(s.readingMask)
+        if (typeof s.focusBox === 'boolean') setFocusBox(s.focusBox)
+        if (typeof s.stopAnimations === 'boolean') setStopAnimations(s.stopAnimations)
+      }
+    } catch {
+      /* ignore malformed/unavailable storage */
+    }
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      localStorage.setItem(
+        A11Y_STORAGE_KEY,
+        JSON.stringify({
+          fontSize,
+          letterSpacing,
+          lineHeight,
+          alignRight,
+          readableFont,
+          highContrast,
+          grayscale,
+          invertColors,
+          darkContrast,
+          highlightLinks,
+          highlightHeadings,
+          largeCursor,
+          readingLine,
+          readingMask,
+          focusBox,
+          stopAnimations,
+        }),
+      )
+    } catch {
+      /* storage unavailable (private mode / quota) */
+    }
+  }, [
+    hydrated,
+    fontSize,
+    letterSpacing,
+    lineHeight,
+    alignRight,
+    readableFont,
+    highContrast,
+    grayscale,
+    invertColors,
+    darkContrast,
+    highlightLinks,
+    highlightHeadings,
+    largeCursor,
+    readingLine,
+    readingMask,
+    focusBox,
+    stopAnimations,
+  ])
+
   // Track Mouse Y for Reading Line & Reading Mask
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
@@ -274,17 +356,24 @@ export default function AccessibilityWidget() {
     setStopAnimations(false)
   }
 
-  // Click outside to close panel
+  // Click outside + Escape to close panel
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         setIsOpen(false)
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleKeyDown)
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [isOpen])
 
   return (
@@ -320,7 +409,7 @@ export default function AccessibilityWidget() {
           text-decoration: underline !important;
           text-decoration-thickness: 2.5px !important;
           text-underline-offset: 3.5px !important;
-          color: #0061FF !important;
+          color: #2563EB !important;
           background-color: rgba(0, 97, 255, 0.08) !important;
         }
         html.acc-highlight-headings h1,
@@ -329,17 +418,17 @@ export default function AccessibilityWidget() {
         html.acc-highlight-headings h4,
         html.acc-highlight-headings h5,
         html.acc-highlight-headings h6 {
-          border-right: 4px solid #0061FF !important;
+          border-right: 4px solid #2563EB !important;
           padding-right: 8px !important;
           text-decoration: underline !important;
         }
         html.acc-large-cursor,
         html.acc-large-cursor * {
-          cursor: crosshair !important;
+          cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath d='M4 2 L4 20 L8.7 15.7 L11.6 22 L14.1 20.9 L11.2 14.7 L17.3 14.7 Z' fill='black' stroke='white' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E") 3 2, auto !important;
         }
         html.acc-focus-box *:focus,
         html.acc-focus-box *:focus-visible {
-          outline: 4px solid #0061FF !important;
+          outline: 4px solid #2563EB !important;
           outline-offset: 3px !important;
         }
         html.acc-stop-animations *,
@@ -353,7 +442,7 @@ export default function AccessibilityWidget() {
       {/* Reading Line Overlay */}
       {readingLine && (
         <div
-          className="pointer-events-none fixed left-0 right-0 h-2 bg-[#0061FF] shadow-[0_0_15px_#0061FF] z-[99999]"
+          className="pointer-events-none fixed left-0 right-0 h-2 bg-[#2563EB] shadow-[0_0_15px_#2563EB] z-[99999]"
           style={{ top: mouseY - 4 }}
         />
       )}
@@ -381,7 +470,7 @@ export default function AccessibilityWidget() {
           onClick={() => setIsOpen((prev) => !prev)}
           whileHover={{ scale: 1.08, y: -2 }}
           whileTap={{ scale: 0.94 }}
-          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#0061FF] to-[#38B6FF] text-white shadow-[0_8px_25px_rgba(0,97,255,0.38)] transition cursor-pointer"
+          className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[#2563EB] to-[#38B6FF] text-white shadow-[0_8px_25px_rgba(37,99,235,0.38)] transition cursor-pointer"
         >
           {/* Custom Rently Accessibility Human Icon */}
           <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
@@ -412,13 +501,13 @@ export default function AccessibilityWidget() {
               {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#0061FF]">
-                    <MagicStar size={20} variant="Bold" color="#0061FF" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB]">
+                    <MagicStar size={20} variant="Bold" color="#2563EB" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[15px] font-black text-slate-900">הנגשת האתר Rently</h3>
-                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-extrabold text-[#0061FF]">
+                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
                         תקן 5568 AA
                       </span>
                     </div>
@@ -443,7 +532,7 @@ export default function AccessibilityWidget() {
                   onClick={() => setActiveTab('display')}
                   className={`py-1.5 rounded-xl transition ${
                     activeTab === 'display'
-                      ? 'bg-white text-[#0061FF] shadow-sm'
+                      ? 'bg-white text-[#2563EB] shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -454,7 +543,7 @@ export default function AccessibilityWidget() {
                   onClick={() => setActiveTab('colors')}
                   className={`py-1.5 rounded-xl transition ${
                     activeTab === 'colors'
-                      ? 'bg-white text-[#0061FF] shadow-sm'
+                      ? 'bg-white text-[#2563EB] shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -465,7 +554,7 @@ export default function AccessibilityWidget() {
                   onClick={() => setActiveTab('tools')}
                   className={`py-1.5 rounded-xl transition ${
                     activeTab === 'tools'
-                      ? 'bg-white text-[#0061FF] shadow-sm'
+                      ? 'bg-white text-[#2563EB] shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -481,7 +570,7 @@ export default function AccessibilityWidget() {
                     {/* Font Scaler */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Text size={18} color="#0061FF" />
+                        <Text size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">גודל גופן</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">{fontSize}%</span>
@@ -499,7 +588,7 @@ export default function AccessibilityWidget() {
                         <button
                           type="button"
                           onClick={() => setFontSize(100)}
-                          className="px-2 text-[11px] font-bold text-slate-600 hover:text-[#0061FF]"
+                          className="px-2 text-[11px] font-bold text-slate-600 hover:text-[#2563EB]"
                         >
                           100%
                         </button>
@@ -517,7 +606,7 @@ export default function AccessibilityWidget() {
                     {/* Letter Spacing */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Maximize4 size={18} color="#0061FF" />
+                        <Maximize4 size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">מרווח בין אותיות</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">הגדלת מרווח האותיות בטקסט</span>
@@ -529,7 +618,7 @@ export default function AccessibilityWidget() {
                     {/* Line Height */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <DocumentText size={18} color="#0061FF" />
+                        <DocumentText size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">מרווח בין שורות</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">הגדלת גובה השורות לקריאה נוחה</span>
@@ -541,7 +630,7 @@ export default function AccessibilityWidget() {
                     {/* Text Align Right */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <TextalignRight size={18} color="#0061FF" />
+                        <TextalignRight size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">יישור טקסט לימין</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">יישור ימני מוחלט לכל התכנים</span>
@@ -553,7 +642,7 @@ export default function AccessibilityWidget() {
                     {/* Readable Font */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Convertshape size={18} color="#0061FF" />
+                        <Convertshape size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">גופן קריא במיוחד</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">החלפה לפונט מערכת תקני</span>
@@ -570,7 +659,7 @@ export default function AccessibilityWidget() {
                     {/* High Contrast */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Sun1 size={18} color="#0061FF" />
+                        <Sun1 size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">ניגודיות גבוהה</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">הגברת ניגודיות הטקסט והצבעים</span>
@@ -582,7 +671,7 @@ export default function AccessibilityWidget() {
                     {/* Grayscale Mode */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Eye size={18} color="#0061FF" />
+                        <Eye size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">גווני אפור</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">המרת תצוגת האתר לשחור-לבן</span>
@@ -594,7 +683,7 @@ export default function AccessibilityWidget() {
                     {/* Invert Colors */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Moon size={18} color="#0061FF" />
+                        <Moon size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">צבעים הפוכים</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">היפוך צבעים כהה למניעת סנוור</span>
@@ -606,7 +695,7 @@ export default function AccessibilityWidget() {
                     {/* Dark Contrast Background */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Flash size={18} color="#0061FF" />
+                        <Flash size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">ניגודיות כהה</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">רקע כהה עם טקסט בהיר וחד</span>
@@ -618,7 +707,7 @@ export default function AccessibilityWidget() {
                     {/* Highlight Links */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <DocumentText size={18} color="#0061FF" />
+                        <DocumentText size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">הדגשת קישורים</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">הוספת קו תחתון ורקע לקישורים</span>
@@ -630,7 +719,7 @@ export default function AccessibilityWidget() {
                     {/* Highlight Headings */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <MagicStar size={18} color="#0061FF" />
+                        <MagicStar size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">הדגשת כותרות</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">סימון בולט לכל כותרות האתר</span>
@@ -647,7 +736,7 @@ export default function AccessibilityWidget() {
                     {/* Large Cursor */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <DirectNotification size={18} color="#0061FF" />
+                        <DirectNotification size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">סמן עכבר מוגדל</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">הגדלת סמן העכבר לניווט קל</span>
@@ -659,7 +748,7 @@ export default function AccessibilityWidget() {
                     {/* Reading Line */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <Maximize1 size={18} color="#0061FF" />
+                        <Maximize1 size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">סרגל קריאה</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">פס מעקב אופקי המלווה את העכבר</span>
@@ -671,10 +760,10 @@ export default function AccessibilityWidget() {
                     {/* Reading Mask */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <EyeSlash size={18} color="#0061FF" />
+                        <EyeSlash size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">מסכת קריאה</span>
-                          <span className="block text-[10.5px] font-[#0061FF]">הצללת המסך והשארת חלון מיקוד</span>
+                          <span className="block text-[10.5px] text-[#2563EB]">הצללת המסך והשארת חלון מיקוד</span>
                         </div>
                       </div>
                       <CustomSwitch checked={readingMask} onChange={setReadingMask} id="rmask" />
@@ -683,7 +772,7 @@ export default function AccessibilityWidget() {
                     {/* Focus Box */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <TickCircle size={18} color="#0061FF" />
+                        <TickCircle size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">הדגשת פוקוס</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">מסגרת בולטת לרכיבים בפוקוס</span>
@@ -695,7 +784,7 @@ export default function AccessibilityWidget() {
                     {/* Stop Animations */}
                     <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3 border border-slate-100">
                       <div className="flex items-center gap-2.5">
-                        <CloseCircle size={18} color="#0061FF" />
+                        <CloseCircle size={18} color="#2563EB" />
                         <div>
                           <span className="block text-[13px] font-black text-slate-800">עצירת הנפשות</span>
                           <span className="block text-[10.5px] font-semibold text-slate-500">ביטול אפקטים ותנועות באתר</span>
@@ -721,9 +810,9 @@ export default function AccessibilityWidget() {
                 <a
                   href="/accessibility-statement"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-1.5 text-[#0061FF] hover:bg-blue-100 transition"
+                  className="flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-1.5 text-[#2563EB] hover:bg-blue-100 transition"
                 >
-                  <InfoCircle size={15} color="#0061FF" />
+                  <InfoCircle size={15} color="#2563EB" />
                   <span>הצהרת נגישות</span>
                 </a>
               </div>

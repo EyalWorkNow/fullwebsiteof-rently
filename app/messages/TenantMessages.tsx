@@ -59,18 +59,18 @@ export default function TenantMessages() {
     )
   }
 
-  if (matches === null) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-8 h-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="text-center text-secondary-text bg-cloud rounded-2xl px-4 py-10 max-w-[500px] mx-auto">
         לא הצלחנו לטעון את השיחות כרגע. נסו לרענן את העמוד.
+      </div>
+    )
+  }
+
+  if (matches === null) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
       </div>
     )
   }

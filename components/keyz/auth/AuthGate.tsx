@@ -28,8 +28,10 @@ import type { User } from 'firebase/auth'
 import {
   completeRedirectSignIn,
   currentUser,
+  ensureAuth,
   lastAuthErrorCode,
   onUser,
+  signInWithApple,
   signInWithEmail,
   signInWithGoogle,
   signUpWithEmail,
@@ -112,6 +114,13 @@ function subscribeGate(listener: () => void): () => void {
 const getGateSnapshot = () => gateSnapshot
 const getGateServerSnapshot = () => CLOSED
 
+/** True while the sign-in modal is open — other modals (e.g. a listing
+ *  preview) should ignore Escape while this one is on top, so dismissing the
+ *  auth gate doesn't also close whatever was open underneath it. */
+export function isAuthGateOpen(): boolean {
+  return gateSnapshot.open
+}
+
 function openGate(reason: string, action: (() => void) | null) {
   pendingAction = action
   triggerEl =
@@ -158,6 +167,13 @@ export interface AuthGateApi {
   modal: ReactNode
 }
 
+// Only one "waiting for auth to resolve" cycle at a time — a rapid double
+// click while `!ready` used to register two independent ensureAuth().then()
+// callbacks, so a registered user's action() could fire twice. A click while
+// already waiting just replaces which action runs when the single wait ends.
+let pendingReadyAction: { reason: string; action: () => void } | null = null
+let waitingForReady = false
+
 export function useAuthGate(): AuthGateApi {
   const { user } = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthServerSnapshot)
   const registered = isRegisteredUser(user)
@@ -167,6 +183,28 @@ export function useAuthGate(): AuthGateApi {
     // happened a tick ago must not cost the visitor an extra popup.
     if (isRegisteredUser(currentUser()) || isRegisteredUser(authSnapshot.user)) {
       action()
+      return
+    }
+    // Firebase's persisted-session check hasn't resolved yet — a returning,
+    // already-signed-in visitor who taps an action fast enough would
+    // otherwise see this wrongly treated as "not logged in" and get the
+    // sign-up modal. Wait for the real answer instead of guessing.
+    if (!authSnapshot.ready) {
+      pendingReadyAction = { reason, action }
+      if (!waitingForReady) {
+        waitingForReady = true
+        void ensureAuth().then(() => {
+          waitingForReady = false
+          const pending = pendingReadyAction
+          pendingReadyAction = null
+          if (!pending) return
+          if (isRegisteredUser(currentUser()) || isRegisteredUser(authSnapshot.user)) {
+            pending.action()
+          } else {
+            openGate(pending.reason, pending.action)
+          }
+        })
+      }
       return
     }
     openGate(reason, action)
@@ -294,6 +332,15 @@ export function AuthGateModal() {
     else setError(lastAuthErrorCode() ?? 'unknown')
   }
 
+  async function handleApple() {
+    setSigningIn(true)
+    setError(null)
+    const u = await signInWithApple()
+    setSigningIn(false)
+    if (isRegisteredUser(u)) resolveGate()
+    else setError(lastAuthErrorCode() ?? 'unknown')
+  }
+
   async function handleEmailSubmit(e: FormEvent) {
     e.preventDefault()
     setSigningIn(true)
@@ -353,6 +400,21 @@ export function AuthGateModal() {
             G
           </span>
           {signingIn ? 'מתחברים…' : 'התחברות עם Google'}
+        </button>
+
+        {/* Same Firebase project as the iOS app's Sign in with Apple — without
+            this, an Apple-account user (esp. private-relay email) can never
+            reach their app data from the web. */}
+        <button
+          type="button"
+          onClick={handleApple}
+          disabled={signingIn}
+          className="mt-3 flex w-full items-center justify-center gap-3 rounded-full border border-border-app bg-white px-5 py-3 font-bold text-navy transition-colors hover:border-primary/40 disabled:opacity-60"
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border-app bg-cloud text-sm font-black text-navy">
+
+          </span>
+          {signingIn ? 'מתחברים…' : 'התחברות עם Apple'}
         </button>
 
         {!showEmail ? (

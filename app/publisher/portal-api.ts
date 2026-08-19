@@ -16,7 +16,7 @@
 // עזרא (the assistant, chat + publish) lives in ./ezra/ezra-api.ts — that is
 // the canonical, most complete draft/publish contract; nothing here duplicates it.
 
-import { getToken } from '@/lib/live/firebase'
+import { currentUser, getToken } from '@/lib/live/firebase'
 import type { Property } from '@/lib/live/types'
 
 const BASE = '/api/rently'
@@ -80,9 +80,17 @@ export interface ViewingSlot {
 const SLOTS_DOC = 'viewing_slots'
 const LOCAL_KEY = 'rently_web_viewing_slots'
 
+// Account-scoped — an unscoped key would show landlord A's calendar to
+// landlord B on a shared browser whenever the cloud read/write falls back to
+// this local mirror.
+function localKey(): string {
+  const uid = currentUser()?.uid
+  return uid ? `${LOCAL_KEY}-${uid}` : `${LOCAL_KEY}-guest`
+}
+
 function readLocal(): ViewingSlot[] {
   try {
-    const raw = localStorage.getItem(LOCAL_KEY)
+    const raw = localStorage.getItem(localKey())
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed?.slots) ? parsed.slots : []
@@ -93,7 +101,7 @@ function readLocal(): ViewingSlot[] {
 
 function writeLocal(slots: ViewingSlot[]) {
   try {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify({ slots }))
+    localStorage.setItem(localKey(), JSON.stringify({ slots }))
   } catch {
     /* storage full/blocked — nothing else to do */
   }

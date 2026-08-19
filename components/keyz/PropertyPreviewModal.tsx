@@ -19,6 +19,7 @@ import {
 import { addressLabel, cityLabel, priceLabel, primaryImage } from '@/lib/live/api'
 import type { Property } from '@/lib/live/types'
 import { ensureLoaded, isSavedCached, onSavedChange, toggleSaved as toggleSavedRemote } from '@/lib/live/saved'
+import { isAuthGateOpen, useAuthGate } from './auth/AuthGate'
 import PropertyCard from './PropertyCard'
 import NearbyPlaces from './NearbyPlaces'
 import EnrichmentCards from './EnrichmentCards'
@@ -50,7 +51,7 @@ function entryDateLabel(raw: string): string {
 function Chip({ label, icon: IconCmp }: { label: string; icon?: typeof Home2 }) {
   return (
     <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-slate-100 px-3.5 py-2 text-[12.5px] font-bold text-slate-800 border border-slate-200/60">
-      {IconCmp && <IconCmp size={15} color="#0061FF" />}
+      {IconCmp && <IconCmp size={15} color="#2563EB" />}
       {label}
     </span>
   )
@@ -71,6 +72,7 @@ export default function PropertyPreviewModal({
 }: PropertyPreviewModalProps) {
   const [imgIndex, setImgIndex] = useState(0)
   const [copied, setCopied] = useState(false)
+  const { requireAuth } = useAuthGate()
   const saved = useSyncExternalStore(
     onSavedChange,
     () => (property ? isSavedCached(property.id) : false),
@@ -80,10 +82,39 @@ export default function PropertyPreviewModal({
     void ensureLoaded()
   }, [])
 
+  // The modal instance is reused across properties (only the `property` prop
+  // swaps) — without this, switching to a similar-listing card kept showing
+  // whichever gallery index the previous property was scrolled to.
+  useEffect(() => {
+    setImgIndex(0)
+  }, [property?.id])
+
+  useEffect(() => {
+    if (!property) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isAuthGateOpen()) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [property, onClose])
+
+  // Lock body scroll while the modal is open (mirrors AuthGate/filter drawer).
+  useEffect(() => {
+    if (!property) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [property])
+
   if (!property) return null
 
   const p = property
-  const toggleSaved = () => toggleSavedRemote(p.id, !saved)
+  // Gated like PropertyCard — an anonymous save lands on a throwaway uid and
+  // never reaches the app.
+  const toggleSaved = () =>
+    requireAuth('כדי לשמור דירות ולראות אותן גם באפליקציה', () => toggleSavedRemote(p.id, !saved))
   const isBroker = p.agencyListing === true
   const images = galleryImages(p)
   const mainImg = images[imgIndex] ?? primaryImage(p)
@@ -99,8 +130,10 @@ export default function PropertyPreviewModal({
     .filter((s) => (p.city ? s.city === p.city : s.transactionType === p.transactionType))
     .slice(0, 8)
 
+  const listingPath = `/listing/${p.id}`
+
   const share = async () => {
-    const url = typeof location !== 'undefined' ? location.href : ''
+    const url = typeof window !== 'undefined' ? `${window.location.origin}${listingPath}` : listingPath
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ url, title: address })
@@ -132,6 +165,9 @@ export default function PropertyPreviewModal({
 
         {/* Floating Modal Content Box — 1:1 Match with Full Listing Page */}
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="תצוגה מקדימה של הנכס"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -144,7 +180,7 @@ export default function PropertyPreviewModal({
             type="button"
             onClick={onClose}
             aria-label="סגור תצוגה מקדימה"
-            className="absolute top-4 left-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF]"
+            className="absolute top-4 left-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#2563EB]"
           >
             <CloseCircle size={24} color="currentColor" />
           </button>
@@ -159,10 +195,10 @@ export default function PropertyPreviewModal({
                 <div className="relative aspect-[1.84] w-full overflow-hidden rounded-[24px] bg-slate-100 border border-slate-200/60 shadow-sm">
                   {mainImg ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={mainImg} alt={address} className="absolute inset-0 h-full w-full object-cover" />
+                    <img src={mainImg} alt={address} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-blue-50">
-                      <Building size={54} color="#0061FF" />
+                      <Building size={54} color="#2563EB" />
                     </div>
                   )}
 
@@ -174,8 +210,8 @@ export default function PropertyPreviewModal({
                         ללא תיווך · בעלים ישיר
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1.5 rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-extrabold text-[#0061FF] backdrop-blur-md shadow-md border border-blue-100">
-                        <Briefcase size={14} color="#0061FF" />
+                      <span className="flex items-center gap-1.5 rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-extrabold text-[#2563EB] backdrop-blur-md shadow-md border border-blue-100">
+                        <Briefcase size={14} color="#2563EB" />
                         מתווך
                       </span>
                     )}
@@ -191,11 +227,11 @@ export default function PropertyPreviewModal({
                         type="button"
                         onClick={() => setImgIndex(i)}
                         className={`relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-slate-100 transition ${
-                          i === imgIndex ? 'ring-2 ring-[#0061FF]' : 'opacity-70 hover:opacity-100'
+                          i === imgIndex ? 'ring-2 ring-[#2563EB]' : 'opacity-70 hover:opacity-100'
                         }`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        <img src={url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -207,7 +243,7 @@ export default function PropertyPreviewModal({
 
                 {/* Info Chips */}
                 <div className="no-scrollbar mt-4 flex flex-wrap gap-2">
-                  <Chip icon={Home2} label={`${p.rooms} חדרים`} />
+                  {p.rooms != null && <Chip icon={Home2} label={`${p.rooms} חדרים`} />}
                   {p.sizeM2 != null && <Chip icon={Maximize4} label={`${p.sizeM2} מ״ר`} />}
                   {p.floor && <Chip icon={Building} label={`קומה ${p.floor}`} />}
                   {p.propertyType && <Chip label={p.propertyType} />}
@@ -225,7 +261,7 @@ export default function PropertyPreviewModal({
                           key={f}
                           className="flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/80 px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800"
                         >
-                          <TickCircle size={15} color="#0061FF" variant="Bold" />
+                          <TickCircle size={15} color="#2563EB" variant="Bold" />
                           {f}
                         </span>
                       ))}
@@ -243,7 +279,7 @@ export default function PropertyPreviewModal({
                           key={t}
                           className="flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-800 shadow-sm"
                         >
-                          <TickCircle size={15} color="#0061FF" />
+                          <TickCircle size={15} color="#2563EB" />
                           {t}
                         </span>
                       ))}
@@ -290,7 +326,7 @@ export default function PropertyPreviewModal({
                     href={APP_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0061FF] py-3.5 text-center font-bold text-white shadow-md transition hover:bg-blue-700"
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#2563EB] py-3.5 text-center font-bold text-white shadow-md transition hover:bg-blue-700"
                   >
                     <Call size={18} color="currentColor" />
                     <span>צור קשר באפליקציה</span>
@@ -299,7 +335,7 @@ export default function PropertyPreviewModal({
                   <button
                     type="button"
                     onClick={share}
-                    className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 py-3 font-bold text-slate-700 transition hover:border-[#0061FF] hover:text-[#0061FF]"
+                    className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 py-3 font-bold text-slate-700 transition hover:border-[#2563EB] hover:text-[#2563EB]"
                   >
                     <Send2 size={17} color="currentColor" />
                     <span>שיתוף</span>
@@ -308,6 +344,15 @@ export default function PropertyPreviewModal({
                   {copied && (
                     <div className="text-center text-[12px] font-bold text-emerald-600">הקישור הועתק ✓</div>
                   )}
+
+                  <a
+                    href={listingPath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-center text-[12.5px] font-bold text-[#2563EB] transition hover:underline"
+                  >
+                    פתיחת עמוד המודעה המלא
+                  </a>
 
                   <button
                     type="button"
@@ -332,7 +377,7 @@ export default function PropertyPreviewModal({
               <div className="pt-8 border-t border-slate-200/80">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                    <MagicStar size={20} color="#0061FF" variant="Bold" />
+                    <MagicStar size={20} color="#2563EB" variant="Bold" />
                     <span>דירות דומות באזור להצעה</span>
                   </h2>
                   <span className="text-xs font-bold text-slate-400">פרמטרים דומים</span>

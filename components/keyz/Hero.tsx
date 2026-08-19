@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   SearchNormal1,
@@ -15,6 +15,32 @@ import { buildReply, parseQuery, rankProperties } from "@/lib/live/smart-search"
 import type { Property } from "@/lib/live/types";
 import PropertyCard from "./PropertyCard";
 import ListingCarousel from "./ListingCarousel";
+
+// ── Minimal Web Speech API typings (not in lib.dom for all TS configs) ───────
+interface SpeechRecognitionResultLike {
+  results: { [i: number]: { [j: number]: { transcript: string } } };
+}
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((e: SpeechRecognitionResultLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognition(): SpeechRecognitionCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: SpeechRecognitionCtor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
 
 // ── Hero Liquid Animated Search Button (Rently Blue Palette) ─────────────────
 function HeroAiSearchButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
@@ -47,7 +73,7 @@ function HeroAiSearchButton({ children, disabled }: { children: React.ReactNode;
         </StyledUiverseWrapper>
       ) : (
         <button
-          className="rounded-[24px] bg-[#0061FF] px-5 py-2 text-[15px] font-bold text-white shadow-md"
+          className="rounded-[24px] bg-[#2563EB] px-5 py-2 text-[15px] font-bold text-white shadow-md"
           type="submit"
           disabled={disabled}
         >
@@ -63,13 +89,13 @@ const StyledUiverseWrapper = styled.div`
     --duration: 7s;
     --easing: linear;
     --c-color-1: rgba(56, 182, 255, 0.75);
-    --c-color-2: #0061FF;
+    --c-color-2: #2563EB;
     --c-color-3: #00D2FF;
     --c-color-4: rgba(0, 97, 255, 0.85);
     --c-shadow: rgba(0, 97, 255, 0.4);
     --c-shadow-inset-top: rgba(186, 230, 253, 0.9);
     --c-shadow-inset-bottom: rgba(0, 97, 255, 0.8);
-    --c-radial-inner: #0061FF;
+    --c-radial-inner: #2563EB;
     --c-radial-outer: #38B6FF;
     --c-color: #ffffff;
     -webkit-tap-highlight-color: transparent;
@@ -431,6 +457,52 @@ export default function Hero() {
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeMode, setActiveMode] = useState<"fast" | "deep" | "contract">("fast");
+  const [listening, setListening] = useState(false);
+  const [hasMic, setHasMic] = useState(false);
+  const recRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    setHasMic(!!getSpeechRecognition());
+    return () => {
+      recRef.current?.abort();
+    };
+  }, []);
+
+  // Real Web-Speech voice input — the transcript fills the search box.
+  const toggleMic = () => {
+    if (listening) {
+      recRef.current?.stop();
+      return;
+    }
+    const Ctor = getSpeechRecognition();
+    if (!Ctor) return;
+    const rec = new Ctor();
+    rec.lang = "he-IL";
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript?.trim() ?? "";
+      if (transcript) setQuery(transcript);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    setListening(true);
+    rec.start();
+  };
+  // The trust strip used to claim a fixed "14,200+" listing count — a stale,
+  // unverifiable number from this codebase's known history of hardcoded fake
+  // stats. Show the real live catalogue size instead.
+  const [listingCount, setListingCount] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    ensureProperties().then(({ items }) => {
+      if (alive) setListingCount(items.length);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Typewriter effect: types character-by-character, pauses, then backspaces
   useEffect(() => {
@@ -477,11 +549,6 @@ export default function Hero() {
     runSearch(q);
   };
 
-  const runChip = (chip: string) => {
-    setQuery(chip);
-    runSearch(chip);
-  };
-
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#EFF6FF] via-slate-50/50 to-white pt-28 pb-16 md:pt-36 md:pb-20">
       {/* Decorative ambient glows */}
@@ -500,46 +567,26 @@ export default function Hero() {
           loop
           muted
           playsInline
+          preload="metadata"
+          poster="/balloon-house.png"
           className="h-auto w-full object-contain filter drop-shadow-[0_20px_35px_rgba(37,99,235,0.15)]"
         >
-          <source src="/floating-house.mov" type="video/mp4" />
+          {/* TODO: replace the QuickTime .mov with a real H.264 .mp4 (and/or WebM) encode — .mov is unreliable in Chrome and unsupported in Firefox */}
           <source src="/floating-house.mov" type="video/quicktime" />
-          <source src="/%D7%91%D7%99%D7%AA%20%D7%9E%D7%A0%D7%97%D7%A42.mov" type="video/quicktime" />
         </video>
       </div>
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">
-        {/* 1. Enlarged 3D Iridescent Orb / Coin */}
-        <motion.div {...rise} transition={{ duration: 0.5, delay: 0 }} className="flex items-center justify-center my-3">
-          <div className="relative flex items-center justify-center">
-            {/* Multi-layered Glowing Aura */}
-            <div className="absolute h-48 w-48 rounded-full bg-gradient-to-r from-[#38B6FF]/35 via-[#0061FF]/30 to-[#38B6FF]/35 blur-3xl animate-pulse" />
-            <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-gradient-to-tr from-sky-300 via-blue-200 to-sky-400 p-1 shadow-[0_15px_45px_rgba(0,97,255,0.35)] transition-transform duration-700 hover:scale-108">
-              <div className="h-full w-full rounded-full bg-gradient-to-br from-white via-sky-50 to-blue-100 backdrop-blur-md relative overflow-hidden flex items-center justify-center border-2 border-white/80">
-                <div className="absolute -top-4 -left-4 h-14 w-14 rounded-full bg-white/90 blur-sm" />
-                <div className="absolute bottom-2 right-3 h-9 w-9 rounded-full bg-sky-400/30 blur-md" />
-                <div className="absolute top-6 right-4 h-5 w-5 rounded-full bg-blue-400/25 blur-sm" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/rently-icon.svg"
-                  alt="Rently Icon"
-                  className="h-16 w-16 sm:h-20 sm:w-20 object-contain drop-shadow-md relative z-10 transition-transform duration-300 hover:scale-105"
-                />
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Headline */}
         <motion.h1
           {...rise}
           transition={{ duration: 0.5, delay: 0.08 }}
           className="mt-4 text-3xl sm:text-5xl md:text-6xl font-black leading-tight text-navy tracking-tight"
         >
-          איזה כיף שחזרת!
+          איזה כיף שאתם כאן!
           <br />
           מה אנחנו{' '}
-          <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#2563EB] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
             מחפשים
           </span>{' '}
           היום?
@@ -551,14 +598,14 @@ export default function Hero() {
           transition={{ duration: 0.5, delay: 0.16 }}
           className="mt-3 text-base sm:text-lg font-semibold text-secondary-text max-w-[580px] mx-auto leading-relaxed"
         >
-          ספרו לאתי מה חשוב לכם ותבדוק אם היא באמת עוזרת חכמה
+          ספרו לאתי מה חשוב לכם ותבדקו בעצמכם אם היא באמת עוזרת חכמה
         </motion.p>
 
         {/* Command Center Prompt Box */}
         <motion.div {...rise} transition={{ duration: 0.5, delay: 0.28 }}>
           <form
             onSubmit={handleSubmit}
-            className="relative mt-6 rounded-full border-2 border-blue-200/90 bg-white px-3 py-2 sm:px-4 sm:py-2.5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100 max-w-[680px] mx-auto text-start"
+            className="relative mt-6 rounded-full border-2 border-blue-200/90 bg-white px-3 py-2 sm:px-4 sm:py-2.5 shadow-[0_20px_50px_rgba(37,99,235,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#2563EB] focus-within:ring-4 focus-within:ring-blue-100 max-w-[680px] mx-auto text-start"
           >
             {/* Text Input Row - In RTL layout, Right side buttons (Right to Left flow) */}
             <div className="flex items-center gap-[10px]">
@@ -573,15 +620,21 @@ export default function Hero() {
 
               {/* Right Side Buttons */}
               <div className="flex items-center gap-[10px] shrink-0">
-                <button
-                  type="button"
-                  onClick={() => runChip('הקלטה קולית: אתי, מצאי לי דירת 3 חדרים')}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
-                  title="הקלטה קולית לאתי"
-                  aria-label="הקלטה קולית לאתי"
-                >
-                  <Microphone2 size={19} variant="Bold" color="currentColor" />
-                </button>
+                {hasMic && (
+                  <button
+                    type="button"
+                    onClick={toggleMic}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition cursor-pointer ${
+                      listening
+                        ? "animate-pulse border-[#2563EB] bg-[#2563EB] text-white"
+                        : "border-slate-200/90 bg-slate-50/90 text-slate-600 hover:border-[#2563EB] hover:bg-blue-50/80 hover:text-[#2563EB]"
+                    }`}
+                    title={listening ? "מקשיבה…" : "דיבור"}
+                    aria-label="הקלטה קולית לאתי"
+                  >
+                    <Microphone2 size={19} variant={listening ? "Bold" : "Linear"} color="currentColor" />
+                  </button>
+                )}
 
                 <HeroAiSearchButton disabled={searching}>
                   <span>{searching ? "מחפשת…" : "חיפוש"}</span>
@@ -598,18 +651,22 @@ export default function Hero() {
           {/* Integrated Trust & Proof Ticker Strip */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-[12.5px] font-bold text-secondary-text">
             <span className="flex items-center gap-1.5">
-              <ShieldSecurity size={16} color="#0061FF" variant="Bold" />
-              <span>סריקת 14,200+ דירות פעילות</span>
+              <ShieldSecurity size={16} color="#2563EB" variant="Bold" />
+              <span>
+                {listingCount != null
+                  ? `סריקת ${listingCount.toLocaleString("he-IL")} דירות פעילות`
+                  : "סריקת דירות פעילות בזמן אמת"}
+              </span>
             </span>
             <span className="text-slate-300">•</span>
             <span className="flex items-center gap-1.5">
-              <Flash size={16} color="#0061FF" variant="Bold" />
-              <span>מענה AI ב-0.4 שניות</span>
+              <Flash size={16} color="#2563EB" variant="Bold" />
+              <span>מענה AI מיידי, בלי המתנה לשרת</span>
             </span>
             <span className="text-slate-300">•</span>
             <span className="flex items-center gap-1.5">
-              <MagicStar size={16} color="#0061FF" variant="Bold" />
-              <span>נתוני למ״ר ומפות רשמיות</span>
+              <MagicStar size={16} color="#2563EB" variant="Bold" />
+              <span>נתוני למ״ס ומפות רשמיות</span>
             </span>
           </div>
 

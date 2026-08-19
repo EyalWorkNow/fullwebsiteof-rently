@@ -105,13 +105,13 @@ const REVEAL_STEP_MS = 32
 function IridescentOrb() {
   return (
     <div className="relative flex items-center justify-center my-4">
-      <div className="absolute h-36 w-36 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#0061FF]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
-      <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(0,97,255,0.25)] transition-transform duration-700 hover:scale-105">
+      <div className="absolute h-36 w-36 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#2563EB]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
+      <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(37,99,235,0.25)] transition-transform duration-700 hover:scale-105">
         <div className="h-full w-full rounded-full bg-gradient-to-br from-white/90 via-sky-50/70 to-blue-100/90 backdrop-blur-md relative overflow-hidden flex items-center justify-center">
           <div className="absolute -top-3 -left-3 h-10 w-10 rounded-full bg-white/80 blur-sm" />
           <div className="absolute bottom-1 right-2 h-7 w-7 rounded-full bg-sky-300/40 blur-md" />
           <div className="absolute top-4 right-3 h-4 w-4 rounded-full bg-blue-300/30 blur-sm" />
-          <MagicStar size={32} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-sm relative z-10" />
+          <MagicStar size={32} variant="Bold" color="currentColor" className="text-[#2563EB] drop-shadow-sm relative z-10" />
         </div>
       </div>
     </div>
@@ -130,14 +130,24 @@ function EzraAvatar({ size = 32 }: { size?: number }) {
 }
 
 export default function EzraWorkspace({
+  tabVisible = true,
   pendingEdit,
   onConsumePendingEdit,
 }: {
+  /** Whether the עזרא tab is the one currently visible — this workspace stays
+   *  MOUNTED (just CSS-hidden) while another portal tab is active, so without
+   *  this a Hebrew TTS reply would start talking out loud on a tab the
+   *  landlord isn't even looking at. */
+  tabVisible?: boolean
   /** A property handed over from "הנכסים שלי" (its edit button) — auto-opens
    *  as an editing conversation as soon as this workspace mounts. */
   pendingEdit?: ExistingProperty | null
   onConsumePendingEdit?: () => void
 } = {}) {
+  const { requireAuth, user } = useAuthGate()
+  // Two landlords on the same browser/kiosk must never see each other's drafts
+  // and chat history — scope conversation storage to the signed-in account.
+  const scopeUid = user && !user.isAnonymous ? user.uid : null
   const [conversations, setConversations] = useState<EzraConversation[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -168,11 +178,16 @@ export default function EzraWorkspace({
   const recRef = useRef<SpeechRecognitionLike | null>(null)
   const speakRepliesRef = useRef(speakReplies)
   speakRepliesRef.current = speakReplies
+  const tabVisibleRef = useRef(tabVisible)
+  tabVisibleRef.current = tabVisible
 
   // ── Bootstrapping ──────────────────────────────────────────────────────────
   useEffect(() => {
-    setConversations(loadConversations())
+    setConversations(loadConversations(scopeUid))
     setLoaded(true)
+  }, [scopeUid])
+
+  useEffect(() => {
     setHasMic(!!getSpeechRecognition())
     return () => {
       recRef.current?.abort()
@@ -180,9 +195,18 @@ export default function EzraWorkspace({
     }
   }, [])
 
+  // This workspace stays mounted (CSS-hidden) behind other portal tabs — stop
+  // any reply that's mid-speech the moment the landlord switches away so it
+  // doesn't keep talking on a tab they're no longer looking at.
   useEffect(() => {
-    if (loaded) saveConversations(conversations)
-  }, [conversations, loaded])
+    if (!tabVisible && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
+  }, [tabVisible])
+
+  useEffect(() => {
+    if (loaded) saveConversations(conversations, scopeUid)
+  }, [conversations, loaded, scopeUid])
 
   const active = conversations.find((c) => c.id === activeId) ?? null
 
@@ -348,7 +372,7 @@ export default function EzraWorkspace({
           }),
         )
         startReveal(replyId, reply.reply)
-        if (speakRepliesRef.current && reply.reply) speakHebrew(reply.reply)
+        if (speakRepliesRef.current && tabVisibleRef.current && reply.reply) speakHebrew(reply.reply)
       } catch (e) {
         const errId = newMessageId()
         setConversations((prev) =>
@@ -376,7 +400,6 @@ export default function EzraWorkspace({
     [activeId, busy, conversations, createConversation, mergeListings, startReveal],
   )
 
-  const { requireAuth } = useAuthGate()
   const sendRef = useRef(send)
   sendRef.current = send
   const guardedSend = useCallback(
@@ -730,7 +753,7 @@ export default function EzraWorkspace({
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-snug">
                   שלום, כיצד אוכל{' '}
-                  <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-[#2563EB] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
                     לעזור לך לפרסם?
                   </span>
                 </h1>
@@ -750,10 +773,10 @@ export default function EzraWorkspace({
                     e.preventDefault()
                     guardedSend(input)
                   }}
-                  className="relative rounded-2xl md:rounded-3xl border border-white/90 bg-white/95 p-3 md:p-4 shadow-[0_15px_40px_rgba(0,97,255,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
+                  className="relative rounded-2xl md:rounded-3xl border border-white/90 bg-white/95 p-3 md:p-4 shadow-[0_15px_40px_rgba(37,99,235,0.08)] backdrop-blur-xl transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
                 >
                   <div className="flex items-start gap-2 sm:gap-2.5">
-                    <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#0061FF] shrink-0 mt-1.5" />
+                    <MagicStar size={20} variant="Bold" color="currentColor" className="text-[#2563EB] shrink-0 mt-1.5" />
                     <textarea
                       value={input}
                       onChange={(e) => {
@@ -784,7 +807,7 @@ export default function EzraWorkspace({
                       key={chip}
                       type="button"
                       onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11.5px] sm:text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#0061FF]"
+                      className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11.5px] sm:text-[12.5px] font-semibold text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-blue-400 hover:bg-white hover:text-[#2563EB]"
                     >
                       {chip}
                     </button>

@@ -46,8 +46,15 @@ export interface EzraConversation {
   editingProperty?: ExistingProperty
 }
 
-const KEY = 'ezra-conversations'
+const DEFAULT_KEY = 'ezra-conversations'
 const MAX_CONVERSATIONS = 50
+
+// Account-scoped key — an unscoped key would let a second landlord who signs
+// in on the same browser/kiosk see the first landlord's drafts and chat history.
+function getKey(userId?: string | null): string {
+  if (!userId) return `${DEFAULT_KEY}-guest`
+  return `${DEFAULT_KEY}-${userId}`
+}
 
 function cleanDraft(v: unknown): EzraDraftFields | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null
@@ -66,10 +73,10 @@ function cleanDraft(v: unknown): EzraDraftFields | null {
   }
 }
 
-export function loadConversations(): EzraConversation[] {
+export function loadConversations(userId?: string | null): EzraConversation[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = window.localStorage.getItem(KEY)
+    const raw = window.localStorage.getItem(getKey(userId))
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -109,10 +116,10 @@ export function loadConversations(): EzraConversation[] {
   }
 }
 
-export function saveConversations(list: EzraConversation[]): void {
+export function saveConversations(list: EzraConversation[], userId?: string | null): void {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX_CONVERSATIONS)))
+    window.localStorage.setItem(getKey(userId), JSON.stringify(list.slice(0, MAX_CONVERSATIONS)))
   } catch {
     // Storage full / private mode — the session keeps working in-memory.
   }

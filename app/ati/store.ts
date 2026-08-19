@@ -23,6 +23,7 @@ export interface AtiConversation {
   title: string
   createdAt: number
   userId?: string
+  saved?: boolean
   messages: AtiMessage[]
 }
 

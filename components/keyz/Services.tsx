@@ -10,7 +10,7 @@ const SERVICES: { id: string; icon: Icon; title: string; desc: string; iconBg: s
     icon: MagicStar,
     title: "הדמיית AI",
     desc: "מעלים תמונה של חדר — ומקבלים הדמיה מעוצבת ומרוהטת תוך שניות",
-    iconBg: "bg-blue-50 text-[#0061FF]",
+    iconBg: "bg-blue-50 text-[#2563EB]",
   },
   {
     id: "tour-360",
@@ -106,7 +106,7 @@ export default function Services() {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-[12px] font-extrabold text-[#0061FF]">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-[12px] font-extrabold text-[#2563EB]">
                     <span>מחליק לפעולה ✨</span>
                     <span>←</span>
                   </div>
@@ -125,7 +125,7 @@ export default function Services() {
               aria-label={`עבור לשירות ${idx + 1}`}
               onClick={() => setActiveIndex(idx)}
               className={`h-2 rounded-full transition-all duration-300 ${
-                activeIndex === idx ? "w-7 bg-[#0061FF]" : "w-2 bg-slate-300"
+                activeIndex === idx ? "w-7 bg-[#2563EB]" : "w-2 bg-slate-300"
               }`}
             />
           ))}
@@ -138,7 +138,7 @@ export default function Services() {
               key={title}
               whileHover={{ y: -6, scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="bg-white border border-slate-200/90 rounded-3xl p-6 hover:border-[#0061FF] transition-all shadow-xs hover:shadow-xl flex flex-col justify-between group"
+              className="bg-white border border-slate-200/90 rounded-3xl p-6 hover:border-[#2563EB] transition-all shadow-xs hover:shadow-xl flex flex-col justify-between group"
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -146,13 +146,13 @@ export default function Services() {
                     <ServiceIcon size={28} variant="Bulk" color="currentColor" />
                   </div>
                 </div>
-                <h3 className="text-[18px] font-black text-navy mt-5 group-hover:text-[#0061FF] transition-colors">{title}</h3>
+                <h3 className="text-[18px] font-black text-navy mt-5 group-hover:text-[#2563EB] transition-colors">{title}</h3>
                 <p className="text-[13.5px] text-slate-600 mt-2 leading-relaxed font-medium">
                   {desc}
                 </p>
               </div>
 
-              <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[12.5px] font-extrabold text-slate-400 group-hover:text-[#0061FF] transition-colors">
+              <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[12.5px] font-extrabold text-slate-400 group-hover:text-[#2563EB] transition-colors">
                 <span>למידע נוסף</span>
                 <span className="transition-transform group-hover:translate-x-[-4px]">←</span>
               </div>

@@ -78,20 +78,13 @@ function sanitizeFileName(name: string): string {
   return base || 'photo'
 }
 
+const MAX_PHOTO_BYTES = 15 * 1024 * 1024 // 15MB
+
 /** Uploads one image file, returns its public HTTPS URL. Throws a Hebrew-message
  *  Error on any failure — the caller decides how to surface it (per-file status). */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-/** Uploads one image file, returns its public HTTPS URL or Base64 fallback URL. */
 export async function uploadPhoto(file: File): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('אפשר להעלות קבצי תמונה בלבד.')
+  if (file.size > MAX_PHOTO_BYTES) throw new Error('התמונה גדולה מדי (מקסימום 15MB).')
 
   try {
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
@@ -116,10 +109,12 @@ export async function uploadPhoto(file: File): Promise<string> {
       }
     }
   } catch {
-    /* Fallback to Base64 data URL if cloud storage presign or PUT fails */
+    /* fall through to the shared error below */
   }
 
-  return await fileToBase64(file)
+  // No Base64 fallback — a data-URI "photo" stored in the DB row is multi-MB
+  // garbage the app then has to render on every card. Fail loud instead.
+  throw new Error('העלאת התמונה נכשלה. בדקו את החיבור ונסו שוב.')
 }
 
 /** DELETE /properties/{id} — server enforces ownerUserId === caller. */

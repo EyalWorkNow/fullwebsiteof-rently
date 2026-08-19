@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SITE_ORIGIN } from "@/lib/site";
 import { Heebo } from "next/font/google";
 import "./globals.css";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -15,6 +16,8 @@ const heebo = Heebo({
 });
 
 export const metadata: Metadata = {
+  // Resolves every relative OG/twitter/canonical URL to an absolute one.
+  metadataBase: new URL(SITE_ORIGIN),
   title: "Rently — כיף שבאת, איזו דירה נחפש היום?",
   description: "חיפוש דירות עם AI — אתי מוצאת לך את הדירה הבאה, עם נתוני סביבה אמיתיים, סיורי 360 והתאמה חכמה.",
   icons: {
@@ -28,6 +31,15 @@ export const metadata: Metadata = {
     title: "Rently — כיף שבאת, איזו דירה נחפש היום?",
     description: "האפליקציה הכי חכמה לחיפוש דירה בישראל",
     type: "website",
+    siteName: "Rently",
+    // Default share image — listing pages override with the property photo.
+    images: [{ url: "/logo.png" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Rently — כיף שבאת, איזו דירה נחפש היום?",
+    description: "האפליקציה הכי חכמה לחיפוש דירה בישראל",
+    images: ["/logo.png"],
   },
 };
 
@@ -35,9 +47,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-white text-navy">
+        {/* Skip-to-content: first focusable element, visually hidden until focused. */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-[200] focus:rounded-full focus:bg-primary focus:px-5 focus:py-2.5 focus:font-bold focus:text-white focus:shadow-lg"
+        >
+          דילוג לתוכן
+        </a>
         <ScrollProgress />
         <TopBar />
-        {children}
+        <div id="main" tabIndex={-1}>
+          {children}
+        </div>
         <SiteFooter />
         <BackToTop />
         <AccessibilityWidget />

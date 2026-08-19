@@ -6,14 +6,11 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styled from 'styled-components'
-import { AnimatePresence, motion } from 'framer-motion'
 import {
   Add,
-  ChartSquare,
   DocumentText,
   Edit2,
   HambergerMenu,
-  LampCharge,
   Location,
   Magicpen,
   MagicStar,
@@ -21,7 +18,6 @@ import {
   SearchNormal1,
   Star,
   Trash,
-  Paperclip,
   Microphone2,
 } from 'iconsax-react'
 import { fetchProperties, type PropertiesResult } from '@/lib/live/api'
@@ -97,6 +93,32 @@ const CHIPS = [
 const LIFESTYLE_NOTE_PREFIX = 'שמתי לב לכמה דברים:'
 const SEND_REASON = 'כדי שאתי תזכור את השיחה ותמשיך אותה בפעם הבאה'
 
+// ── Minimal Web Speech API typings (not in lib.dom for all TS configs) ───────
+interface SpeechRecognitionResultLike {
+  results: { [i: number]: { [j: number]: { transcript: string } } }
+}
+interface SpeechRecognitionLike {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((e: SpeechRecognitionResultLike) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start(): void
+  stop(): void
+  abort(): void
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike
+
+function getSpeechRecognition(): SpeechRecognitionCtor | null {
+  if (typeof window === 'undefined') return null
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor
+    webkitSpeechRecognition?: SpeechRecognitionCtor
+  }
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
+}
+
 // ── USER COMPONENT 1: Uiverse Liquid Bubble Button (Rently Blue Theme) ───────
 interface UserSendButtonProps {
   disabled?: boolean
@@ -137,7 +159,7 @@ const UserSendButton: React.FC<UserSendButtonProps> = ({ disabled, onClick }) =>
         </StyledUiverseWrapper>
       ) : (
         <button
-          className="rounded-[24px] bg-[#0061FF] px-5 py-2 text-[15px] font-bold text-white shadow-md"
+          className="rounded-[24px] bg-[#2563EB] px-5 py-2 text-[15px] font-bold text-white shadow-md"
           type="button"
           disabled={disabled}
           onClick={disabled ? undefined : onClick}
@@ -154,13 +176,13 @@ const StyledUiverseWrapper = styled.div`
     --duration: 7s;
     --easing: linear;
     --c-color-1: rgba(56, 182, 255, 0.75);
-    --c-color-2: #0061FF;
+    --c-color-2: #2563EB;
     --c-color-3: #00D2FF;
     --c-color-4: rgba(0, 97, 255, 0.85);
     --c-shadow: rgba(0, 97, 255, 0.4);
     --c-shadow-inset-top: rgba(186, 230, 253, 0.9);
     --c-shadow-inset-bottom: rgba(0, 97, 255, 0.8);
-    --c-radial-inner: #0061FF;
+    --c-radial-inner: #2563EB;
     --c-radial-outer: #38B6FF;
     --c-color: #ffffff;
     -webkit-tap-highlight-color: transparent;
@@ -456,218 +478,17 @@ const StyledUiverseWrapper = styled.div`
   }
 `;
 
-// ── USER COMPONENT 2: EXACT User 3D Industrial Toggle Switch ───────────────
-interface UserSwitchProps {
-  checked: boolean
-  onChange: (checked: boolean) => void
-}
-
-const Switch: React.FC<UserSwitchProps> = ({ checked, onChange }) => {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  return (
-    <div className="relative inline-flex items-center justify-center shrink-0 w-[56px] h-[72px] overflow-visible">
-      {mounted ? (
-        <StyledWrapper>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={(e) => onChange(e.target.checked)}
-            />
-            <div className="button">
-              <div className="light" />
-              <div className="dots" />
-              <div className="characters" />
-              <div className="shine" />
-              <div className="shadow" />
-            </div>
-          </label>
-        </StyledWrapper>
-      ) : (
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e) => onChange(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0061FF]" />
-        </label>
-      )}
-    </div>
-  )
-}
-
-const StyledWrapper = styled.div`
-  /* The unscaled switch is 150x195; centering via top/left/margin (not
-     transform) puts its center at the parent's center BEFORE scaling, so the
-     0.35 scale shrinks it in place instead of leaving it anchored at the
-     parent's top-left corner and spilling out to the bottom-right (which is
-     what a bare position:absolute + transform:scale did — the switch
-     rendered shifted out of its 56x72 box, clipped by whatever sat next to it). */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin-top: -97.5px;
-  margin-left: -75px;
-  transform: scale(0.35);
-  transform-origin: center center;
-
-  .switch {
-    display: block;
-    background-color: black;
-    width: 150px;
-    height: 195px;
-    box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.2), 0 0 1px 2px black, inset 0 2px 2px -2px white, inset 0 0 2px 15px #47434c, inset 0 0 2px 22px black;
-    border-radius: 5px;
-    padding: 20px;
-    perspective: 700px;
-  }
-
-  .switch input {
-    display: none;
-  }
-
-  .switch input:checked + .button {
-    transform: translateZ(20px) rotateX(25deg);
-    box-shadow: 0 -10px 20px #18ffec;
-  }
-
-  .switch input:checked + .button .light {
-    animation: flicker 0.2s infinite 0.3s;
-  }
-
-  .switch input:checked + .button .shine {
-    opacity: 1;
-  }
-
-  .switch input:checked + .button .shadow {
-    opacity: 0;
-  }
-
-  .switch .button {
-    display: block;
-    transition: all 0.3s cubic-bezier(1, 0, 1, 1);
-    transform-origin: center center -20px;
-    transform: translateZ(20px) rotateX(-25deg);
-    transform-style: preserve-3d;
-    background-color: #06919b;
-    height: 100%;
-    position: relative;
-    cursor: pointer;
-    background: linear-gradient(#009890 0%, #006f6f 30%, #006b6f 70%, #009398 100%);
-    background-repeat: no-repeat;
-  }
-
-  .switch .button::before {
-    content: "";
-    background: linear-gradient(rgba(255, 255, 255, 0.8) 10%, rgba(255, 255, 255, 0.3) 30%, #006265 75%, #002a32) 50% 50%/97% 97%, #00a5b1;
-    background-repeat: no-repeat;
-    width: 100%;
-    height: 50px;
-    transform-origin: top;
-    transform: rotateX(-90deg);
-    position: absolute;
-    top: 0;
-  }
-
-  .switch .button::after {
-    content: "";
-    background-image: linear-gradient(#005665, #002832);
-    width: 100%;
-    height: 50px;
-    transform-origin: top;
-    transform: translateY(50px) rotateX(-90deg);
-    position: absolute;
-    bottom: 0;
-    box-shadow: 0 50px 8px 0px black, 0 80px 20px 0px rgba(0, 0, 0, 0.5);
-  }
-
-  .switch .light {
-    opacity: 0;
-    animation: light-off 1s;
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-image: radial-gradient(#7efff4, #18ffec 40%, transparent 70%);
-  }
-
-  .switch .dots {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-image: radial-gradient(transparent 30%, rgba(0, 101, 96, 0.7) 70%);
-    background-size: 10px 10px;
-  }
-
-  .switch .characters {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(white, white) 50% 20%/5% 20%, radial-gradient(circle, transparent 50%, white 52%, white 70%, transparent 72%) 50% 80%/33% 25%;
-    background-repeat: no-repeat;
-  }
-
-  .switch .shine {
-    transition: all 0.3s cubic-bezier(1, 0, 1, 1);
-    opacity: 0.3;
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(white, transparent 3%) 50% 50%/97% 97%, linear-gradient(rgba(255, 255, 255, 0.5), transparent 50%, transparent 80%, rgba(255, 255, 255, 0.5)) 50% 50%/97% 97%;
-    background-repeat: no-repeat;
-  }
-
-  .switch .shadow {
-    transition: all 0.3s cubic-bezier(1, 0, 1, 1);
-    opacity: 1;
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(transparent 70%, rgba(0, 0, 0, 0.8));
-    background-repeat: no-repeat;
-  }
-
-  @keyframes flicker {
-    0% {
-      opacity: 1;
-    }
-
-    80% {
-      opacity: 0.8;
-    }
-
-    100% {
-      opacity: 1;
-    }
-  }
-
-  @keyframes light-off {
-    0% {
-      opacity: 1;
-    }
-
-    80% {
-      opacity: 0;
-    }
-  }
-`
-
 // 3D Iridescent Orb Graphic (Rently Blue Palette)
 function IridescentOrb() {
   return (
     <div className="relative flex items-center justify-center my-4">
-      <div className="absolute h-36 w-36 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#0061FF]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
-      <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(0,97,255,0.25)] transition-transform duration-700 hover:scale-105">
+      <div className="absolute h-36 w-36 rounded-full bg-gradient-to-r from-[#38B6FF]/30 via-[#2563EB]/20 to-[#38B6FF]/30 blur-2xl animate-pulse" />
+      <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-sky-200 via-blue-100 to-sky-300 p-0.5 shadow-[0_10px_35px_rgba(37,99,235,0.25)] transition-transform duration-700 hover:scale-105">
         <div className="h-full w-full rounded-full bg-gradient-to-br from-white/90 via-sky-50/70 to-blue-100/90 backdrop-blur-md relative overflow-hidden flex items-center justify-center">
           <div className="absolute -top-3 -left-3 h-10 w-10 rounded-full bg-white/80 blur-sm" />
           <div className="absolute bottom-1 right-2 h-7 w-7 rounded-full bg-sky-300/40 blur-md" />
           <div className="absolute top-4 right-3 h-4 w-4 rounded-full bg-blue-300/30 blur-sm" />
-          <MagicStar size={32} variant="Bold" color="currentColor" className="text-[#0061FF] drop-shadow-sm relative z-10 animate-spin-slow" />
+          <MagicStar size={32} variant="Bold" color="currentColor" className="text-[#2563EB] drop-shadow-sm relative z-10 animate-spin-slow" />
         </div>
       </div>
     </div>
@@ -677,7 +498,7 @@ function IridescentOrb() {
 function AtiAvatar({ size = 32 }: { size?: number }) {
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] text-white shadow-sm"
+      className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#2563EB] to-[#38B6FF] text-white shadow-sm"
       style={{ width: size, height: size }}
     >
       <MagicStar size={Math.round(size * 0.55)} variant="Bold" color="currentColor" />
@@ -708,12 +529,15 @@ export default function AtiWorkspace() {
   const [deepBusyConvId, setDeepBusyConvId] = useState<string | null>(null)
   const [immediate, setImmediate] = useState(true)
   const [sidebarNavTab, setSidebarNavTab] = useState<'recent' | 'saved'>('recent')
+  const [listening, setListening] = useState(false)
+  const [hasMic, setHasMic] = useState(false)
 
   const propsMapRef = useRef<Map<string, Property>>(new Map())
   const [, setPropsVersion] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const openerIdxRef = useRef(0)
+  const recRef = useRef<SpeechRecognitionLike | null>(null)
 
   // ── Bootstrapping ──────────────────────────────────────────────────────────
   // Re-runs whenever the resolved account changes (anonymous → real user, or
@@ -738,6 +562,13 @@ export default function AtiWorkspace() {
   useEffect(() => {
     if (loaded) saveConversations(conversations, scopeUid)
   }, [conversations, loaded, scopeUid])
+
+  useEffect(() => {
+    setHasMic(!!getSpeechRecognition())
+    return () => {
+      recRef.current?.abort()
+    }
+  }, [])
 
   const active = conversations.find((c) => c.id === activeId) ?? null
 
@@ -798,6 +629,33 @@ export default function AtiWorkspace() {
     const newImmediate = !isPersonalizedChecked
     setImmediate(newImmediate)
     saveImmediateMode(newImmediate)
+  }
+
+  const toggleSaved = (id: string) => {
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, saved: !c.saved } : c)))
+  }
+
+  // ── Voice (real Web Speech mic — same implementation as עזרא's) ──────────
+  function toggleMic() {
+    if (listening) {
+      recRef.current?.stop()
+      return
+    }
+    const Ctor = getSpeechRecognition()
+    if (!Ctor) return
+    const rec = new Ctor()
+    rec.lang = 'he-IL'
+    rec.continuous = false
+    rec.interimResults = false
+    rec.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript?.trim() ?? ''
+      if (transcript) setInput(transcript)
+    }
+    rec.onend = () => setListening(false)
+    rec.onerror = () => setListening(false)
+    recRef.current = rec
+    setListening(true)
+    rec.start()
   }
 
   const decorate = useCallback(
@@ -1159,7 +1017,7 @@ export default function AtiWorkspace() {
   const filteredConversations = useMemo(() => {
     let list = conversations
     if (sidebarNavTab === 'saved') {
-      list = list.filter((c) => (c as AtiConversation & { saved?: boolean }).saved === true)
+      list = list.filter((c) => c.saved === true)
     }
     if (!searchHistoryFilter.trim()) return list
     const q = searchHistoryFilter.trim().toLowerCase()
@@ -1195,16 +1053,16 @@ export default function AtiWorkspace() {
       <div className="flex items-center justify-between p-3.5 border-b border-slate-100">
         {!isSidebarCollapsed ? (
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] text-white shadow-md shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#2563EB] to-[#38B6FF] text-white shadow-md shrink-0">
               <MagicStar size={20} variant="Bold" color="currentColor" />
             </div>
             <div className="min-w-0">
               <span className="block truncate text-[15px] font-black text-slate-900 leading-tight">Rently</span>
-              <span className="block truncate text-[11px] font-bold text-[#0061FF]">אתי · העוזרת החכמה</span>
+              <span className="block truncate text-[11px] font-bold text-[#2563EB]">אתי · העוזרת החכמה</span>
             </div>
           </div>
         ) : (
-          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] text-white shadow-md shrink-0">
+          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#2563EB] to-[#38B6FF] text-white shadow-md shrink-0">
             <MagicStar size={20} variant="Bold" color="currentColor" />
           </div>
         )}
@@ -1213,7 +1071,7 @@ export default function AtiWorkspace() {
           type="button"
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           aria-label={isSidebarCollapsed ? "הרחב סרגל צד" : "כווץ סרגל צד"}
-          className="hidden lg:flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#0061FF] transition shrink-0"
+          className="hidden lg:flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#2563EB] transition shrink-0"
         >
           <HambergerMenu size={16} color="currentColor" />
         </button>
@@ -1228,7 +1086,7 @@ export default function AtiWorkspace() {
               createConversation('שיחה חדשה')
               setSidebarOpen(false)
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0061FF] px-4 py-2.5 text-[13.5px] font-bold text-white shadow-md transition hover:bg-blue-700"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2.5 text-[13.5px] font-bold text-white shadow-md transition hover:bg-blue-700"
           >
             <Add size={18} color="currentColor" />
             <span>שיחה חדשה</span>
@@ -1238,7 +1096,7 @@ export default function AtiWorkspace() {
             type="button"
             onClick={() => createConversation('שיחה חדשה')}
             title="שיחה חדשה"
-            className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0061FF] text-white shadow-md transition hover:bg-blue-700"
+            className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-[#2563EB] text-white shadow-md transition hover:bg-blue-700"
           >
             <Add size={20} color="currentColor" />
           </button>
@@ -1248,7 +1106,7 @@ export default function AtiWorkspace() {
       {/* Search Input in Sidebar */}
       {!isSidebarCollapsed ? (
         <div className="px-3 pb-2">
-          <div className="relative flex items-center rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-1.5 focus-within:border-[#0061FF] focus-within:bg-white transition">
+          <div className="relative flex items-center rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-1.5 focus-within:border-[#2563EB] focus-within:bg-white transition">
             <SearchNormal1 size={15} color="currentColor" className="text-slate-400 shrink-0 me-2" />
             <input
               type="text"
@@ -1282,7 +1140,7 @@ export default function AtiWorkspace() {
                 onClick={() => setSidebarNavTab('recent')}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition w-full text-start ${
                   sidebarNavTab === 'recent'
-                    ? 'bg-blue-50/80 text-[#0061FF]'
+                    ? 'bg-blue-50/80 text-[#2563EB]'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
@@ -1295,7 +1153,7 @@ export default function AtiWorkspace() {
                 onClick={() => setSidebarNavTab('saved')}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-bold transition w-full text-start ${
                   sidebarNavTab === 'saved'
-                    ? 'bg-blue-50/80 text-[#0061FF]'
+                    ? 'bg-blue-50/80 text-[#2563EB]'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
@@ -1334,7 +1192,7 @@ export default function AtiWorkspace() {
                 title="שיחות אחרונות"
                 onClick={() => setSidebarNavTab('recent')}
                 className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                  sidebarNavTab === 'recent' ? 'bg-blue-50 text-[#0061FF]' : 'text-slate-500 hover:bg-slate-100'
+                  sidebarNavTab === 'recent' ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 <Messages3 size={18} color="currentColor" />
@@ -1344,7 +1202,7 @@ export default function AtiWorkspace() {
                 title="שיחות שמורות"
                 onClick={() => setSidebarNavTab('saved')}
                 className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                  sidebarNavTab === 'saved' ? 'bg-blue-50 text-[#0061FF]' : 'text-slate-500 hover:bg-slate-100'
+                  sidebarNavTab === 'saved' ? 'bg-blue-50 text-[#2563EB]' : 'text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 <Star size={18} color="currentColor" />
@@ -1423,8 +1281,8 @@ export default function AtiWorkspace() {
                 onClick={() => setActiveId(c.id)}
                 className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold transition ${
                   c.id === activeId
-                    ? 'bg-[#0061FF] text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#0061FF]'
+                    ? 'bg-[#2563EB] text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#2563EB]'
                 }`}
               >
                 {c.title.charAt(0) || 'ש'}
@@ -1434,41 +1292,49 @@ export default function AtiWorkspace() {
         )}
       </div>
 
-      {/* Sidebar Bottom Footer: Mode 3D Toggle Switch Panel */}
+      {/* Sidebar Bottom Footer: Search-mode Segmented Control */}
       <div className="p-3 border-t border-slate-100 bg-slate-50/70">
         {!isSidebarCollapsed ? (
-          <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={!immediate}
-                onChange={(isPersonalized) => togglePersonalizedMode(isPersonalized)}
-              />
-            </div>
-
-            {/* Rectangular Mode Badge with Smooth Animation */}
-            <div className="flex-1 ms-2 overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={immediate ? 'fast' : 'personalized'}
-                  initial={{ opacity: 0, y: 5, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -5, scale: 0.96 }}
-                  transition={{ duration: 0.18 }}
-                  className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-center shadow-inner"
-                >
-                  <span className="block text-[12px] font-bold text-[#0061FF]">
-                    {immediate ? 'מהיר' : 'מותאם אישית'}
-                  </span>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+          <div
+            role="group"
+            aria-label="מצב חיפוש"
+            className="flex gap-1 rounded-2xl border border-slate-200/80 bg-white p-1 shadow-sm"
+          >
+            <button
+              type="button"
+              onClick={() => togglePersonalizedMode(false)}
+              className={`flex-1 rounded-xl px-2 py-1.5 text-[12px] font-bold transition ${
+                immediate
+                  ? 'bg-[#2563EB] text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              מהיר
+            </button>
+            <button
+              type="button"
+              onClick={() => togglePersonalizedMode(true)}
+              className={`flex-1 rounded-xl px-2 py-1.5 text-[12px] font-bold transition ${
+                !immediate
+                  ? 'bg-[#2563EB] text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              מותאם אישית
+            </button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1">
-            <Switch
-              checked={!immediate}
-              onChange={(isPersonalized) => togglePersonalizedMode(isPersonalized)}
-            />
+            <button
+              type="button"
+              title={immediate ? 'מצב מהיר — לחצו למעבר למותאם אישית' : 'מצב מותאם אישית — לחצו למעבר למהיר'}
+              onClick={() => togglePersonalizedMode(immediate)}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+                !immediate ? 'bg-[#2563EB] text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-[#2563EB]'
+              }`}
+            >
+              <Magicpen size={18} color="currentColor" />
+            </button>
           </div>
         )}
       </div>
@@ -1481,7 +1347,7 @@ export default function AtiWorkspace() {
       <div
         key={c.id}
         className={`group relative mb-1 rounded-xl transition ${
-          isSelected ? 'bg-blue-50/90 text-[#0061FF] font-bold' : 'hover:bg-slate-100/70 text-slate-700'
+          isSelected ? 'bg-blue-50/90 text-[#2563EB] font-bold' : 'hover:bg-slate-100/70 text-slate-700'
         }`}
       >
         {renameId === c.id ? (
@@ -1498,7 +1364,7 @@ export default function AtiWorkspace() {
                 }
               }}
               onBlur={commitRename}
-              className="w-full rounded-lg border border-blue-300 bg-white px-2 py-1 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-1 focus:ring-[#0061FF]"
+              className="w-full rounded-lg border border-blue-300 bg-white px-2 py-1 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-1 focus:ring-[#2563EB]"
             />
           </div>
         ) : (
@@ -1535,7 +1401,20 @@ export default function AtiWorkspace() {
           </div>
         ) : (
           renameId !== c.id && (
-            <div className="absolute end-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 group-hover:flex">
+            <div className="absolute end-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              <button
+                type="button"
+                aria-label={c.saved ? 'הסר משיחות שמורות' : 'שמור שיחה'}
+                title={c.saved ? 'הסר משיחות שמורות' : 'שמור שיחה'}
+                onClick={() => toggleSaved(c.id)}
+                className={`h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm transition ${
+                  c.saved
+                    ? 'flex text-amber-400 hover:text-amber-500'
+                    : 'hidden text-slate-400 hover:text-amber-400 group-hover:flex'
+                }`}
+              >
+                <Star size={12} variant={c.saved ? 'Bold' : 'Linear'} color="currentColor" />
+              </button>
               <button
                 type="button"
                 aria-label="שינוי שם"
@@ -1543,7 +1422,7 @@ export default function AtiWorkspace() {
                   setRenameId(c.id)
                   setRenameText(c.title)
                 }}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition hover:text-[#0061FF]"
+                className="hidden h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition hover:text-[#2563EB] group-hover:flex"
               >
                 <Edit2 size={12} color="currentColor" />
               </button>
@@ -1551,7 +1430,7 @@ export default function AtiWorkspace() {
                 type="button"
                 aria-label="מחיקת שיחה"
                 onClick={() => setConfirmDeleteId(c.id)}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition hover:text-red-500"
+                className="hidden h-6 w-6 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition hover:text-red-500 group-hover:flex"
               >
                 <Trash size={12} color="currentColor" />
               </button>
@@ -1568,8 +1447,8 @@ export default function AtiWorkspace() {
     <div className="relative flex h-full w-full overflow-hidden bg-slate-50">
       {/* ── Futuristic AI Mesh Gradient Background (Pure Smooth Ambient Glow) ── */}
       <div className="pointer-events-none absolute inset-0 h-full w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100/90 via-slate-50 to-blue-50/70" />
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[750px] w-[1000px] rounded-full bg-gradient-to-tr from-[#0061FF]/22 via-[#38B6FF]/25 to-indigo-300/20 blur-[130px]" />
-      <div className="pointer-events-none absolute -bottom-20 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-b from-[#38B6FF]/18 via-blue-400/15 to-[#0061FF]/15 blur-[110px]" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[750px] w-[1000px] rounded-full bg-gradient-to-tr from-[#2563EB]/22 via-[#38B6FF]/25 to-indigo-300/20 blur-[130px]" />
+      <div className="pointer-events-none absolute -bottom-20 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-b from-[#38B6FF]/18 via-blue-400/15 to-[#2563EB]/15 blur-[110px]" />
 
       {/* 1. Sidebar Column (Right Side in RTL, Flex Flow) */}
       <aside className="hidden lg:block shrink-0 z-20 p-3.5 w-72 md:w-80 h-full">
@@ -1582,9 +1461,9 @@ export default function AtiWorkspace() {
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden absolute top-3 right-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#0061FF] cursor-pointer"
+          className="lg:hidden absolute top-3 right-4 z-30 flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3.5 py-1.5 text-[12px] font-extrabold text-slate-700 shadow-md backdrop-blur-md transition hover:bg-white hover:text-[#2563EB] cursor-pointer"
         >
-          <Messages3 size={16} color="#0061FF" variant="Bold" />
+          <Messages3 size={16} color="#2563EB" variant="Bold" />
           <span>שיחות קודמות</span>
         </button>
 
@@ -1596,13 +1475,13 @@ export default function AtiWorkspace() {
               {/* Central Greeting Header */}
               <div className="flex flex-col items-center justify-center text-center shrink-0 w-full mx-auto">
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#0061FF] to-[#38B6FF] opacity-30 blur-xl animate-pulse" />
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#38B6FF] opacity-30 blur-xl animate-pulse" />
                   <IridescentOrb />
                 </div>
 
                 <h1 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-snug">
                   שלום, במה אוכל{' '}
-                  <span className="bg-gradient-to-r from-[#0061FF] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-[#2563EB] via-[#38B6FF] to-blue-600 bg-clip-text text-transparent">
                     לסייע לך היום?
                   </span>
                 </h1>
@@ -1617,7 +1496,7 @@ export default function AtiWorkspace() {
                       key={chip}
                       type="button"
                       onClick={() => guardedSend(chip)}
-                      className="rounded-full border border-slate-200/90 bg-white/90 px-4 py-1.5 text-[12px] sm:text-[13px] font-extrabold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:border-blue-400 hover:bg-white hover:text-[#0061FF] hover:shadow-md cursor-pointer"
+                      className="rounded-full border border-slate-200/90 bg-white/90 px-4 py-1.5 text-[12px] sm:text-[13px] font-extrabold text-slate-700 shadow-xs backdrop-blur-md transition-all hover:border-blue-400 hover:bg-white hover:text-[#2563EB] hover:shadow-md cursor-pointer"
                     >
                       {chip}
                     </button>
@@ -1632,12 +1511,12 @@ export default function AtiWorkspace() {
                     e.preventDefault()
                     guardedSend(input)
                   }}
-                  className="relative rounded-3xl border-2 border-blue-200/90 bg-white p-3 sm:p-4 md:p-5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#0061FF] focus-within:ring-4 focus-within:ring-blue-100"
+                  className="relative rounded-3xl border-2 border-blue-200/90 bg-white p-3 sm:p-4 md:p-5 shadow-[0_20px_50px_rgba(37,99,235,0.12)] backdrop-blur-2xl transition-all duration-200 focus-within:border-[#2563EB] focus-within:ring-4 focus-within:ring-blue-100"
                 >
                   {/* Single/Multi line Prompt Text Input Row */}
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#0061FF]">
-                      <MagicStar size={22} variant="Bold" color="#0061FF" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-[#2563EB]">
+                      <MagicStar size={22} variant="Bold" color="#2563EB" />
                     </div>
                     <textarea
                       ref={textareaRef}
@@ -1663,42 +1542,15 @@ export default function AtiWorkspace() {
                     />
                   </div>
 
-                  {/* Horizontal Scrollable Feature Pills */}
+                  {/* Horizontal Scrollable Feature Pills — only pills that trigger a real search */}
                   <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
                     <button
                       type="button"
-                      onClick={() => guardedSend('בצע ניתוח אינטליגנציית אזור על תחבורה, בתי ספר ושקט בסביבה')}
-                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
-                    >
-                      <Location size={14} color="#0061FF" variant="Bold" />
-                      <span>אינטליגנציית אזור</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => guardedSend('בצע השוואת מחירי שוק מול דירות דומות באזור')}
-                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
-                    >
-                      <ChartSquare size={14} color="#0061FF" variant="Bold" />
-                      <span>השוואת מחירי שוק</span>
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => guardedSend('סנן דירות שמתאימות לסגנון החיים וההרגלים שלי')}
-                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
+                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#2563EB] hover:bg-blue-50/50 hover:text-[#2563EB] cursor-pointer"
                     >
-                      <Magicpen size={14} color="#0061FF" variant="Bold" />
+                      <Magicpen size={14} color="#2563EB" variant="Bold" />
                       <span>סינון סגנון חיים</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => guardedSend('אני רוצה להתייעץ ולנתח חוזה שכירות')}
-                      className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[12px] font-extrabold text-slate-700 transition hover:border-[#0061FF] hover:bg-blue-50/50 hover:text-[#0061FF] cursor-pointer"
-                    >
-                      <DocumentText size={14} color="#0061FF" variant="Bold" />
-                      <span>בדיקת חוזים</span>
                     </button>
                   </div>
                 </form>
@@ -1717,15 +1569,15 @@ export default function AtiWorkspace() {
                 return (
                   <div key={m.id ?? i} className="flex flex-col w-full">
                     {m.role === 'user' ? (
-                      <div className="max-w-[82%] sm:max-w-[75%] self-start rounded-2xl rounded-tr-sm bg-gradient-to-r from-[#0061FF] to-[#38B6FF] px-4 py-3 text-[14.5px] font-medium leading-relaxed text-white shadow-md my-1">
+                      <div className="max-w-[82%] sm:max-w-[75%] self-end rounded-2xl rounded-tr-sm bg-gradient-to-r from-[#2563EB] to-[#38B6FF] px-4 py-3 text-[14.5px] font-medium leading-relaxed text-white shadow-md my-1">
                         {m.text}
                       </div>
                     ) : (
-                      <div className="flex w-full items-start gap-3 my-1">
+                      <div className="flex w-full max-w-[90%] self-start items-start gap-3 my-1">
                         <AtiAvatar size={34} />
                         <div className="min-w-0 flex-1">
                           {m.deep && (
-                            <p className="mb-1 text-[11px] font-black text-[#0061FF]">
+                            <p className="mb-1 text-[11px] font-black text-[#2563EB]">
                               מותאם אישית ✨
                             </p>
                           )}
@@ -1760,7 +1612,7 @@ export default function AtiWorkspace() {
                             key={chip}
                             type="button"
                             onClick={() => onChipTap(chip)}
-                            className="cursor-pointer rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-700 shadow-sm transition hover:border-[#0061FF] hover:text-[#0061FF]"
+                            className="cursor-pointer rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[12.5px] font-bold text-slate-700 shadow-sm transition hover:border-[#2563EB] hover:text-[#2563EB]"
                           >
                             {chip}
                           </button>
@@ -1774,7 +1626,7 @@ export default function AtiWorkspace() {
               {deepBusyConvId === active.id && (
                 <div className="flex items-center gap-2.5 self-start ps-1">
                   <AtiAvatar size={28} />
-                  <span className="animate-pulse text-[12.5px] font-bold text-[#0061FF]">
+                  <span className="animate-pulse text-[12.5px] font-bold text-[#2563EB]">
                     אתי מעמיקה… מדייקת את התוצאות בשבילך ✨
                   </span>
                 </div>
@@ -1792,9 +1644,9 @@ export default function AtiWorkspace() {
                   e.preventDefault()
                   guardedSend(input)
                 }}
-                className="flex items-center gap-3 rounded-3xl border-2 border-blue-200/90 bg-white/95 p-3 ps-5 shadow-[0_20px_50px_rgba(0,97,255,0.12)] backdrop-blur-2xl transition focus-within:border-[#0061FF]"
+                className="flex items-center gap-3 rounded-3xl border-2 border-blue-200/90 bg-white/95 p-3 ps-5 shadow-[0_20px_50px_rgba(37,99,235,0.12)] backdrop-blur-2xl transition focus-within:border-[#2563EB]"
               >
-                <MagicStar size={22} variant="Bold" color="#0061FF" className="shrink-0" />
+                <MagicStar size={22} variant="Bold" color="#2563EB" className="shrink-0" />
                 <input
                   type="text"
                   value={input}
@@ -1803,28 +1655,24 @@ export default function AtiWorkspace() {
                   className="min-w-0 flex-1 bg-transparent text-[15px] md:text-[16px] font-medium text-slate-900 outline-none placeholder:text-slate-400"
                 />
 
-                {/* Action Icons: 1. File Attachment / Contract, 2. Voice Recording */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => guardedSend('אני רוצה להעלות ולנתח חוזה שכירות ב-PDF')}
-                    className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
-                    title="צירוף קובץ או חוזה שכירות"
-                    aria-label="צירוף קובץ או חוזה שכירות"
-                  >
-                    <Paperclip size={19} variant="Bold" color="currentColor" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => guardedSend('הקלטה קולית: אתי, מצאי לי דירת 3 חדרים')}
-                    className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/90 bg-slate-50/90 text-slate-600 transition hover:border-[#0061FF] hover:bg-blue-50/80 hover:text-[#0061FF] cursor-pointer"
-                    title="הקלטה קולית לאתי"
-                    aria-label="הקלטה קולית לאתי"
-                  >
-                    <Microphone2 size={19} variant="Bold" color="currentColor" />
-                  </button>
-                </div>
+                {/* Real Web-Speech voice input — fills the composer with the transcript */}
+                {hasMic && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={toggleMic}
+                      className={`flex h-10 w-10 items-center justify-center rounded-2xl border transition cursor-pointer ${
+                        listening
+                          ? 'animate-pulse border-[#2563EB] bg-[#2563EB] text-white'
+                          : 'border-slate-200/90 bg-slate-50/90 text-slate-600 hover:border-[#2563EB] hover:bg-blue-50/80 hover:text-[#2563EB]'
+                      }`}
+                      title={listening ? 'מקשיבה…' : 'דיבור'}
+                      aria-label="הקלטה קולית לאתי"
+                    >
+                      <Microphone2 size={19} variant={listening ? 'Bold' : 'Linear'} color="currentColor" />
+                    </button>
+                  </div>
+                )}
 
                 <UserSendButton
                   disabled={!input.trim()}

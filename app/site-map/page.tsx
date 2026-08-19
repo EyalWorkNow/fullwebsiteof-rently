@@ -12,7 +12,10 @@ const groups: { heading: string; links: { href: string; label: string }[] }[] = 
   },
   {
     heading: "דירות",
-    links: [{ href: "/real-estate", label: "דירות להשכרה" }],
+    links: [
+      { href: "/real-estate?transaction=rent", label: "דירות להשכרה" },
+      { href: "/real-estate?transaction=sale", label: "דירות למכירה" },
+    ],
   },
   {
     heading: "פרסום",

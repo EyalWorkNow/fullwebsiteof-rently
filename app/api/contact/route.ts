@@ -15,12 +15,20 @@ function hasRealKey() {
   return key && key !== PLACEHOLDER && key.startsWith("re_");
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function escapeHtml(input: unknown): string {
+  return String(input ?? "").replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
+  ));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { name, email, phone, role, source, message } = await req.json();
 
-    if (!name || !email) {
-      return NextResponse.json({ error: "name and email required" }, { status: 400 });
+    if (!name || !email || typeof email !== "string" || !EMAIL_RE.test(email.trim())) {
+      return NextResponse.json({ error: "name and a valid email are required" }, { status: 400 });
     }
 
     // Dev mode — no real API key
@@ -37,6 +45,13 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safePhone = escapeHtml(phone);
+    const safeSource = escapeHtml(source);
+    const safeMessage = escapeHtml(message);
+    const safeRoleLabel = escapeHtml(roleLabel[role] || role || "—");
+
     const html = `
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
@@ -46,26 +61,26 @@ export async function POST(req: NextRequest) {
 
     <div style="background:linear-gradient(135deg,#17BDB0,#0F8A80);padding:24px 28px">
       <h1 style="color:white;margin:0;font-size:20px">&#127968; ליד חדש מ-Rently</h1>
-      <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;font-size:14px">טופס: ${source || "כללי"}</p>
+      <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;font-size:14px">טופס: ${safeSource || "כללי"}</p>
     </div>
 
     <div style="padding:28px">
       <table style="width:100%;border-collapse:collapse">
         <tr><td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px">שם</td>
-            <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-weight:700;color:#1A2B4A">${name}</td></tr>
+            <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-weight:700;color:#1A2B4A">${safeName}</td></tr>
         <tr><td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px">מייל</td>
             <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-weight:700;color:#1A2B4A">
-              <a href="mailto:${email}" style="color:#17BDB0">${email}</a></td></tr>
+              <a href="mailto:${safeEmail}" style="color:#17BDB0">${safeEmail}</a></td></tr>
         <tr><td style="padding:10px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px">טלפון</td>
             <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-weight:700;color:#1A2B4A">
-              ${phone ? `<a href="tel:${phone}" style="color:#17BDB0">${phone}</a>` : "—"}</td></tr>
+              ${safePhone ? `<a href="tel:${safePhone}" style="color:#17BDB0">${safePhone}</a>` : "—"}</td></tr>
         <tr><td style="padding:10px 0;${message ? "border-bottom:1px solid #f1f5f9;" : ""}color:#64748b;font-size:13px">סוג משתמש</td>
             <td style="padding:10px 0;${message ? "border-bottom:1px solid #f1f5f9;" : ""}font-weight:700;color:#1A2B4A">
               <span style="background:${role === "landlord" ? "#EEF2FF" : role === "agent" ? "#FFE8EA" : "#E0F7F5"};color:${role === "landlord" ? "#6366F1" : role === "agent" ? "#FF6B7A" : "#17BDB0"};padding:3px 10px;border-radius:99px;font-size:12px">
-                ${roleLabel[role] || role || "—"}
+                ${safeRoleLabel}
               </span></td></tr>
       </table>
-      ${message ? `<div style="margin-top:16px"><div style="color:#64748b;font-size:13px;margin-bottom:6px">הודעה</div><div style="white-space:pre-wrap;font-weight:600;color:#1A2B4A;line-height:1.6">${message}</div></div>` : ""}
+      ${message ? `<div style="margin-top:16px"><div style="color:#64748b;font-size:13px;margin-bottom:6px">הודעה</div><div style="white-space:pre-wrap;font-weight:600;color:#1A2B4A;line-height:1.6">${safeMessage}</div></div>` : ""}
     </div>
 
     <div style="background:#F8FBFF;padding:16px 28px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8;text-align:center">

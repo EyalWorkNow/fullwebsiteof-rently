@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import type { ComponentType } from 'react'
 import { ArrowDown2, Building, CloseCircle, Filter, Map1, SearchNormal1 } from 'iconsax-react'
 import PropertyCard from '@/components/keyz/PropertyCard'
@@ -49,6 +50,7 @@ const MapPanel = dynamic(() => import('@/components/keyz/search-map/MapPanel'), 
 const QUERY_DEBOUNCE_MS = 250
 
 export default function Browse() {
+  const router = useRouter()
   const [items, setItems] = useState<Property[]>([])
   const [live, setLive] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -90,6 +92,12 @@ export default function Browse() {
       setFilters(stored)
       setQueryInput(stored.query)
     }
+    // A category tile ("דירות למכירה"/"דירות להשכרה") can deep-link straight
+    // into a transaction type — that intent wins over whatever was stored.
+    const transactionParam = new URLSearchParams(window.location.search).get('transaction')
+    if (transactionParam === 'sale' || transactionParam === 'rent') {
+      setFilters({ ...(stored ?? defaultFilters()), transactionType: transactionParam })
+    }
     setPanelOpen(loadPanelOpen())
     setHydrated(true)
   }, [])
@@ -111,6 +119,21 @@ export default function Browse() {
       if (queryTimer.current) clearTimeout(queryTimer.current)
     }
   }, [])
+
+  // Filter drawer: lock body scroll while open + Escape closes (mirrors AuthGate).
+  useEffect(() => {
+    if (!panelOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPanelOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [panelOpen])
 
   const setAndKeep = useCallback((next: WebFilters) => {
     setFilters(next)
@@ -170,14 +193,10 @@ export default function Browse() {
     // Same card as the home page (PropertyCard); its root is a fixed-width
     // carousel item, so stretch it to the grid cell.
     <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Not wrapped in an anchor: the card is already role="button" (nesting
+          both = double tab stops), so it navigates itself. */}
       {visible.map((p) => (
-        <a
-          key={p.id}
-          href={`/listing/${p.id}`}
-          className="block [&>[role=button]]:w-full"
-        >
-          <PropertyCard property={p} />
-        </a>
+        <PropertyCard key={p.id} property={p} onSelect={() => router.push(`/listing/${p.id}`)} />
       ))}
     </div>
   )
@@ -273,7 +292,12 @@ export default function Browse() {
             />
 
             {/* Right Sliding Drawer - Floating with rounded corners */}
-            <div className="fixed top-4 bottom-4 right-4 z-50 flex w-[calc(100%-32px)] sm:w-[480px] max-w-full flex-col rounded-3xl border border-border-app bg-white/98 backdrop-blur-2xl shadow-[0_20px_60px_rgba(6,36,58,0.25)] overflow-hidden transition-all duration-300 ease-out">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="סינון ומיון דירות"
+              className="fixed top-4 bottom-4 right-4 z-50 flex w-[calc(100%-32px)] sm:w-[480px] max-w-full flex-col rounded-3xl border border-border-app bg-white/98 backdrop-blur-2xl shadow-[0_20px_60px_rgba(6,36,58,0.25)] overflow-hidden transition-all duration-300 ease-out"
+            >
               {/* Drawer Header */}
               <div className="flex shrink-0 items-center justify-between border-b border-border-app bg-white px-5 py-4">
                 <div className="flex items-center gap-2.5">

@@ -9,9 +9,10 @@
 // RealtimeChatService uses (matchId/senderId/text/createdAt) — no WebSocket
 // here, a landlord replying from the website doesn't need live push.
 
-import { getToken } from '@/lib/live/firebase'
+import { currentUser, getToken } from '@/lib/live/firebase'
 
 const BASE = '/api/rently'
+const FETCH_TIMEOUT_MS = 10_000
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getToken()
@@ -40,6 +41,7 @@ export async function fetchLeads(): Promise<Lead[]> {
     method: 'POST',
     headers: await authHeaders(),
     body: '{}',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (!res.ok) return []
   const data = await res.json().catch(() => null)
@@ -64,7 +66,10 @@ export interface MatchRow {
  *  lists shown on two separate pages — the caller picks which side to fetch. */
 export async function fetchMatches(uid: string, role: 'landlord' | 'tenant'): Promise<MatchRow[]> {
   const key = role === 'landlord' ? 'landlordUid' : 'tenantUid'
-  const res = await fetch(`${BASE}/matches?${key}=${encodeURIComponent(uid)}`, { headers: await authHeaders() })
+  const res = await fetch(`${BASE}/matches?${key}=${encodeURIComponent(uid)}`, {
+    headers: await authHeaders(),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  })
   if (!res.ok) return []
   const data = await res.json().catch(() => null)
   const items: MatchRow[] = Array.isArray(data?.items) ? data.items : []
@@ -81,6 +86,7 @@ export async function approveLead(propertyId: string, tenantId: string): Promise
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify({ id: matchIdFor(propertyId, tenantId), propertyId, tenantUid: tenantId }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (!res.ok) throw new Error('אישור הפנייה נכשל. נסו שוב.')
 }
@@ -95,8 +101,13 @@ export interface ChatMsg {
 }
 
 export async function fetchThread(matchId: string): Promise<ChatMsg[]> {
-  const res = await fetch(`${BASE}/messages?matchId=${encodeURIComponent(matchId)}`, {
+  // Ask for the NEWEST page, like the app's RealtimeChatService does — the
+  // router's default is oldest-first limit 150, which permanently hides every
+  // new message once a thread outgrows the limit.
+  const qs = `matchId=${encodeURIComponent(matchId)}&orderBy=createdAt&order=desc&limit=100`
+  const res = await fetch(`${BASE}/messages?${qs}`, {
     headers: await authHeaders(),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (!res.ok) return []
   const data = await res.json().catch(() => null)
@@ -108,14 +119,61 @@ export async function sendThreadMessage(matchId: string, text: string): Promise<
   // The backend's generic write path keys every row by an explicit `id` (it
   // never generates one) — verified directly against the live API: a POST
   // without `id` 400s with "Missing id". senderId/createdAt are stamped
-  // server-side from the caller's token, so only a unique id is needed here.
+  // server-side from the caller's token. senderName is stored verbatim and the
+  // app aligns bubbles by it — omitting it makes web-sent messages render on
+  // the wrong side in the app.
   const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const user = currentUser()
+  const senderName = user?.displayName || user?.email?.split('@')[0] || ''
   const res = await fetch(`${BASE}/messages`, {
     method: 'POST',
     headers: await authHeaders(),
-    body: JSON.stringify({ id, matchId, text }),
+    body: JSON.stringify({ id, matchId, text, senderName }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (!res.ok) throw new Error('שליחת ההודעה נכשלה. נסו שוב.')
+}
+
+// ── Tenant interest (like) ───────────────────────────────────────────────────
+// The app's swipe-like writes a row to /property_likes — that row IS the lead
+// the landlord sees (app deck + website MessagesTab both rank from it). The
+// website had no way to create one, so a web tenant could never generate a
+// lead or a match. Mirrors PropertyLikesRepository.buildAddLikeBody exactly:
+// same id scheme (like_<propertyId>_<tenantId>, unsafe chars → _), same
+// required keys, optional keys only when present.
+
+function safeLikePart(s: string): string {
+  return s.replace(/[^A-Za-z0-9._-]/g, '_')
+}
+
+export function likeIdFor(propertyId: string, tenantId: string): string {
+  return `like_${safeLikePart(propertyId)}_${safeLikePart(tenantId)}`
+}
+
+export async function sendInterest(
+  propertyId: string,
+  ownerUserId: string,
+  introMessage = '',
+): Promise<void> {
+  const user = currentUser()
+  if (!user) throw new Error('נדרשת התחברות כדי לשלוח פנייה.')
+  const note = introMessage.trim().slice(0, 140)
+  const res = await fetch(`${BASE}/property_likes`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      id: likeIdFor(propertyId, user.uid),
+      propertyId,
+      ownerUserId,
+      tenantId: user.uid,
+      tenantName: user.displayName || user.email?.split('@')[0] || '',
+      tenantPhotoUrl: user.photoURL || '',
+      ...(note ? { introMessage: note } : {}),
+      createdAt: new Date().toISOString(),
+    }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  })
+  if (!res.ok) throw new Error('שליחת הפנייה נכשלה. נסו שוב.')
 }
 
 // ── Dismissed leads — kept local for an instant optimistic hide (no round
@@ -125,10 +183,17 @@ export async function sendThreadMessage(matchId: string, text: string): Promise<
 // too (never called the server) — fixed the same way on that side.
 const DISMISS_KEY = 'rently-dismissed-leads'
 
+// Account-scoped — otherwise landlord B on a shared browser would inherit
+// landlord A's dismissed-leads list before the server round trip lands.
+function dismissKey(): string {
+  const uid = currentUser()?.uid
+  return uid ? `${DISMISS_KEY}-${uid}` : `${DISMISS_KEY}-guest`
+}
+
 function dismissedSet(): Set<string> {
   if (typeof window === 'undefined') return new Set()
   try {
-    const raw = window.localStorage.getItem(DISMISS_KEY)
+    const raw = window.localStorage.getItem(dismissKey())
     const arr = raw ? JSON.parse(raw) : []
     return new Set(Array.isArray(arr) ? arr : [])
   } catch {
@@ -144,7 +209,7 @@ export function dismissLead(propertyId: string, tenantId: string): void {
   if (typeof window !== 'undefined') {
     const set = dismissedSet()
     set.add(matchIdFor(propertyId, tenantId))
-    window.localStorage.setItem(DISMISS_KEY, JSON.stringify([...set]))
+    window.localStorage.setItem(dismissKey(), JSON.stringify([...set]))
   }
   void (async () => {
     try {
@@ -152,6 +217,7 @@ export function dismissLead(propertyId: string, tenantId: string): void {
         method: 'POST',
         headers: await authHeaders(),
         body: JSON.stringify({ propertyId, tenantId }),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       })
     } catch {
       /* fail-soft — the local hide already happened */

@@ -53,6 +53,43 @@ function compactPrice(price: number): string {
   return `₪${Math.round(price)}`
 }
 
+/** Greedy pixel-distance clustering — no new dependency (leaflet.markercluster
+ *  isn't installed). Dense areas (Gush Dan) used to stack a dozen price pins
+ *  directly on top of each other with no way to tell them apart or click one;
+ *  this groups anything within CLUSTER_PX of an already-placed cluster anchor. */
+const CLUSTER_PX = 32
+
+function clusterByPixel(
+  points: { id: string; x: number; y: number }[],
+): { x: number; y: number; ids: string[] }[] {
+  const used = new Set<string>()
+  const clusters: { x: number; y: number; ids: string[] }[] = []
+  for (const p of points) {
+    if (used.has(p.id)) continue
+    const group = [p]
+    used.add(p.id)
+    for (const q of points) {
+      if (used.has(q.id)) continue
+      if (Math.hypot(p.x - q.x, p.y - q.y) <= CLUSTER_PX) {
+        group.push(q)
+        used.add(q.id)
+      }
+    }
+    clusters.push({
+      x: group.reduce((s, g) => s + g.x, 0) / group.length,
+      y: group.reduce((s, g) => s + g.y, 0) / group.length,
+      ids: group.map((g) => g.id),
+    })
+  }
+  return clusters
+}
+
+function escapeHtml(input: unknown): string {
+  return String(input ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+  ))
+}
+
 /** Ray-casting point-in-polygon (lon = x, lat = y). Vertices as [lat, lon]. */
 function pointInPolygon(lat: number, lon: number, poly: [number, number][]): boolean {
   let inside = false
@@ -114,19 +151,6 @@ function popupEl(p: Property): HTMLElement {
     mediaInner.appendChild(ph)
   }
 
-  // Floating heart & share action buttons overlay (bottom-left)
-  const actions = document.createElement('div')
-  actions.style.cssText =
-    'position:absolute;bottom:8px;left:8px;display:flex;gap:6px;z-index:2;'
-  actions.innerHTML = `
-    <div style="width:28px;height:28px;border-radius:50%;background:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.15);">
-      ${heartSvg}
-    </div>
-    <div style="width:28px;height:28px;border-radius:50%;background:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.15);">
-      ${shareSvg}
-    </div>
-  `
-  mediaInner.appendChild(actions)
   mediaContainer.appendChild(mediaInner)
   root.appendChild(mediaContainer)
 
@@ -161,7 +185,7 @@ function popupEl(p: Property): HTMLElement {
 
   let pillsHtml = `
     <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:#F1F5F9;color:#072946;font-size:11px;font-weight:700;border-radius:8px;padding:4px 8px;">
-      ${buildingSvg} ${p.propertyType || 'דירה'}
+      ${buildingSvg} ${escapeHtml(p.propertyType) || 'דירה'}
     </span>
   `
   if (p.rooms != null) {
@@ -206,7 +230,7 @@ function popupEl(p: Property): HTMLElement {
   link.href = `/listing/${encodeURIComponent(p.id)}`
   link.textContent = 'לצפייה בדירה'
   link.style.cssText =
-    'display:block;margin-top:10px;text-align:center;background:#0061FF;color:#ffffff;font-weight:800;font-size:13px;border-radius:9999px;padding:8px 12px;text-decoration:none;box-shadow:0 3px 8px rgba(0,97,255,0.3);'
+    'display:block;margin-top:10px;text-align:center;background:#2563EB;color:#ffffff;font-weight:800;font-size:13px;border-radius:9999px;padding:8px 12px;text-decoration:none;box-shadow:0 3px 8px rgba(37,99,235,0.3);'
   body.appendChild(link)
 
   root.appendChild(body)
@@ -272,42 +296,95 @@ export default function MapPanel({ items, visibleIds, onLassoChange }: MapPanelP
     }
   }, [])
 
-  // ── price-pin markers (rebuilt when the filtered list changes) ────────────
+  // ── price-pin markers (rebuilt when the filtered list changes, or the zoom
+  //    level changes — pixel distances between two fixed lat/lngs change with
+  //    zoom, so a cluster valid at zoom 11 may need to split apart at zoom 15) ─
+  const rebuildMarkers = useCallback(() => {
+    const L = leafletRef.current
+    const map = mapRef.current
+    if (!L || !map) return
+    for (const m of markersRef.current.values()) m.remove()
+    markersRef.current.clear()
+
+    const byId = new Map(itemsRef.current.map((p) => [p.id, p]))
+    const points = itemsRef.current
+      .filter((p) => p?.id && Number.isFinite(p.lat) && Number.isFinite(p.lon))
+      .map((p) => {
+        const pt = map.latLngToContainerPoint([p.lat, p.lon])
+        return { id: p.id, x: pt.x, y: pt.y }
+      })
+    const clusters = clusterByPixel(points)
+
+    for (const cluster of clusters) {
+      if (cluster.ids.length === 1) {
+        const p = byId.get(cluster.ids[0])
+        if (!p) continue
+        const dim = !visibleIdsRef.current.has(p.id)
+        const marker = L.marker([p.lat, p.lon], {
+          icon: L.divIcon({
+            className: 'kz-price-pin-wrap' + (dim ? ' kz-pin-dim' : ''),
+            // Safe for innerHTML: compactPrice emits only ₪ + digits + K/M.
+            html: `<div class="kz-price-pin">${compactPrice(p.price)}</div>`,
+            iconSize: [0, 0],
+          }),
+        }).bindPopup(popupEl(p), { closeButton: false, offset: [0, -12] })
+        marker.addTo(map)
+        markersRef.current.set(p.id, marker)
+        continue
+      }
+
+      const members = cluster.ids.map((id) => byId.get(id)).filter((p): p is Property => !!p)
+      const centerLatLng = map.containerPointToLatLng([cluster.x, cluster.y])
+      const clusterMarker = L.marker(centerLatLng, {
+        icon: L.divIcon({
+          className: 'kz-cluster-pin-wrap',
+          html: `<div class="kz-cluster-pin">${members.length}</div>`,
+          iconSize: [0, 0],
+        }),
+      })
+      clusterMarker.on('click', () => {
+        const bounds = L.latLngBounds(members.map((p) => [p.lat, p.lon] as [number, number]))
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 18 })
+      })
+      clusterMarker.addTo(map)
+      markersRef.current.set(`cluster-${cluster.ids.join('-')}`, clusterMarker)
+    }
+  }, [])
+
   useEffect(() => {
     const L = leafletRef.current
     const map = mapRef.current
     if (!ready || !L || !map) return
-    for (const m of markersRef.current.values()) m.remove()
-    markersRef.current.clear()
+    rebuildMarkers()
 
-    const bounds = L.latLngBounds([])
-    for (const p of items) {
-      if (!p?.id || !Number.isFinite(p.lat) || !Number.isFinite(p.lon)) continue
-      const dim = !visibleIdsRef.current.has(p.id)
-      const marker = L.marker([p.lat, p.lon], {
-        icon: L.divIcon({
-          className: 'kz-price-pin-wrap' + (dim ? ' kz-pin-dim' : ''),
-          // Safe for innerHTML: compactPrice emits only ₪ + digits + K/M.
-          html: `<div class="kz-price-pin">${compactPrice(p.price)}</div>`,
-          iconSize: [0, 0],
-        }),
-      }).bindPopup(popupEl(p), { closeButton: false, offset: [0, -12] })
-      marker.addTo(map)
-      markersRef.current.set(p.id, marker)
-      bounds.extend([p.lat, p.lon])
+    if (!didFitRef.current) {
+      const bounds = L.latLngBounds(
+        items.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon)).map((p) => [p.lat, p.lon]),
+      )
+      // Fit only on FIRST data — re-fitting on every filter change is jarring;
+      // the "מרכז מפה" control re-fits on demand.
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 })
+        didFitRef.current = true
+      }
     }
-    // Fit only on FIRST data — re-fitting on every filter change is jarring;
-    // the "מרכז מפה" control re-fits on demand.
-    if (!didFitRef.current && bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 })
-      didFitRef.current = true
+  }, [ready, items, rebuildMarkers])
+
+  // Re-cluster on zoom — pan alone doesn't change relative pixel distances.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    map.on('zoomend', rebuildMarkers)
+    return () => {
+      map.off('zoomend', rebuildMarkers)
     }
-  }, [ready, items])
+  }, [ready, rebuildMarkers])
 
   // ── dim pins that dropped out of the grid (filters ∩ lasso) ───────────────
   useEffect(() => {
     if (!ready) return
     for (const [id, marker] of markersRef.current) {
+      if (id.startsWith('cluster-')) continue // no single property to dim
       marker.getElement()?.classList.toggle('kz-pin-dim', !visibleIds.has(id))
     }
   }, [ready, visibleIds, items])
@@ -480,6 +557,15 @@ export default function MapPanel({ items, visibleIds, onLassoChange }: MapPanelP
         }
         .kz-price-pin:hover { border-color: #2563EB; }
         .kz-pin-dim { opacity: .45; pointer-events: none; }
+        .kz-cluster-pin-wrap { background: none; border: none; }
+        .kz-cluster-pin {
+          position: absolute; transform: translate(-50%, -50%);
+          display: flex; align-items: center; justify-content: center;
+          width: 34px; height: 34px; border-radius: 9999px;
+          background: #2563EB; color: #fff; font-weight: 800; font-size: 13px;
+          box-shadow: 0 8px 20px rgba(7, 41, 70, 0.28); border: 2px solid #fff;
+          cursor: pointer;
+        }
         .kz-search-map.kz-drawing { cursor: crosshair; }
         .kz-search-map.kz-drawing .leaflet-marker-pane,
         .kz-search-map.kz-drawing .leaflet-popup-pane { pointer-events: none; }

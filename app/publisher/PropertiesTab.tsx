@@ -233,6 +233,7 @@ export default function PropertiesTab({
 }) {
   const [items, setItems] = useState<Property[] | null>(null)
   const [error, setError] = useState(false)
+  const [deleteError, setDeleteError] = useState(false)
   const { requireAuth } = useAuthGate()
   const uid = user?.uid ?? null
 
@@ -261,6 +262,8 @@ export default function PropertiesTab({
       setItems((prev) => (prev ? prev.filter((p) => p.id !== id) : prev))
     } catch {
       // Left in place — the row still exists server-side, so hiding it would lie.
+      setDeleteError(true)
+      setTimeout(() => setDeleteError(false), 4000)
     }
   }
 
@@ -317,6 +320,11 @@ export default function PropertiesTab({
 
   return (
     <div className="max-w-[1100px] mx-auto w-full py-4 space-y-6">
+      {deleteError && (
+        <div className="rounded-2xl bg-coral/10 px-4 py-3 text-center text-[13px] font-bold text-coral">
+          המחיקה נכשלה — נסו שוב
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {items.map((p) => (
           <PublisherPropertyCard

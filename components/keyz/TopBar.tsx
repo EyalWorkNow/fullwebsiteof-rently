@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AddCircle,
   Category,
@@ -77,30 +78,30 @@ export default function TopBar() {
       >
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <a href="/" aria-label="Rently" className="flex items-center gap-2 shrink-0">
+          <Link href="/" aria-label="Rently" className="flex items-center gap-2 shrink-0">
             <img
               src="/logo.png"
               alt="Rently"
               className="h-8 md:h-9 w-auto"
             />
-          </a>
+          </Link>
 
           {/* Desktop Navigation Links with Iconsax icons */}
           <nav className="hidden md:flex items-center gap-6">
             {NAV_LINKS.map(({ label, href, icon: IconCmp, boldIcon }) => (
-              <a
+              <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-2 text-[14.5px] font-bold text-slate-800 hover:text-[#0061FF] transition-colors py-1 px-2 rounded-xl hover:bg-blue-50/60"
+                className="flex items-center gap-2 text-[14.5px] font-bold text-slate-800 hover:text-[#2563EB] transition-colors py-1 px-2 rounded-xl hover:bg-blue-50/60"
               >
                 <IconCmp
                   size={18}
-                  color={boldIcon ? "#0061FF" : "currentColor"}
+                  color={boldIcon ? "#2563EB" : "currentColor"}
                   variant={boldIcon ? "Bold" : "Linear"}
                   className="shrink-0"
                 />
                 <span>{label}</span>
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -113,8 +114,8 @@ export default function TopBar() {
                 onClick={handlePersonalAreaClick}
                 className={`flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-black transition shadow-sm ${
                   isRegistered
-                    ? "bg-blue-50 text-[#0061FF] border border-blue-200 hover:bg-blue-100"
-                    : "bg-[#0061FF] text-white hover:bg-blue-700 shadow-md"
+                    ? "bg-blue-50 text-[#2563EB] border border-blue-200 hover:bg-blue-100"
+                    : "bg-[#2563EB] text-white hover:bg-blue-700 shadow-md"
                 }`}
               >
                 {isRegistered && user?.photoURL ? (
@@ -144,8 +145,8 @@ export default function TopBar() {
                         className="h-10 w-10 rounded-full object-cover shrink-0 border border-blue-200 shadow-sm"
                       />
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[#0061FF] shrink-0 font-bold">
-                        <ProfileCircle size={24} color="#0061FF" variant="Bold" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[#2563EB] shrink-0 font-bold">
+                        <ProfileCircle size={24} color="#2563EB" variant="Bold" />
                       </div>
                     )}
                     <div className="min-w-0">
@@ -196,15 +197,15 @@ export default function TopBar() {
           <div className="md:hidden mt-3 border-t border-slate-100 pt-3 pb-1">
             <div className="flex flex-col gap-1.5">
               {NAV_LINKS.map(({ label, href, icon: IconCmp, boldIcon }) => (
-                <a
+                <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[14.5px] font-bold text-slate-800 hover:text-[#0061FF] hover:bg-blue-50 transition"
+                  className="flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-[14.5px] font-bold text-slate-800 hover:text-[#2563EB] hover:bg-blue-50 transition"
                   onClick={() => setMenuOpen(false)}
                 >
-                  <IconCmp size={18} color={boldIcon ? "#0061FF" : "currentColor"} variant={boldIcon ? "Bold" : "Linear"} />
+                  <IconCmp size={18} color={boldIcon ? "#2563EB" : "currentColor"} variant={boldIcon ? "Bold" : "Linear"} />
                   <span>{label}</span>
-                </a>
+                </Link>
               ))}
             </div>
           </div>

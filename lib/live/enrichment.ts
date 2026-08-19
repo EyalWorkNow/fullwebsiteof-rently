@@ -4,6 +4,7 @@ import { getToken } from './firebase'
 
 // Same-origin rewrite (next.config.ts) proxies to the prod API — no CORS.
 const BASE = '/api/rently'
+const FETCH_TIMEOUT_MS = 10_000
 
 // The enrichment Lambda attaches these to a listing. Shapes mirror exactly what
 // the app's Dart widgets read (price_badge.dart / neighborhood_score_card.dart),
@@ -48,6 +49,7 @@ export async function fetchListingEnrichment(listingId: string): Promise<Listing
         Accept: 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const raw = asRecord(await res.json())

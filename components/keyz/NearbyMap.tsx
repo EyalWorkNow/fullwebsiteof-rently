@@ -305,7 +305,7 @@ export default function NearbyMap({
             width: 38px;
             height: 38px;
             border-radius: 9999px;
-            background: linear-gradient(135deg, #0061FF 0%, #38B6FF 100%);
+            background: linear-gradient(135deg, #2563EB 0%, #38B6FF 100%);
             border: 3px solid #ffffff;
             box-shadow: 0 8px 24px rgba(0, 97, 255, 0.48);
             display: flex;

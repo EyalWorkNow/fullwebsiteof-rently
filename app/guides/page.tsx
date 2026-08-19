@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Book1, Wallet2, Video, PercentageCircle, type Icon } from "iconsax-react";
 import { guides } from "@/lib/guides";
 
@@ -27,7 +28,7 @@ export default function GuidesPage() {
           {guides.map((guide) => {
             const IconComp = iconMap[guide.icon] ?? Book1;
             return (
-              <a
+              <Link
                 key={guide.slug}
                 href={`/guides/${guide.slug}`}
                 className="block bg-white rounded-3xl border border-border-app p-6 card-shadow hover:border-primary hover:-translate-y-1 transition-all"
@@ -44,7 +45,7 @@ export default function GuidesPage() {
                 <div className="text-[12px] font-bold text-primary mt-4">
                   {guide.minutes} דקות קריאה
                 </div>
-              </a>
+              </Link>
             );
           })}
         </div>

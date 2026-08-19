@@ -186,6 +186,7 @@ export default function CalendarTab({ user }: { user: User | null }) {
           <NewSlotForm
             defaultDate={selected}
             properties={properties}
+            existingSlots={slots}
             onCancel={() => setShowForm(false)}
             onCreate={(created) => {
               persist([...slots, ...created])
@@ -262,14 +263,25 @@ export default function CalendarTab({ user }: { user: User | null }) {
 
 // ── New slot form ─────────────────────────────────────────────────────────────
 
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+function overlaps(aStart: number, aDur: number, bStart: number, bDur: number): boolean {
+  return aStart < bStart + bDur && bStart < aStart + aDur
+}
+
 function NewSlotForm({
   defaultDate,
   properties,
+  existingSlots,
   onCreate,
   onCancel,
 }: {
   defaultDate: string
   properties: Property[]
+  existingSlots: ViewingSlot[]
   onCreate: (slots: ViewingSlot[]) => void
   onCancel: () => void
 }) {
@@ -280,6 +292,7 @@ function NewSlotForm({
   const [note, setNote] = useState('')
   const [tag, setTag] = useState('')
   const [repeatWeeks, setRepeatWeeks] = useState(1) // 1 = no repeat, N ≤ 8
+  const [overlapError, setOverlapError] = useState(false)
 
   function create() {
     if (!date || !time) return
@@ -298,6 +311,23 @@ function NewSlotForm({
         booked: false,
       })
     }
+
+    // Same property, same day, overlapping time window — block the double-booking.
+    if (propertyId) {
+      const clashes = out.some((slot) =>
+        existingSlots.some(
+          (s) =>
+            s.propertyId === propertyId &&
+            s.dateISO === slot.dateISO &&
+            overlaps(timeToMinutes(slot.time), slot.durationMin, timeToMinutes(s.time), s.durationMin),
+        ),
+      )
+      if (clashes) {
+        setOverlapError(true)
+        return
+      }
+    }
+    setOverlapError(false)
     onCreate(out)
   }
 
@@ -355,6 +385,11 @@ function NewSlotForm({
         הערה
         <input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} />
       </label>
+      {overlapError && (
+        <p className="mt-3 text-xs font-bold text-coral">
+          כבר יש חלון ביקור חופף לנכס הזה באותו יום ושעה.
+        </p>
+      )}
       <div className="flex gap-2 mt-4">
         <button
           onClick={create}

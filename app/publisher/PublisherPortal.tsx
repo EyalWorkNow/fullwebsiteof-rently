@@ -286,7 +286,11 @@ export default function PublisherPortal() {
               reply silently (a dead fiber's setState is a no-op) if the landlord
               switched away while waiting. */}
           <div className={tab === 'ezra' ? undefined : 'hidden'}>
-            <EzraWorkspace pendingEdit={editRequest} onConsumePendingEdit={() => setEditRequest(null)} />
+            <EzraWorkspace
+              tabVisible={tab === 'ezra'}
+              pendingEdit={editRequest}
+              onConsumePendingEdit={() => setEditRequest(null)}
+            />
           </div>
           {tab === 'properties' && (
             <PropertiesTab

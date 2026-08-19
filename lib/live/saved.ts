@@ -13,6 +13,7 @@
 import { getToken } from './firebase'
 
 const BASE = '/api/rently'
+const FETCH_TIMEOUT_MS = 10_000
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getToken()
@@ -48,7 +49,10 @@ export async function ensureLoaded(): Promise<Set<string>> {
   if (inflight) return inflight
   inflight = (async () => {
     try {
-      const res = await fetch(`${BASE}/interactions/saved`, { headers: await authHeaders() })
+      const res = await fetch(`${BASE}/interactions/saved`, {
+        headers: await authHeaders(),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
       const data = res.ok ? await res.json().catch(() => null) : null
       const ids: string[] = Array.isArray(data?.propertyIds) ? data.propertyIds : []
       cache = new Set(ids)
@@ -74,6 +78,7 @@ export function toggleSaved(propertyId: string, saved: boolean): void {
         method: 'POST',
         headers: await authHeaders(),
         body: JSON.stringify({ propertyId, action: saved ? 'save' : 'unsave' }),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       })
     } catch {
       /* fail-soft — next ensureLoaded() reconciles from the server */

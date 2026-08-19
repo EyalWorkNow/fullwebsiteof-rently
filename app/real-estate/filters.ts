@@ -1032,8 +1032,8 @@ export function parseNaturalLanguageToFilters(rawText: string, current: WebFilte
 
   const updated: WebFilters = { ...current, requiredFeatures: [...current.requiredFeatures] }
 
-  // 1. Rooms (e.g. "3 חדרים", "3.5 חדרים", "4 חד'")
-  const roomsMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:חדרים|חדר|חד׳)/i)
+  // 1. Rooms (e.g. "3 חדרים", "3.5 חדרים", "4 חד'" — either apostrophe form)
+  const roomsMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:חדרים|חדר|חד[׳'])/i)
   if (roomsMatch) {
     const numRooms = parseFloat(roomsMatch[1])
     if (!isNaN(numRooms)) {
@@ -1042,8 +1042,13 @@ export function parseNaturalLanguageToFilters(rawText: string, current: WebFilte
     }
   }
 
-  // 2. Max Budget (e.g. "עד 7,500 ₪", "עד 8000", "עד 7000 שח")
-  const priceMatch = text.match(/(?:עד|מקסימום|תקציב)?\s*([1-9]\d{0,2}(?:,\d{3})+|[5-9]\d{3}|\d{5})\s*(?:ש"ח|₪|לחודש)?/i)
+  // 2. Max Budget (e.g. "עד 7,500 ₪", "עד 8000", "עד 7000 שח", "עד 3500 ₪").
+  // The keyword or a currency symbol must anchor the number — an unanchored
+  // scan used to grab the first bare 4-digit run in the text, including a
+  // year ("קיץ 2026") or a date fragment, before ever reaching the real budget.
+  const priceMatch =
+    text.match(/(?:עד|מקסימום|תקציב)\s*([1-9]\d{0,2}(?:,\d{3})+|[1-9]\d{3}|\d{5})\s*(?:ש"ח|₪|לחודש)?/i) ||
+    text.match(/([1-9]\d{0,2}(?:,\d{3})+|[1-9]\d{3}|\d{5})\s*(?:ש"ח|₪)/i)
   if (priceMatch) {
     const parsedPrice = parseInt(priceMatch[1].replace(/,/g, ''), 10)
     if (!isNaN(parsedPrice) && parsedPrice >= 1000 && parsedPrice <= 50000) {
@@ -1069,10 +1074,15 @@ export function parseNaturalLanguageToFilters(rawText: string, current: WebFilte
     'אשדוד',
     'באר שבע',
   ]
+  // Pick whichever city is mentioned earliest in the text, not whichever
+  // happens to come first in this fixed list — list order used to win even
+  // when a different city was the one actually named later in the sentence.
+  let bestCityIndex = Infinity
   for (const c of cities) {
-    if (text.includes(c) || text.includes(`ב${c}`)) {
+    const idx = text.indexOf(`ב${c}`) >= 0 ? text.indexOf(`ב${c}`) : text.indexOf(c)
+    if (idx >= 0 && idx < bestCityIndex) {
+      bestCityIndex = idx
       updated.city = c
-      break
     }
   }
 

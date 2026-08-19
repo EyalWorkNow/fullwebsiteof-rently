@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft2, ArrowRight2 } from 'iconsax-react'
 import PropertyCard from './PropertyCard'
 import type { Property } from '@/lib/live/types'
@@ -18,6 +19,7 @@ export default function ListingCarousel({
   explanations,
   className = '',
 }: ListingCarouselProps) {
+  const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
@@ -63,7 +65,7 @@ export default function ListingCarousel({
         type="button"
         aria-label="גלול שמאלה"
         onClick={() => scrollByAmount('left')}
-        className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 text-navy shadow-lg backdrop-blur-md transition-all duration-200 hover:bg-[#0061FF] hover:text-white hover:border-[#0061FF] hover:scale-110 active:scale-95 cursor-pointer ${
+        className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 text-navy shadow-lg backdrop-blur-md transition-all duration-200 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] hover:scale-110 active:scale-95 cursor-pointer ${
           canScrollLeft ? 'opacity-100 sm:opacity-90 group-hover/carousel:opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -75,7 +77,7 @@ export default function ListingCarousel({
         type="button"
         aria-label="גלול ימינה"
         onClick={() => scrollByAmount('right')}
-        className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 text-navy shadow-lg backdrop-blur-md transition-all duration-200 hover:bg-[#0061FF] hover:text-white hover:border-[#0061FF] hover:scale-110 active:scale-95 cursor-pointer ${
+        className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 text-navy shadow-lg backdrop-blur-md transition-all duration-200 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] hover:scale-110 active:scale-95 cursor-pointer ${
           canScrollRight ? 'opacity-100 sm:opacity-90 group-hover/carousel:opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -89,13 +91,13 @@ export default function ListingCarousel({
       >
         {listings.map((p) => (
           <div key={p.id} className="snap-start shrink-0">
-            <a href={`/listing/${p.id}`} className="block">
-              <PropertyCard property={p} />
-            </a>
+            {/* Not wrapped in an anchor: the card is already role="button"
+                (nesting both = double tab stops), so it navigates itself. */}
+            <PropertyCard property={p} onSelect={() => router.push(`/listing/${p.id}`)} />
             {(notes?.[p.id] || explanations?.[p.id]) && (
               <p className="mt-2 max-w-[320px] text-[12px] font-semibold leading-relaxed text-slate-600 bg-blue-50/70 border border-blue-100/80 rounded-xl px-3 py-1.5">
                 {notes?.[p.id] && (
-                  <span className="text-[#0061FF] font-black">{notes[p.id]}</span>
+                  <span className="text-[#2563EB] font-black">{notes[p.id]}</span>
                 )}
                 {notes?.[p.id] && explanations?.[p.id] ? ' · ' : ''}
                 {explanations?.[p.id]}

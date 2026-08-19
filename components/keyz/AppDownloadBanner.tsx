@@ -52,6 +52,8 @@ export default function AppDownloadBanner() {
               <img
                 src="/swippage.png"
                 alt="אפליקציית רנטלי - סוויפים"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-auto object-cover rounded-[36px] block relative z-10"
               />
 

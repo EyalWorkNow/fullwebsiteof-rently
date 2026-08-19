@@ -141,9 +141,12 @@ async function authHeaders(): Promise<Record<string, string>> {
   }
 }
 
+const FETCH_TIMEOUT_MS = 10_000
+
 async function getJson(path: string): Promise<unknown> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { Accept: 'application/json', ...(await authHeaders()) },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()

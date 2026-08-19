@@ -16,6 +16,8 @@ import type { Property } from '@/lib/live/types'
 import PropertyCard from '@/components/keyz/PropertyCard'
 import NearbyPlaces from '@/components/keyz/NearbyPlaces'
 import EnrichmentCards from '@/components/keyz/EnrichmentCards'
+import { useAuthGate } from '@/components/keyz/auth/AuthGate'
+import { sendInterest } from '@/lib/live/messages-api'
 
 const APP_URL = 'https://apps.apple.com/il/app/id6773088152'
 
@@ -128,6 +130,8 @@ export default function ListingClient({ id }: { id: string }) {
   const [similar, setSimilar] = useState<Property[]>([])
   const [imgIndex, setImgIndex] = useState(0)
   const [copied, setCopied] = useState(false)
+  const [interest, setInterest] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const { requireAuth } = useAuthGate()
 
   useEffect(() => {
     let cancelled = false
@@ -244,7 +248,7 @@ export default function ListingClient({ id }: { id: string }) {
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    <img src={url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -256,7 +260,7 @@ export default function ListingClient({ id }: { id: string }) {
 
             {/* Info chips */}
             <div className="no-scrollbar mt-5 flex flex-wrap gap-2">
-              <Chip icon={Home2} label={`${p.rooms} חדרים`} />
+              {p.rooms != null && <Chip icon={Home2} label={`${p.rooms} חדרים`} />}
               {p.sizeM2 != null && <Chip icon={Maximize4} label={`${p.sizeM2} מ״ר`} />}
               {p.floor && <Chip icon={Building} label={`קומה ${p.floor}`} />}
               {p.propertyType && <Chip label={p.propertyType} />}
@@ -339,13 +343,48 @@ export default function ListingClient({ id }: { id: string }) {
                 {p.transactionType === 'sale' ? 'למכירה' : 'להשכרה'}
               </div>
               <div className="my-5 border-t border-border-app" />
+              {/* Same /property_likes row the app's swipe-like writes — this is
+                  what makes the web visitor show up as a lead in the landlord's
+                  deck (app + website) and lets a match/chat start from the web. */}
+              <button
+                type="button"
+                disabled={interest === 'sending' || interest === 'sent'}
+                onClick={() =>
+                  requireAuth('כדי לשלוח פנייה לבעל הדירה', () => {
+                    setInterest('sending')
+                    const ownerUserId = String(
+                      (p as unknown as { ownerUserId?: unknown }).ownerUserId ?? '',
+                    )
+                    sendInterest(p.id, ownerUserId)
+                      .then(() => setInterest('sent'))
+                      .catch(() => setInterest('error'))
+                  })
+                }
+                className="block w-full rounded-full bg-primary py-3.5 text-center font-bold text-white transition hover:bg-primary-dark disabled:opacity-70"
+              >
+                {interest === 'sent'
+                  ? 'הפנייה נשלחה ✓'
+                  : interest === 'sending'
+                    ? 'שולחים…'
+                    : 'אני מעוניין/ת — שליחת פנייה'}
+              </button>
+              {interest === 'error' && (
+                <div className="mt-2 text-center text-[12px] font-bold text-coral">
+                  שליחת הפנייה נכשלה — נסו שוב
+                </div>
+              )}
+              {interest === 'sent' && (
+                <div className="mt-2 text-center text-[12px] text-secondary-text">
+                  כשבעל הדירה יאשר, השיחה תיפתח ב״השיחות שלי״ — כאן ובאפליקציה
+                </div>
+              )}
               <a
                 href={APP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full rounded-full bg-primary py-3.5 text-center font-bold text-white transition hover:bg-primary-dark"
+                className="mt-2.5 block w-full rounded-full border border-border-app py-3 text-center font-bold text-navy transition hover:border-primary hover:text-primary"
               >
-                לפרטים ויצירת קשר באפליקציה
+                להמשך באפליקציה
               </a>
               <button
                 type="button"

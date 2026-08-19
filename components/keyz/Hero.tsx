@@ -42,6 +42,105 @@ function getSpeechRecognition(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+// ── 3D Transparent Background Video with Native VP9 Alpha & Real-Time Canvas Fallback
+function TransparentHeroVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [useCanvasFallback, setUseCanvasFallback] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Check if the browser natively supports WebM VP9 alpha or MOV alpha
+    const canPlayWebM = video.canPlayType('video/webm; codecs="vp9"');
+    const canPlayMOV = video.canPlayType('video/quicktime');
+    
+    if (!canPlayWebM && !canPlayMOV) {
+      setUseCanvasFallback(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!useCanvasFallback) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    let animId: number;
+
+    const render = () => {
+      if (video.paused || video.ended || video.readyState < 2) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (w > 0 && h > 0) {
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, w, h);
+          const frame = ctx.getImageData(0, 0, w, h);
+          const d = frame.data;
+          const len = d.length;
+
+          for (let i = 0; i < len; i += 4) {
+            const r = d[i];
+            const g = d[i + 1];
+            const b = d[i + 2];
+
+            const maxC = Math.max(r, g, b);
+
+            if (maxC < 36) {
+              const alpha = Math.max(0, (maxC - 6) / 30);
+              d[i + 3] = Math.round(d[i + 3] * alpha);
+            }
+          }
+          ctx.putImageData(frame, 0, 0);
+        }
+      }
+
+      animId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [useCanvasFallback]);
+
+  return (
+    <div className="relative h-full w-full flex items-center justify-center">
+      <video
+        ref={videoRef}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className={useCanvasFallback ? "hidden" : "h-auto w-full object-contain filter drop-shadow-[0_20px_35px_rgba(37,99,235,0.15)]"}
+      >
+        <source src="/background-video.webm" type="video/webm" />
+        <source src="/background-video-transparent.mov" type="video/quicktime" />
+        <source src="/background-video.mp4" type="video/mp4" />
+      </video>
+      {useCanvasFallback && (
+        <canvas
+          ref={canvasRef}
+          className="h-auto w-full object-contain filter drop-shadow-[0_20px_35px_rgba(37,99,235,0.15)]"
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Hero Liquid Animated Search Button (Rently Blue Palette) ─────────────────
 function HeroAiSearchButton({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) {
   const [mounted, setMounted] = useState(false);
@@ -557,23 +656,12 @@ export default function Hero() {
         className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-tr from-blue-200/30 via-indigo-100/20 to-[#38B6FF]/20 blur-3xl"
       />
 
-      {/* 3D Jumping House Background Video (Top Right in RTL) */}
+      {/* 3D Transparent Background Video (Top Right in RTL) - Straightened, enlarged, pushed further right, opacity 30% */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-28 sm:-right-40 md:-right-52 lg:-right-48 -top-2 sm:-top-4 md:-top-6 lg:-top-8 z-0 w-[378px] sm:w-[566px] md:w-[680px] lg:w-[780px] max-w-none select-none opacity-[0.25] transition-all"
+        className="pointer-events-none absolute -right-40 sm:-right-56 md:-right-72 lg:-right-64 -top-4 sm:-top-6 md:-top-8 lg:-top-10 z-0 w-[440px] sm:w-[640px] md:w-[780px] lg:w-[900px] max-w-none select-none transition-all scale-105 sm:scale-110 opacity-30 [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_98%)] [-webkit-mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_98%)]"
       >
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          poster="/balloon-house.png"
-          className="h-auto w-full object-contain filter drop-shadow-[0_20px_35px_rgba(37,99,235,0.15)]"
-        >
-          {/* TODO: replace the QuickTime .mov with a real H.264 .mp4 (and/or WebM) encode — .mov is unreliable in Chrome and unsupported in Firefox */}
-          <source src="/floating-house.mov" type="video/quicktime" />
-        </video>
+        <TransparentHeroVideo />
       </div>
 
       <div className="relative mx-auto max-w-[860px] px-4 text-center z-10">
